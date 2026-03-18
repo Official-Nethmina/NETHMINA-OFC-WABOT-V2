@@ -16,10 +16,19 @@ async (nethmina, mek, m, {
     groupAdmins, isBotAdmins, isAdmins, reply
 }) => {
     try {
-       return await nethmina.sendMessage(from, {
+        // ----------------- 1️⃣ Send voice first -----------------
+        await nethmina.sendMessage(from, {
+            audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/cmd-voice/alive.mp3" },
+            mimetype: "audio/mpeg",
+            ptt: true // send as push-to-talk (voice note)
+        }, { quoted: mek });
+
+        // ----------------- 2️⃣ Send image + caption -----------------
+        return await nethmina.sendMessage(from, {
             image: { url: config.ALIVE_IMG },
             caption: config.ALIVE_MSG
         }, { quoted: mek });
+
     } catch (e) {
         console.log(e);
         reply(`${e}`);
