@@ -1,8 +1,8 @@
 {
-  "name": "DANUWA-MD",
-  "description": "Javascript WhatsApp bot made by Danuka Dissanayake",
-  "logo": "https://github.com/DANUWA-MD/DANUWA-MD/blob/main/images/DANUWA-MD.png?raw=true",
-  "keywords": ["DANUWA-MD"],
+  "name": "NETHMINA-OFC-WA-BOT",
+  "description": "Javascript WhatsApp bot made by Bhashitha Nethmina",
+  "logo": "https://github.com/Nethmina-dev/BOT-DATA/blob/main/Logo/ChatGPT%20Image%20Mar%2018,%202026,%2005_47_58%20PM.png?raw=true",
+  "keywords": ["NETHMINA-OFC"],
   "success_url": "/",
 
   "env": {
