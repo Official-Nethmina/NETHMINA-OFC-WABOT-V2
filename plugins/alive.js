@@ -14,16 +14,7 @@ async (nethmina, mek, m, {
     sender, senderNumber, reply
 }) => {
     try {
-        const oggUrl = "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/cmd-voice/alive%20(online-audio-converter.com).ogg";
-
-        // ----------------- 1️⃣ Send WhatsApp Voice Note -----------------
-        await nethmina.sendMessage(from, {
-            audio: { url: oggUrl },
-            mimetype: "audio/ogg",
-            ptt: true
-        }, { quoted: mek });
-
-        // ----------------- 2️⃣ Send Image + Caption -----------------
+        // ----------------- Send Image + Caption Only -----------------
         await nethmina.sendMessage(from, {
             image: { url: config.ALIVE_IMG },
             caption: config.ALIVE_MSG
