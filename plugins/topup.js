@@ -79,13 +79,14 @@ Flow:
         ];
 
         // ✅ API CALL
-        const response = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.GEMINI_API_KEY}`,
+        // inside function
+if (mek.key.fromMe) return;
+
+const response = await axios.post(
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${config.GEMINI_API_KEY}`,
     { contents },
     {
-        headers: {
-            "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" }
     }
 );
         // ✅ Safe response
