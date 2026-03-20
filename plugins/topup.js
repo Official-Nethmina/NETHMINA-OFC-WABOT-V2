@@ -83,12 +83,30 @@ Flow:
 if (mek.key.fromMe) return;
 
 const response = await axios.post(
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${config.GEMINI_API_KEY}`,
-    { contents },
+    `https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro-preview:generate?key=${config.GEMINI_API_KEY}`,
     {
-        headers: { "Content-Type": "application/json" }
+        prompt: {
+            messages: [
+                {
+                    "role": "system",
+                    "content": [
+                        { "type": "text", "text": systemPrompt }
+                    ]
+                },
+                ...userMemory[from].map(msg => ({
+                    "role": "user",
+                    "content": [
+                        { "type": "text", "text": msg }
+                    ]
+                }))
+            ]
+        }
     }
 );
+
+const aiReply = response.data?.output?.messages?.find(
+    m => m.type === "output_text"
+)?.text || "⚠️ Try again later.";
         // ✅ Safe response
         const aiReply =
             response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
