@@ -83,7 +83,7 @@ cmd(
         { quoted: mek }
       );
 
-      return reply("✅ Thank you!");
+      return reply("*Thank you for using NETHMINA OFC! ✅*");
     } catch (e) {
       console.log(e);
       reply(`❌ *Error:* ${e.message} 😞`);
