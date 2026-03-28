@@ -4,8 +4,8 @@ const getFbVideoInfo = require("@xaviabot/fb-downloader");
 cmd(
   {
     pattern: "fb",
-    alias: ["facebook"],
-    react: "✅",
+    alias: ["facebook", "fbdown", "fbdl"],
+    react: "🎥",
     desc: "Download Facebook Video",
     category: "download",
     filename: __filename,
