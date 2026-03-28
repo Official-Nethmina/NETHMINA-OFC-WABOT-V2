@@ -276,7 +276,7 @@ if (mek.key?.remoteJid === 'status@broadcast') {
   });
 
 
-  conn.ev.on('messages.update', async (updates) => {
+  nethmina.ev.on('messages.update', async (updates) => {
 
      mek.message = getContentType(mek.message) === 'ephemeralMessage'
         ? mek.message.ephemeralMessage.message
