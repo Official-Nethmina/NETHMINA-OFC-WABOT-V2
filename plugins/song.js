@@ -11,7 +11,7 @@ cmd(
     category: "download",
     filename: __filename,
   },
-  async (danuwa, mek, m, { from, q, reply }) => {
+  async (nethmina, mek, m, { from, q, reply }) => {
     try {
       if (!q) return reply("❌ *Please provide a song name or YouTube link*");
 
@@ -44,7 +44,7 @@ cmd(
 `;
 
       // Send info message
-      await danuwa.sendMessage(
+      await nethmina.sendMessage(
         from,
         { image: { url: data.thumbnail }, caption: desc },
         { quoted: mek }
@@ -62,7 +62,7 @@ cmd(
       }
 
       // Send Audio as Voice/Audio File
-      await danuwa.sendMessage(
+      await nethmina.sendMessage(
         from,
         {
           audio: { url: songData.download.url },
@@ -72,7 +72,7 @@ cmd(
       );
 
       // Send as Document
-      await danuwa.sendMessage(
+      await nethmina.sendMessage(
         from,
         {
           document: { url: songData.download.url },
