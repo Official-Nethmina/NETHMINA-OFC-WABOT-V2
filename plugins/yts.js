@@ -10,17 +10,7 @@ cmd(
     category: "search",
     filename: __filename,
   },
-  async (
-    danuwa,
-    mek,
-    m,
-    {
-      from,
-      quoted,
-      q,
-      reply,
-    }
-  ) => {
+  async (nethmina, mek, m, { from, quoted, q, reply }) => {
     try {
       if (!q) return reply("*Please provide a search query!* 🔍");
 
@@ -32,28 +22,45 @@ cmd(
         return reply("*No results found on YouTube.* ☹️");
       }
 
-      const results = search.videos.slice(0, 10); 
-      let formattedResults = results.map((v, i) => (
-        `🎬 *${i + 1}. ${v.title}*\n📅 ${v.ago} | ⌛ ${v.timestamp} | 👁️ ${v.views.toLocaleString()} views\n🔗 ${v.url}`
-      )).join("\n\n");
+      const results = search.videos.slice(0, 10);
 
-      const caption = `  
-Your youtube search results
+      let formattedResults = results.map((v, i) => {
+        return `
+*🎧❤️ NETHMINA OFC SONG DOWNLOADER ❤️🎧*
+
+┌───────────────────
+├ *🎬 Result:* ${i + 1}
+├ *📀 Title:* ${v.title}
+├ *⏱️ Duration:* ${v.timestamp}
+├ *📆 Uploaded:* ${v.ago}
+├ *👁️ Views:* ${v.views.toLocaleString()}
+├ *📡 Channel:* ${v.author?.name || "Unknown"}
+├ *🔗 Watch/Download:* ${v.url}
+└───────────────────
+`;
+      }).join("\n");
+
+      const caption = `
+🔎 *YouTube Search Results*
 ─────────────────────────
-🔎 *Query*: ${q}
-${formattedResults}
-   `;
+*📥 Query:* ${q}
 
-      await danuwa.sendMessage(
+${formattedResults}
+
+> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ
+`;
+
+      await nethmina.sendMessage(
         from,
         {
           image: {
-            url: "https://github.com/DANUWA-MD/DANUWA-MD/blob/main/images/yts.png?raw=true",
+            url: "https://github.com/Nethmina-dev/BOT-DATA/blob/main/Logo/ChatGPT%20Image%20Mar%2018,%202026,%2005_47_58%20PM.png?raw=true",
           },
           caption,
         },
         { quoted: mek }
       );
+
     } catch (err) {
       console.error(err);
       reply("*An error occurred while searching YouTube.* ❌");
