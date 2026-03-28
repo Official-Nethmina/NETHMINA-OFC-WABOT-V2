@@ -1,316 +1,317 @@
-// ====================== IMPORTS ======================
 const {
   default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
+  jidNormalizedUser,
   getContentType,
-  fetchLatestBaileysVersion,
+  proto,
+  generateWAMessageContent,
+  generateWAMessage,
+  AnyMessageContent,
+  prepareWAMessageMedia,
+  areJidsSameUser,
   downloadContentFromMessage,
+  MessageRetryMap,
+  generateForwardMessageContent,
+  generateWAMessageFromContent,
+  generateMessageID, makeInMemoryStore,
+  jidDecode,
+  fetchLatestBaileysVersion,
   Browsers
-} = require("@whiskeysockets/baileys");
+} = require('@whiskeysockets/baileys');
 
-const fs = require("fs");
-const path = require("path");
-const P = require("pino");
-const express = require("express");
+const fs = require('fs');
+const P = require('pino');
+const express = require('express');
+const axios = require('axios');
+const path = require('path');
+const qrcode = require('qrcode-terminal');
 
-const config = require("./config");
-const { sms } = require("./lib/msg");
-const { commands, replyHandlers } = require("./command");
-const { File } = require("megajs");
+const config = require('./config');
+const { sms, downloadMediaMessage } = require('./lib/msg');
+const {
+  getBuffer, getGroupAdmins, getRandom, h2k, isUrl, Json, runtime, sleep, fetchJson
+} = require('./lib/functions');
+const { File } = require('megajs');
+const { commands, replyHandlers } = require('./command');
 
-// ====================== SERVER ======================
 const app = express();
 const port = process.env.PORT || 8000;
 
-app.get("/", (req, res) => {
-  res.send("NETHMINA-OFC WA-BOT Running Successfully 🚀");
-});
+const prefix = '.';
+const ownerNumber = ['94776121326'];
+const credsPath = path.join(__dirname, '/auth_info_baileys/creds.json');
 
-app.listen(port, () =>
-  console.log(`Server running → http://localhost:${port}`)
-);
-
-// ====================== CONFIG ======================
-const prefix = ".";
-const ownerNumber = ["94701332157"];
-const credsPath = path.join(__dirname, "/auth_info_baileys/creds.json");
-
-// ====================== PLUGIN SYSTEM ======================
-global.pluginHooks = global.pluginHooks || [];
-const antiDeletePlugin = require("./plugins/antidelete.js");
-global.pluginHooks.push(antiDeletePlugin);
-
-// ====================== SESSION HANDLER ======================
 async function ensureSessionFile() {
   if (!fs.existsSync(credsPath)) {
     if (!config.SESSION_ID) {
-      console.error("❌ SESSION_ID is missing in config.js");
+      console.error('❌ SESSION_ID env variable is missing. Cannot restore session.');
       process.exit(1);
     }
 
-    console.log("🔄 Downloading session from MEGA…");
-    const sess = config.SESSION_ID;
-    const file = File.fromURL(`https://mega.nz/file/${sess}`);
+    console.log("🔄 creds.json not found. Downloading session from MEGA...");
 
-    file.download((err, data) => {
+    const sessdata = config.SESSION_ID;
+    const filer = File.fromURL(`https://mega.nz/file/${sessdata}`);
+
+    filer.download((err, data) => {
       if (err) {
-        console.error("❌ Failed to download MEGA session:", err);
+        console.error("❌ Failed to download session file from MEGA:", err);
         process.exit(1);
       }
 
-      fs.mkdirSync(path.join(__dirname, "/auth_info_baileys/"), {
-        recursive: true
-      });
+      fs.mkdirSync(path.join(__dirname, '/auth_info_baileys/'), { recursive: true });
       fs.writeFileSync(credsPath, data);
-
-      console.log("✅ Session restored. Starting bot...");
-      connectToWA();
+      console.log("✅ Session downloaded and saved. Restarting bot...");
+      setTimeout(() => {
+        connectToWA();
+      }, 2000);
     });
   } else {
-    connectToWA();
+    setTimeout(() => {
+      connectToWA();
+    }, 1000);
   }
 }
 
-// ====================== MAIN WHATSAPP CONNECTION ======================
+
+const antiDeletePlugin = require('./plugins/antidelete.js');
+global.pluginHooks = global.pluginHooks || [];
+global.pluginHooks.push(antiDeletePlugin);
+
+
 async function connectToWA() {
-  console.log("🔌 Connecting NETHMINA OFC…");
-
-  const { state, saveCreds } = await useMultiFileAuthState(
-    path.join(__dirname, "/auth_info_baileys/")
-  );
-
+  console.log("Connecting test-MD 🧬...");
+  const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, '/auth_info_baileys/'));
   const { version } = await fetchLatestBaileysVersion();
 
-  const nethmina = makeWASocket({
-    logger: P({ level: "silent" }),
+  const test = makeWASocket({
+    logger: P({ level: 'silent' }),
     printQRInTerminal: false,
-    browser: Browsers.macOS("Safari"),
+    browser: Browsers.macOS("Firefox"),
     auth: state,
     version,
     syncFullHistory: true,
     markOnlineOnConnect: true,
-    generateHighQualityLinkPreview: true
+    generateHighQualityLinkPreview: true,
   });
 
-  // ====================== CONNECTION EVENTS ======================
-  nethmina.ev.on("connection.update", async (update) => {
+  test.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
-
-    if (connection === "close") {
-      if (
-        lastDisconnect?.error?.output?.statusCode !==
-        DisconnectReason.loggedOut
-      ) {
+    if (connection === 'close') {
+      if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
         connectToWA();
       }
-    }
+    } else if (connection === 'open') {
+      console.log('✅ test-MD connected to WhatsApp');
 
-    if (connection === "open") {
-      console.log("✅ BOT CONNECTED SUCCESSFULLY");
-
-      const msg = `*🤖 Welcome to NETHMINA OFC WA-BOT 🤖*
-
-⭐ *Bot Started Successfully!*
-🧿 Prefix: [${prefix}]
-
-Type *.alive* to check status  
-Type *.menu* to see commands
-
-> Powered by Nethmina OFC`;
-
-      await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-        text: msg
+      const up = `test-MD connected ✅\n\nPREFIX: ${prefix}`;
+      await test.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
+        image: { url: `https://github.com/Nethmina-dev/BOT-DATA/blob/main/Logo/ChatGPT%20Image%20Mar%2018,%202026,%2005_47_58%20PM.png?raw=true` },
+        caption: up
       });
 
-      // Load plugins
-      fs.readdirSync("./plugins/").forEach((file) => {
-        if (file.endsWith(".js")) require(`./plugins/${file}`);
+      fs.readdirSync("./plugins/").forEach((plugin) => {
+        if (path.extname(plugin).toLowerCase() === ".js") {
+          require(`./plugins/${plugin}`);
+        }
       });
     }
   });
 
-  nethmina.ev.on("creds.update", saveCreds);
+  test.ev.on('creds.update', saveCreds);
 
-  // ====================== STATUS AUTO SEEN + AUTO REACT + FORWARD ======================
-  nethmina.ev.on("messages.upsert", async ({ messages }) => {
+  test.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
-      if (msg.key.remoteJid === "status@broadcast") {
-        const senderJid = msg.key.participant || msg.key.remoteJid;
-        const mentionJid = senderJid.includes("@s.whatsapp.net")
-          ? senderJid
-          : senderJid + "@s.whatsapp.net";
+      if (msg.messageStubType === 68) {
+        await test.sendMessageAck(msg.key);
+      }
+    }
 
-        // AUTO SEEN
-        try {
-          await nethmina.readMessages([msg.key]);
-          console.log(`👀 Status seen: ${msg.key.id}`);
-        } catch (err) {
-          console.error("❌ Failed to mark status as seen:", err);
-        }
+    const mek = messages[0];
+    if (!mek || !mek.message) return;
+    mek.message = getContentType(mek.message) === 'ephemeralMessage' ? mek.message.ephemeralMessage.message : mek.message;
+   
 
-        // AUTO REACT
-        try {
-          const emojis = [
-            "❤️","💸","😇","🍂","💥","💯","🔥","💫","💎","💗","🤍","🖤","👀","🙌",
-            "🙆","🚩","🥰","💐","😎","🤎","✅","🫀","🧡","😁","😄","🌸","🕊️","🌷",
-            "⛅","🌟","🗿","💜","💙","🌝","🖤","💚"
-          ];
-          const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-
-          await nethmina.sendMessage(senderJid, {
-            react: { text: randomEmoji, key: msg.key }
-          });
-
-          console.log(`🎯 Reacted to status of ${senderJid} with ${randomEmoji}`);
-        } catch (err) {
-          console.error("❌ Failed to react to status:", err);
-        }
-
-        // FORWARD TEXT STATUS
-        if (msg.message?.extendedTextMessage && !msg.message.imageMessage && !msg.message.videoMessage) {
-          const text = msg.message.extendedTextMessage.text || "";
-          if (text.trim().length > 0) {
-            try {
-              await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-                text: `📝 *Text Status*\n👤 From: @${mentionJid.split("@")[0]}\n\n${text}`,
-                mentions: [mentionJid]
-              });
-              console.log(`✅ Text status forwarded from ${mentionJid}`);
-            } catch (e) {
-              console.error("❌ Failed to forward text status:", e);
-            }
-          }
-        }
-
-        // FORWARD MEDIA STATUS
-        if (msg.message?.imageMessage || msg.message?.videoMessage) {
+        if (global.pluginHooks) {
+      for (const plugin of global.pluginHooks) {
+        if (plugin.onMessage) {
           try {
-            const msgType = msg.message.imageMessage ? "imageMessage" : "videoMessage";
-            const mediaMsg = msg.message[msgType];
-
-            const stream = await downloadContentFromMessage(
-              mediaMsg,
-              msgType === "imageMessage" ? "image" : "video"
-            );
-
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-
-            const mimetype = mediaMsg.mimetype || (msgType === "imageMessage" ? "image/jpeg" : "video/mp4");
-            const captionText = mediaMsg.caption || "";
-
-            await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-              [msgType === "imageMessage" ? "image" : "video"]: buffer,
-              mimetype,
-              caption: `📥 *Forwarded Status*\n👤 From: @${mentionJid.split("@")[0]}\n\n${captionText}`,
-              mentions: [mentionJid]
-            });
-
-            console.log(`✅ Media status forwarded from ${mentionJid}`);
-          } catch (err) {
-            console.error("❌ Failed to forward media status:", err);
+            await plugin.onMessage(test, mek);
+          } catch (e) {
+            console.log("onMessage error:", e);
           }
         }
       }
     }
-  });
+ 
+    
+    
+if (mek.key?.remoteJid === 'status@broadcast') {
+  const senderJid = mek.key.participant || mek.key.remoteJid || "unknown@s.whatsapp.net";
+  const mentionJid = senderJid.includes("@s.whatsapp.net") ? senderJid : senderJid + "@s.whatsapp.net";
 
-  // ====================== MESSAGE HANDLING ======================
-  nethmina.ev.on("messages.upsert", async ({ messages }) => {
-    for (const mek of messages) {
-      if (!mek.message) continue;
+  if (config.AUTO_STATUS_SEEN === "true") {
+    try {
+      await test.readMessages([mek.key]);
+      console.log(`[✓] Status seen: ${mek.key.id}`);
+    } catch (e) {
+      console.error("❌ Failed to mark status as seen:", e);
+    }
+  }
 
-      // Plugin hooks
-      for (const plugin of global.pluginHooks) {
-        if (plugin.onMessage) plugin.onMessage(nethmina, mek);
-      }
+  if (config.AUTO_STATUS_REACT === "true" && mek.key.participant) {
+    try {
+      const emojis = ['❤️', '💸', '😇', '🍂', '💥', '💯', '🔥', '💫', '💎', '💗', '🤍', '🖤', '👀', '🙌', '🙆', '🚩', '🥰', '💐', '😎', '🤎', '✅', '🫀', '🧡', '😁', '😄', '🌸', '🕊️', '🌷', '⛅', '🌟', '🗿', '💜', '💙', '🌝', '🖤', '💚'];
+      const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
 
-      const from = mek.key.remoteJid;
-      const type = getContentType(mek.message);
+      await test.sendMessage(mek.key.participant, {
+        react: {
+          text: randomEmoji,
+          key: mek.key,
+        }
+      });
 
-      const body =
-        type === "conversation"
-          ? mek.message.conversation
-          : mek.message[type]?.text ||
-            mek.message[type]?.caption ||
-            "";
+      console.log(`[✓] Reacted to status of ${mek.key.participant} with ${randomEmoji}`);
+    } catch (e) {
+      console.error("❌ Failed to react to status:", e);
+    }
+  }
 
-      const sender = mek.key.fromMe
-        ? nethmina.user.id
-        : mek.key.participant || mek.key.remoteJid;
-
-      const senderNumber = sender.split("@")[0];
-      const isCmd = body.startsWith(prefix);
-      const commandName = isCmd
-        ? body.slice(prefix.length).trim().split(" ")[0]
-        : "";
-
-      const args = body.trim().split(/ +/).slice(1);
-      const q = args.join(" ");
-
-      const reply = (txt) =>
-        nethmina.sendMessage(from, { text: txt }, { quoted: mek });
-
-      // Auto-react for owner
-      if (ownerNumber.includes(senderNumber)) {
-        await nethmina.sendMessage(from, {
-          react: { text: "🧑🏻‍💻", key: mek.key }
+  if (mek.message?.extendedTextMessage && !mek.message.imageMessage && !mek.message.videoMessage) {
+    const text = mek.message.extendedTextMessage.text || "";
+    if (text.trim().length > 0) {
+      try {
+        await test.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
+          text: `📝 *Text Status*\n👤 From: @${mentionJid.split("@")[0]}\n\n${text}`,
+          mentions: [mentionJid]
         });
+        console.log(`✅ Text-only status from ${mentionJid} forwarded.`);
+      } catch (e) {
+        console.error("❌ Failed to forward text status:", e);
+      }
+    }
+  }
+
+  if (mek.message?.imageMessage || mek.message?.videoMessage) {
+    try {
+      const msgType = mek.message.imageMessage ? "imageMessage" : "videoMessage";
+      const mediaMsg = mek.message[msgType];
+
+      const stream = await downloadContentFromMessage(
+        mediaMsg,
+        msgType === "imageMessage" ? "image" : "video"
+      );
+
+      let buffer = Buffer.from([]);
+      for await (const chunk of stream) {
+        buffer = Buffer.concat([buffer, chunk]);
       }
 
-      // COMMAND HANDLER
-      if (isCmd) {
-        const cmd = commands.find(
-          (c) =>
-            c.pattern === commandName ||
-            (c.alias && c.alias.includes(commandName))
-        );
+      const mimetype = mediaMsg.mimetype || (msgType === "imageMessage" ? "image/jpeg" : "video/mp4");
+      const captionText = mediaMsg.caption || "";
 
-        if (cmd) {
-          try {
-            await cmd.function(nethmina, mek, sms(nethmina, mek), {
-              from,
-              args,
-              q,
-              sender,
-              reply,
-              command: commandName
-            });
-          } catch (e) {
-            console.log("PLUGIN ERROR:", e);
-          }
+      await test.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
+        [msgType === "imageMessage" ? "image" : "video"]: buffer,
+        mimetype,
+        caption: `📥 *Forwarded Status*\n👤 From: @${mentionJid.split("@")[0]}\n\n${captionText}`,
+        mentions: [mentionJid]
+      });
+
+      console.log(`✅ Media status from ${mentionJid} forwarded.`);
+    } catch (err) {
+      console.error("❌ Failed to download or forward media status:", err);
+    }
+  }
+}
+
+
+const m = sms(test, mek)
+const type = getContentType(mek.message)
+const content = JSON.stringify(mek.message)
+const from = mek.key.remoteJid
+const quoted = type == 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo != null ? mek.message.extendedTextMessage.contextInfo.quotedMessage || [] : []
+    const body = (type === 'conversation') ? mek.message.conversation :
+      (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text :
+        (type == 'imageMessage' && mek.message.imageMessage.caption) ? mek.message.imageMessage.caption :
+          (type == 'videoMessage' && mek.message.videoMessage.caption) ? mek.message.videoMessage.caption : '';
+    const isCmd = body.startsWith(prefix);
+    const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
+    const args = body.trim().split(/ +/).slice(1);
+    const q = args.join(' ');
+
+    const sender = mek.key.fromMe ? test.user.id : (mek.key.participant || mek.key.remoteJid);
+    const senderNumber = sender.split('@')[0];
+    const isGroup = from.endsWith('@g.us');
+    const botNumber = test.user.id.split(':')[0];
+    const pushname = mek.pushName || 'Sin Nombre';
+    const isMe = botNumber.includes(senderNumber);
+    const isOwner = ownerNumber.includes(senderNumber) || isMe;
+    const botNumber2 = await jidNormalizedUser(test.user.id);
+
+    const groupMetadata = isGroup ? await test.groupMetadata(from).catch(() => {}) : '';
+    const groupName = isGroup ? groupMetadata.subject : '';
+    const participants = isGroup ? groupMetadata.participants : '';
+    const groupAdmins = isGroup ? await getGroupAdmins(participants) : '';
+    const isBotAdmins = isGroup ? groupAdmins.includes(botNumber2) : false;
+    const isAdmins = isGroup ? groupAdmins.includes(sender) : false;
+
+    const reply = (text) => test.sendMessage(from, { text }, { quoted: mek });
+
+    if (isCmd) {
+      const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
+      if (cmd) {
+        if (cmd.react) test.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
+        try {
+          cmd.function(test, mek, m, {
+            from, quoted: mek, body, isCmd, command: commandName, args, q,
+            isGroup, sender, senderNumber, botNumber2, botNumber, pushname,
+            isMe, isOwner, groupMetadata, groupName, participants, groupAdmins,
+            isBotAdmins, isAdmins, reply,
+          });
+        } catch (e) {
+          console.error("[PLUGIN ERROR]", e);
         }
       }
+    }
 
-      // REPLY HANDLERS
-      for (const handler of replyHandlers) {
-        if (handler.filter(body, { sender, message: mek })) {
-          handler.function(nethmina, mek, sms(nethmina, mek), {
-            from,
-            body,
-            sender,
-            reply
+    const replyText = body;
+    for (const handler of replyHandlers) {
+      if (handler.filter(replyText, { sender, message: mek })) {
+        try {
+          await handler.function(test, mek, m, {
+            from, quoted: mek, body: replyText, sender, reply,
           });
           break;
+        } catch (e) {
+          console.log("Reply handler error:", e);
         }
       }
     }
   });
 
-  // ====================== MESSAGE DELETE EVENT ======================
-  nethmina.ev.on("messages.update", async (updates) => {
-    for (const plugin of global.pluginHooks) {
-      if (plugin.onDelete) {
-        try {
-          await plugin.onDelete(nethmina, updates);
-        } catch (err) {
-          console.log("❌ onDelete error:", err);
+  
+  test.ev.on('messages.update', async (updates) => {
+    if (global.pluginHooks) {
+      for (const plugin of global.pluginHooks) {
+        if (plugin.onDelete) {
+          try {
+            await plugin.onDelete(test, updates);
+          } catch (e) {
+            console.log("onDelete error:", e);
+          }
         }
       }
     }
   });
 }
 
-// ====================== START BOT ======================
+
+
 ensureSessionFile();
+
+app.get("/", (req, res) => {
+  res.send("Hey, test-MD started✅");
+});
+
+app.listen(port, () => console.log(`Server listening on http://localhost:${port}`));
