@@ -3,22 +3,45 @@ const config = require('../config');
 
 cmd({
     pattern: "alive",
-    alias: ["bot","robo","robot"],
+    alias: ["bot", "robo", "robot"],
     react: "🎃",
     desc: "Check bot online or no.",
     category: "main",
     filename: __filename
 },
 async (nethmina, mek, m, {
-    from, quoted, body, isCmd, command, args,
-    sender, senderNumber, reply
+    from, quoted, body, isCmd, command, args, q, isGroup, sender, 
+    senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, 
+    groupMetadata, groupName, participants, groupAdmins, 
+    isBotAdmins, isAdmins, reply
 }) => {
     try {
-        // ----------------- Send Image + Caption Only -----------------
-        await nethmina.sendMessage(from, {
-            image: { url: config.ALIVE_IMG },
-            caption: config.ALIVE_MSG
-        }, { quoted: mek });
+
+        // Video note presence
+        await nethmina.sendPresenceUpdate('recording', from);
+
+        // 1️⃣ SEND VIDEO NOTE (ROUND VIDEO)
+        await nethmina.sendMessage(
+            from,
+            {
+                video: { 
+                    url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/V-notes/Video%20note%201.mp4"
+                },
+                gifPlayback: false,
+                isVideoNote: true   // THIS makes it a round video note
+            },
+            { quoted: mek }
+        );
+
+        // 2️⃣ SEND ALIVE PHOTO + MESSAGE
+        return await nethmina.sendMessage(
+            from,
+            {
+                image: { url: config.ALIVE_IMG },
+                caption: config.ALIVE_MSG
+            },
+            { quoted: mek }
+        );
 
     } catch (e) {
         console.log(e);
