@@ -14,7 +14,7 @@ const path = require("path");
 const P = require("pino");
 const express = require("express");
 const axios = require('axios')
-
+const { exec } = require('child_process');
 const config = require("./config");
 const { sms } = require("./lib/msg");
 const { commands, replyHandlers } = require("./command");
