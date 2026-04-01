@@ -1,7 +1,5 @@
-const { cmd } = require('../command');
+const { cmd } = require('../command')
 const config = require('../config');
-const fs = require('fs');
-const path = require('path');
 
 cmd({
     pattern: "alive",
@@ -9,41 +7,38 @@ cmd({
     desc: "Check bot online or no.",
     category: "main",
     filename: __filename
+    
 },
-async (nethmina, mek, m, {
-    from,
-    quoted,
-    reply
-}) => {
+async (nethmina, mek, m, { from, quoted, reply }) => {
     try {
-        // 1️⃣ Show recording presence
-        await nethmina.sendPresenceUpdate('recording', from);
-
-        // 2️⃣ Absolute path for reliability
-        const audioPath = path.resolve('./media/voice/alive.opus');
-
-        if (!fs.existsSync(audioPath)) {
-            return reply("Voice note not found! Place alive.opus in media/voice/");
+        // Send reaction first
+        if (mek.key && mek.key.remoteJid) {
+            await nethmina.sendMessage(from, { react: { text: "🎃", key: mek.key } });
         }
 
-        // 3️⃣ Read file as buffer
-        const audioBuffer = fs.readFileSync(audioPath);
+        await nethmina.sendPresenceUpdate('recording', from);
+await nethmina.sendMessage(from, { audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" }, mimetype: 'audio/mpeg' }, { quoted: mek });
+        
+        // Send video note
+        await nethmina.sendMessage(
+            from,
+            {
+                video: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Video-notes/PTV-20250623-WA0021.mp4" },
+                mimetype: 'video/mp4',
+                ptv: true
+            },
+            { quoted: mek }
+        );
+        
+        // Send alive image with caption
+        return await nethmina.sendMessage(
+            from,
+            { image: { url: config.ALIVE_IMG }, caption: config.ALIVE_MSG },
+            { quoted: mek }
+        );
 
-        // 4️⃣ Send as PTT
-        await nethmina.sendMessage(from, {
-            audio: audioBuffer,
-            mimetype: 'audio/opus',
-            ptt: true
-        }, { quoted: mek });
-
-        // 5️⃣ Send image with caption
-        await nethmina.sendMessage(from, {
-            image: { url: config.ALIVE_IMG },
-            caption: config.ALIVE_MSG
-        }, { quoted: mek });
-
-    } catch (err) {
-        console.error("ALIVE COMMAND ERROR:", err);
-        reply(`Error sending alive: ${err.message}`);
+    } catch (e) {
+        console.log(e);
+        reply(`${e}`);
     }
 });
