@@ -1,7 +1,7 @@
 const { cmd } = require("../command");
 const { Sticker, StickerTypes } = require("wa-sticker-formatter");
 const sharp = require("sharp");
-const fs = require("fs");
+const fs = require("fs-extra");
 const { getRandom } = require("../lib/functions");
 const { createCanvas, registerFont } = require("canvas");
 
