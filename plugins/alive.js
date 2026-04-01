@@ -4,7 +4,6 @@ const config = require('../config');
 cmd({
     pattern: "alive",
     react: "🎃",
-    alias: ["bot","robo","robot"],
     desc: "Check bot online or no.",
     category: "main",
     filename: __filename
@@ -12,7 +11,7 @@ cmd({
 async(nethmina, mek, m,{from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply}) => {
 try{
 await nethmina.sendPresenceUpdate('recording', from);
-await nethmina.sendMessage(from, { audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.opus" }, mimetype: 'audio/mpeg', ptt: true }, { quoted: mek });
+await nethmina.sendMessage(from, { audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.opus" }, mimetype: 'audio/mp3', ptt: true }, { quoted: mek });
 return await nethmina.sendMessage(from,{image: {url: config.ALIVE_IMG},caption: config.ALIVE_MSG},{quoted: mek})
     
 }catch(e){
