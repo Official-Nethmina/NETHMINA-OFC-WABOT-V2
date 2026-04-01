@@ -28,6 +28,17 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
             { quoted: mek }
         );
 
+         // 3️⃣ Send voice note (MP3)
+        await nethmina.sendMessage(
+            from,
+            {
+                audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" },
+                mimetype: 'audio/mpeg',
+                ptt: true
+            },
+            { quoted: mek }
+        );
+        
         // Send alive image with caption
         return await nethmina.sendMessage(
             from,
