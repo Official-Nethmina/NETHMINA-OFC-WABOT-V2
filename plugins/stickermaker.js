@@ -109,7 +109,7 @@ cmd(
         const roundedPng = await makeRoundedPng(imageBuffer, opts);
 
         const st = new Sticker(roundedPng, {
-          pack: pushname || "💟 𝙽𝙴𝚃𝙷𝙼𝙸𝙽𝙰-𝚂𝚃𝙸𝙲𝙺𝙴𝚁 💟",
+          pack: pushname || "💟 NETHMINA - STICKER 💟",
           author: "🧑🏻‍💻 ɴᴇᴛʜᴍɪɴᴀ ᴏꜰꜰɪᴄɪᴀʟ ᴄᴏᴍᴍᴜɴɪᴛʏ 🧑🏻‍💻",
           type: StickerTypes.FULL,
           quality: 100,
@@ -129,7 +129,7 @@ cmd(
         const roundedPng = await makeRoundedPng(png, opts);
 
         const st = new Sticker(roundedPng, {
-          pack: pushname || "💟 𝙽𝙴𝚃𝙷𝙼𝙸𝙽𝙰-𝚂𝚃𝙸𝙲𝙺𝙴𝚁 💟",
+          pack: pushname || "💟 NETHMINA - STICKER 💟",
           author: "🧑🏻‍💻 ɴᴇᴛʜᴍɪɴᴀ ᴏꜰꜰɪᴄɪᴀʟ ᴄᴏᴍᴍᴜɴɪᴛʏ 🧑🏻‍💻",
           type: StickerTypes.FULL,
           quality: 100,
@@ -147,7 +147,7 @@ cmd(
         const roundedPng = await makeRoundedPng(pngText, opts);
 
         const st = new Sticker(roundedPng, {
-          pack: pushname || "💟 𝙽𝙴𝚃𝙷𝙼𝙸𝙽𝙰-𝚂𝚃𝙸𝙲𝙺𝙴𝚁 💟",
+          pack: pushname || "💟 NETHMINA - STICKER 💟",
           author: "🧑🏻‍💻 ɴᴇᴛʜᴍɪɴᴀ ᴏꜰꜰɪᴄɪᴀʟ ᴄᴏᴍᴍᴜɴɪᴛʏ 🧑🏻‍💻",
           type: StickerTypes.FULL,
           quality: 100,
@@ -161,7 +161,7 @@ cmd(
 
       return reply("⚠️ Reply to *image/sticker* or type Sinhala/English text after `.sticker`.\nOptions: `--circle` | `--rounded` | `--square` | `--radius=80`");
     } catch (e) {
-      console.error("❌ nethmina-MD Sticker Error:", e);
+      console.error("❌ NETHMINA-OFC Sticker Error:", e);
       return reply("❌ Failed to generate sticker. Check logs.");
     }
   }
