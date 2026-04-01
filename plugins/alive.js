@@ -1,9 +1,8 @@
 const { cmd } = require('../command')
 const config = require('../config')
 const axios = require('axios')
-const fs = require("fs");
-
-
+const fs = require("fs")
+const { exec } = require('child_process');
 cmd({
     pattern: "alive",
     react: "🎃",
