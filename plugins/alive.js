@@ -15,6 +15,9 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
         if (mek.key && mek.key.remoteJid) {
             await nethmina.sendMessage(from, { react: { text: "🎃", key: mek.key } });
         }
+
+        await nethmina.sendPresenceUpdate('recording', from);
+await nethmina.sendMessage(from, { audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.opus" }, mimetype: 'audio/opus', ptt: true }, { quoted: mek });
         
         // Send video note
         await nethmina.sendMessage(
@@ -23,17 +26,6 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
                 video: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Video-notes/PTV-20250623-WA0021.mp4" },
                 mimetype: 'video/mp4',
                 ptv: true
-            },
-            { quoted: mek }
-        );
-
-         // 3️⃣ Send voice note (MP3)
-        await nethmina.sendMessage(
-            from,
-            {
-                audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.opus" },
-                mimetype: 'audio/opus',
-                ptt: true
             },
             { quoted: mek }
         );
