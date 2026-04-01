@@ -17,7 +17,7 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
         }
 
         await nethmina.sendPresenceUpdate('recording', from);
-await nethmina.sendMessage(from, { audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" }, mimetype: 'audio/mpeg', ptt: true }, { quoted: mek });
+await nethmina.sendMessage(from, { audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" }, mimetype: 'audio/mp3', ptt: true }, { quoted: mek });
         
         // Send video note
         await nethmina.sendMessage(
