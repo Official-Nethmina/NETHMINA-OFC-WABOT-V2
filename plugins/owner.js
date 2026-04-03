@@ -12,7 +12,7 @@ async (conn, mek, m, { from }) => {
         // Owner's contact info
         const ownerNumber = '+94760860835'; // Replace this with the actual owner number
         const ownerName = '×••𝙽ᴇᴛʜᴍɪɴᴀ 𝐎𝙵𝙲••×'; // Replace this with the owner's name
-        const organization = 'NETHMINA OFC'; // Optional: replace with the owner's organization
+        const organization = 'Bhashitha Nethmina'; // Optional: replace with the owner's organization
 
         // Create a vCard (contact card) for the owner
         const vcard = 'BEGIN:VCARD\n' +
