@@ -21,39 +21,79 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
         }
 
         const audioUrl = 'https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3';
-        const timestamp = Date.now();
-        const inputPath = `./temp_alive_${timestamp}.mp3`;
-        const outputPath = `./temp_alive_${timestamp}.opus`;
+        const inputPath = `./temp_alive_${Date.now()}.mp3`;
+        const outputPath = `./temp_alive_${Date.now()}.opus`;
 
-        // 2. Download the audio file
-        const response = await axios({ 
-            method: 'get', 
-            url: audioUrl, 
-            responseType: 'arraybuffer' 
-        });
-        fs.writeFileSync(inputPath, Buffer.from(response.data));
-
-        // 3. Convert and Send Voice Note
         try {
-            // FFmpeg command to convert MP3 to WhatsApp compatible OGG/OPUS
-            await execPromise(`ffmpeg -i ${inputPath} -vn -ab 128k -ar 48000 -acodec libopus -f ogg ${outputPath} -y`);
+    
+            const response = await axios({ 
+                method: 'get', 
+                url: audioUrl, 
+                responseType: 'stream',
+                timeout: 30000 
+            });
             
-            const buffer = fs.readFileSync(outputPath);
-            await nethmina.sendMessage(from, {
-                audio: buffer,
-                mimetype: 'audio/ogg; codecs=opus',
-                ptt: true
-            }, { quoted: mek });
+            const writer = fs.createWriteStream(inputPath);
+            response.data.pipe(writer);
 
-        } catch (ffmpegError) {
-            console.error('FFmpeg Error:', ffmpegError);
-            // Fallback: If FFmpeg fails, try sending as a normal audio with PTT flag
-            await nethmina.sendMessage(from, {
-                audio: fs.readFileSync(inputPath),
-                mimetype: 'audio/mpeg',
-                ptt: true
-            }, { quoted: mek });
+            await new Promise((res, rej) => {
+                writer.on('finish', res);
+                writer.on('error', rej);
+            });
+
+            try {
+                await execPromise('ffmpeg -version');
+            } catch (ffmpegError) {
+                console.log('FFmpeg not installed, sending original audio');
+        
+                const audioBuffer = fs.readFileSync(inputPath);
+                await nethmina.sendMessage(from, {
+                    audio: audioBuffer,
+                    mimetype: 'audio/mpeg',
+                    ptt: true
+                }, { quoted: mek });
+                
+                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+                throw new Error('FFMPEG_NOT_INSTALLED');
+            }
+
+            try {
+                await execPromise(`ffmpeg -i ${inputPath} -c:a libopus -b:a 64k -vbr on -f ogg ${outputPath} -y`);
+                
+                const buffer = fs.readFileSync(outputPath);
+                await nethmina.sendMessage(from, {
+                    audio: buffer,
+                    mimetype: 'audio/ogg; codecs=opus',
+                    ptt: true
+                }, { quoted: mek });
+            } catch (ffmpegError) {
+                console.error('FFmpeg conversion error:', ffmpegError);
+
+                const audioBuffer = fs.readFileSync(inputPath);
+                await nethmina.sendMessage(from, {
+                    audio: audioBuffer,
+                    mimetype: 'audio/mpeg',
+                    ptt: true
+                }, { quoted: mek });
+            }
+
+            if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+            if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+
+        } catch (err) {
+            console.error('Audio processing error:', err);
+
+            try {
+                await nethmina.sendMessage(from, {
+                    audio: { url: audioUrl },
+                    mimetype: 'audio/mpeg',
+                    ptt: true
+                }, { quoted: mek });
+            } catch (audioError) {
+                console.error('Fallback audio error:', audioError);
+            }
         }
+        
 
         // 4. Send Video Note (PTV)
         await nethmina.sendMessage(from, {
