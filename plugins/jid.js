@@ -3,30 +3,32 @@ const { cmd } = require('../command');
 cmd({
     pattern: "jid",
     alias: ["id", "chatid", "gjid"],  
-    desc: "Get full JID of current chat/user",
-    react: "🆔",
+    desc: "Get cleaned JID of current chat/user",
     category: "utility",
     filename: __filename,
 }, async (conn, mek, m, { 
-    from, isGroup, reply, sender 
+    from, reply, sender 
 }) => {
     try {
-        // 🚨 ඔයාගේ නම්බර් එක මෙතන පරීක්ෂා කරනවා (config එකේ ප්‍රශ්නයක් තිබ්බත් මේක වැඩ කරනවා)
-        const ownerNumber = "94760860835";
-        const isOwner = sender.includes(ownerNumber);
+        // 1. Reaction (🆔)
+        await conn.sendMessage(from, { react: { text: "🆔", key: mek.key } });
 
-        if (!isOwner) {
-            return reply("❌ *Command Restricted* - Only bot owner can use this.");
+        // 2. Owner Check
+        const ownerNumber = "94760860835";
+        if (!sender.includes(ownerNumber)) {
+            return reply("❌ *Command Restricted* - Only my creator can use this.");
         }
 
-        if (isGroup) {
-            // Group JID එක පෙන්වීම
-            const groupJID = from;
-            return reply(`👥 *𝐆ʀᴏᴜ𝐏 𝐉𝐈𝐃:*\n\`\`\`${groupJID}\`\`\``);
+        // 3. JID පිරිසිදු කිරීම (අර :10 වගේ කෑලි අයින් කිරීම)
+        const cleanSender = sender.split(":")[0] + "@s.whatsapp.net";
+        const currentChatJid = from.split(":")[0]; // සමහර විට Group ID වලත් මෙහෙම වෙන්න පුළුවන්
+
+        if (from.endsWith('@g.us')) {
+            // Group එකක් නම්
+            return reply(`👥 *𝐆𝐑𝐎𝐔𝐏 𝐉𝐈𝐃:*\n\n\`\`\`${currentChatJid}\`\`\``);
         } else {
-            // User JID එක පෙන්වීම
-            const userJID = sender;
-            return reply(`👤 *𝐔ꜱᴇ𝐑 𝐉𝐈𝐃:*\n\`\`\`${userJID}\`\`\``);
+            // Personal Chat එකක් නම්
+            return reply(`👤 *𝐔𝐒𝐄𝐑 𝐉𝐈𝐃:*\n\n\`\`\`${cleanSender}\`\`\``);
         }
 
     } catch (e) {
