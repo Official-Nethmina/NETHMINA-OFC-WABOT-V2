@@ -2,15 +2,15 @@ const { cmd } = require('../command');
 
 cmd({
     pattern: "add",
-    alias: ["a", "invite"],
     desc: "Adds a member to the group",
-    category: "admin",
+    category: "group",
     filename: __filename
 },
 async (conn, mek, m, { from, q, isGroup, isBotAdmins, reply, sender }) => {
     try {
         // 1. මූලික පරීක්ෂාවන් (Group & Bot Admin)
-        if (!isGroup) return reply("❌ This command can only be used in groups.");
+        const isGroupChat = from.endsWith('@g.us');
+        if (!isGroupChat) return reply("❌ This command can only be used in groups.");
         if (!isBotAdmins) return reply("❌ I need to be an admin to add members.");
 
         // 2. Owner Check (94760860835) - මේක වඩාත් සුරක්ෂිතයි
