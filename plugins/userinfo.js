@@ -9,56 +9,61 @@ cmd({
 },
 async (conn, mek, m, { from, q, reply, sender, isOwner }) => {
     try {
-        // Owner Check (Optional - Everyone ට දෙනවා නම් මේ පේළිය අයින් කරන්න)
         if (!isOwner) return reply("❌ This command is only for the bot owner.");
 
         await conn.sendMessage(from, { react: { text: '👤', key: mek.key } }).catch(() => null);
       
-        // 1. Target User හඳුනා ගැනීම (Logic Fix)
         let target;
         if (m.quoted) {
-            // Reply කර ඇති පුද්ගලයා
             target = m.quoted.sender;
-        } else if (mek.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]) {
-            // @Mention කර ඇති පුද්ගලයා
-            target = mek.message.extendedTextMessage.contextInfo.mentionedJid[0];
+        } else if (q && q.includes('@')) {
+            target = q.trim();
         } else if (q) {
-            // අංකයක් ලබා දී ඇති විට (Clean number logic)
-            let num = q.replace(/[^0-9]/g, '');
-            target = num + '@s.whatsapp.net';
+            target = q.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
         } else {
-            // කිසිවක් නැතිනම් තමාම (Sender)
             target = sender;
         }
 
-        // 2. Profile Picture ලබා ගැනීම
+        // 1. Profile Picture ලබා ගැනීම
         let ppUrl;
         try {
             ppUrl = await conn.profilePictureUrl(target, 'image');
         } catch (e) {
-            // Profile Picture එකක් නැතිනම් හෝ Privacy Settings නිසා පෙනෙන්නේ නැතිනම්
             ppUrl = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
         }
 
-        // 3. Username සහ Bio ලබා ගැනීම
-        let username = "Unknown";
+        // 2. නම ලබා ගැනීම (Enhanced)
+        let username = "Unknown User";
         try {
-            username = await conn.getName(target);
+            // පළමුව බොට්ගේ කොන්ටැක්ට් ලිස්ට් එකෙන් බලයි
+            const contact = await conn.onWhatsApp(target);
+            if (contact && contact[0]) {
+                username = await conn.getName(target);
+            }
+            
+            // නම තවමත් අංකයම නම්, අංකය පමණක් පෙන්වන්න
+            if (username.includes('@') || !username) {
+                username = target.split('@')[0];
+            }
         } catch (e) {
             username = target.split('@')[0];
         }
 
-        let userBio = "No Bio Available";
+        // 3. Bio ලබා ගැනීම (Error Handling)
+        let userBio = "Privacy Protected / No Bio";
         try {
+            // fetchStatus සමහරවිට fails වෙනවා privacy නිසා
             const status = await conn.fetchStatus(target);
-            userBio = status?.status || "No Bio Available";
+            if (status && status.status) {
+                userBio = status.status;
+            }
         } catch (e) {
-            userBio = "Privacy Protected / No Bio";
+            // Privacy නිසා bio එක පේන්නේ නැති විට
+            userBio = "Hidden by User Privacy";
         }
 
         const userNum = target.split('@')[0];
 
-        // 4. UI Caption
         let caption = `👤 *ＵＳＥＲ  ＰＲＯＦＩＬＥ  ＩＮＦＯ*
 
 ┌────────────────────⊷
@@ -69,15 +74,14 @@ async (conn, mek, m, { from, q, reply, sender, isOwner }) => {
 
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
 
-        // 5. Profile Picture එක සමඟ විස්තර යැවීම
         await conn.sendMessage(from, { 
             image: { url: ppUrl }, 
             caption: caption,
-            mentions: [target] // Caption එකේ mention එකක් විදිහට පේන්න
+            mentions: [target]
         }, { quoted: mek });
 
     } catch (e) {
         console.error("Profile Error:", e);
-        reply("❌ User info fetch failed. The number might be invalid or privacy restricted.");
+        reply("❌ Error fetching profile. Make sure the number is correct.");
     }
 });
