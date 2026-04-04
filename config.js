@@ -13,7 +13,11 @@ AUTO_STATUS_SEEN: process.env.AUTO_STATUS_SEEN || "true",
 AUTO_STATUS_REACT: process.env.AUTO_STATUS_REACT || "true",
 ALWAYS_ONLINE: process.env.ALWAYS_ONLINE || "false",
 AUTO_RECORDING: process.env.AUTO_RECORDING || "false",
-AUTO_TYPING: process.env.AUTO_TYPING || "false"
+AUTO_TYPING: process.env.AUTO_TYPING || "false",
+AUTO_REACT: process.env.AUTO_REACT || "true", // Main Switch
+OWNER_REACT: process.env.OWNER_REACT || "true", // Owner React Switch
+USER_REACT: process.env.USER_REACT || "false", // User React Switch
+OWNER_REACT_EMOJI: process.env.OWNER_REACT_EMOJI || "🧑🏻‍💻" // Owner's Static Emoji
     
 
 
