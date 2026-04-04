@@ -10,7 +10,8 @@ cmd({
 },
 async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
     try {
-        if (!isGroup) return reply("❌ This command can only be used in groups.");
+        const isGroupChat = from.endsWith('@g.us');
+        if (!isGroupChat) return reply("❌ This command can only be used in groups.");
         if (!isAdmins) return reply("❌ Only group admins can use this command.");
         if (!isBotAdmins) return reply("❌ I need to be an admin to view join requests.");
 
@@ -55,7 +56,8 @@ cmd({
 },
 async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
     try {
-        if (!isGroup) return reply("❌ This command can only be used in groups.");
+        const isGroupChat = from.endsWith('@g.us');
+        if (!isGroupChat) return reply("❌ This command can only be used in groups.");
         if (!isAdmins) return reply("❌ Only group admins can use this command.");
         if (!isBotAdmins) return reply("❌ I need to be an admin to manage requests.");
 
@@ -90,7 +92,8 @@ cmd({
 },
 async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
     try {
-        if (!isGroup) return reply("❌ This command can only be used in groups.");
+        const isGroupChat = from.endsWith('@g.us');
+        if (!isGroupChat) return reply("❌ This command can only be used in groups.");
         if (!isAdmins) return reply("❌ Only group admins can use this command.");
         if (!isBotAdmins) return reply("❌ I need to be an admin to manage requests.");
 
