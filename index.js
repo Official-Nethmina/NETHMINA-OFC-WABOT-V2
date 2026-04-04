@@ -336,26 +336,7 @@ nethmina.ev.on("messages.upsert", async ({ messages }) => {
         }
       }
 
-      // ====================== ALIVE REPLY HANDLER (1, 2) ======================
-      if (!isCmd && mek.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
-          const quotedBody = mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || 
-                             mek.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage?.caption || "";
-          
-          if (quotedBody.includes("ALIVE NOW")) { // Alive message එකට කරන reply එකක්ද බලනවා
-              if (body === "1") {
-                  const start = new Date().getTime();
-                  const end = new Date().getTime();
-                  const ping = end - start;
-                  await reply(`⚡ *Bot Speed:* ${ping}ms`);
-              } else if (body === "2") {
-                  // මෙතනදී .menu command එක execute වෙනවා
-                  const cmd = commands.find((c) => c.pattern === "menu");
-                  if (cmd) {
-                      await cmd.function(nethmina, mek, sms(nethmina, mek), { from, args: [], q: "", sender, reply, command: "menu" });
-                  }
-              }
-          }
-      }
+      
 
       // REPLY HANDLERS
       for (const handler of replyHandlers) {
