@@ -10,7 +10,8 @@ cmd({
 async (conn, mek, m, { from, isGroup, groupMetadata, reply }) => {
     try {
         // 1. ගෲප් එකක්ද කියා බැලීම
-        if (!isGroup) return reply("❌ This command can only be used in groups.");
+        const isGroupChat = from.endsWith('@g.us');
+        if (!isGroupChat) return reply("❌ This command can only be used in groups.");
 
         // 2. Reaction: 👑
         await conn.sendMessage(from, { react: { text: "👑", key: mek.key } });
