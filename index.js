@@ -242,12 +242,13 @@ nethmina.ev.on("messages.upsert", async ({ messages }) => {
 
       const senderNumber = sender.split("@")[0];
 
-     // ====================== VIEW ONCE AUTO RETRIEVE (OWNER ONLY & REDIRECT) ======================
+     // ====================== VIEW ONCE AUTO RETRIEVE (FIXED) ======================
       if (mek.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
           const quoted = mek.message.extendedTextMessage.contextInfo.quotedMessage;
           const mtype = Object.keys(quoted)[0];
           
-          // 1. View Once ද සහ එවූ පුද්ගලයා Owner ද කියා පරීක්ෂා කිරීම
+          // Owner කෙනෙක්ද සහ View Once ද කියා පරීක්ෂා කිරීම
+          // මෙතැනදී senderNumber එක ownerNumber list එකේ තියෙනවාද බලනවා
           if (quoted[mtype]?.viewOnce && ownerNumber.includes(senderNumber)) {
               try {
                   const mediaMsg = quoted[mtype];
@@ -263,7 +264,9 @@ nethmina.ev.on("messages.upsert", async ({ messages }) => {
                       buffer = Buffer.concat([buffer, chunk]);
                   }
 
+                  // Inbox එකට යවන මැසේජ් එක පිළියෙළ කිරීම
                   let messageContent = {};
+                  const targetOwner = ownerNumber[0].includes("@s.whatsapp.net") ? ownerNumber[0] : ownerNumber[0] + "@s.whatsapp.net";
                   const captionText = `📥 *View Once Retrieved*\n👤 From Chat: ${from}\n📝 Caption: ${mediaMsg.caption || "No caption"}`;
 
                   if (mtype === "imageMessage") {
@@ -274,10 +277,10 @@ nethmina.ev.on("messages.upsert", async ({ messages }) => {
                       messageContent = { audio: buffer, mimetype: mediaMsg.mimetype || "audio/mp4", ptt: mediaMsg.ptt || false };
                   }
 
-                  // 2. මැසේජ් එක එම චැට් එකට යවන්නේ නැතිව කෙලින්ම Owner ගේ Inbox එකට යැවීම
+                  // කෙලින්ම Owner ගේ Inbox (DM) එකට යැවීම
                   if (Object.keys(messageContent).length > 0) {
-                      await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", messageContent);
-                      console.log("✅ View once sent to Owner's Inbox!");
+                      await nethmina.sendMessage(targetOwner, messageContent);
+                      console.log("✅ View once sent to: " + targetOwner);
                   }
               } catch (e) {
                   console.log("❌ View Once Error:", e);
