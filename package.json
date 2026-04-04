@@ -43,7 +43,8 @@
     "wa-sticker-formatter": "^4.4.4",
     "canvas": "^3.2.3",
     "qrcode": "^1.5.4",
-    "@vitalets/google-translate-api": "^9.2.1"
+    "@vitalets/google-translate-api": "^9.2.1",
+    "jimp": "^1.6.0"
     
   }
 }
