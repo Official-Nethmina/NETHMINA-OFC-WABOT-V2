@@ -23,6 +23,12 @@ Hello *${pushname}*, here are the available commands to control the bot:
 │ ❤️ *.status-react* <on/off>
 └───────────────⊷
 
+┌───⊷ *ＡＵＴＯ  ＲＥＡＣＴ*
+│ 🔔 *.auto-react* <on/off>
+│ 🤴 *.owner-react* <on/off>
+│ 🎲 *.user-react* <on/off>
+└───────────────⊷
+
 ┌───⊷ *ＣＵＳＴＯＭＩＺＥ*
 │ 🖼️ *.update-img* <url>
 │ 💬 *.update-msg* <text>
