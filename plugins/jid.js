@@ -3,25 +3,29 @@ const { cmd } = require('../command');
 cmd({
     pattern: "jid",
     alias: ["id", "chatid", "gjid"],  
-    desc: "Get full JID of current chat/user (Creator Only)",
+    desc: "Get full JID of current chat/user",
     react: "🆔",
     category: "utility",
     filename: __filename,
 }, async (conn, mek, m, { 
-    from, isGroup, isCreator, reply, sender 
+    from, isGroup, reply, sender 
 }) => {
     try {
-        if (!isCreator) {
-            return reply("❌ *Command Restricted* - Only my creator can use this.");
+        // 🚨 ඔයාගේ නම්බර් එක මෙතන පරීක්ෂා කරනවා (config එකේ ප්‍රශ්නයක් තිබ්බත් මේක වැඩ කරනවා)
+        const ownerNumber = "94760860835";
+        const isOwner = sender.includes(ownerNumber);
+
+        if (!isOwner) {
+            return reply("❌ *Command Restricted* - Only bot owner can use this.");
         }
 
         if (isGroup) {
-            // Ensure group JID ends with @g.us
-            const groupJID = from.includes('@g.us') ? from : `${from}@g.us`;
+            // Group JID එක පෙන්වීම
+            const groupJID = from;
             return reply(`👥 *𝐆ʀᴏᴜ𝐏 𝐉𝐈𝐃:*\n\`\`\`${groupJID}\`\`\``);
         } else {
-            // Ensure user JID ends with @s.whatsapp.net
-            const userJID = sender.includes('@s.whatsapp.net') ? sender : `${sender}@s.whatsapp.net`;
+            // User JID එක පෙන්වීම
+            const userJID = sender;
             return reply(`👤 *𝐔ꜱᴇ𝐑 𝐉𝐈𝐃:*\n\`\`\`${userJID}\`\`\``);
         }
 
