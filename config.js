@@ -8,9 +8,13 @@ module.exports = {
 SESSION_ID: process.env.SESSION_ID || "H6JyiDCK#8pn0XfTW3K99R7Rzq_eKaxG-z6VJ7qFFzGVru6dAmJw",
 ALIVE_IMG: process.env.ALIVE_IMG || "https://github.com/Nethmina-dev/BOT-DATA/blob/main/Logo/ChatGPT%20Image%20Mar%2018,%202026,%2005_47_58%20PM.png?raw=true",
 ALIVE_MSG: process.env.ALIVE_MSG || "*Hello👋 NETHMINA Is Alive Now😍*",
-BOT_OWNER: '94760860835',  // Replace with the owner's phone number
-AUTO_STATUS_SEEN: 'true',
-AUTO_STATUS_REACT: 'true',
+OWNER_NUMBER: process.env.OWNER_NUMBER || "94760860835",  // Replace with the owner's phone number
+AUTO_STATUS_SEEN: process.env.AUTO_STATUS_SEEN || "true",
+AUTO_STATUS_REACT: process.env.AUTO_STATUS_REACT || "true",
+ALWAYS_ONLINE: process.env.ALWAYS_ONLINE || "false",
+AUTO_RECORDING: process.env.AUTO_RECORDING || "false",
+AUTO_TYPING: process.env.AUTO_TYPING || "false"
+    
 
 
 
