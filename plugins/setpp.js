@@ -8,33 +8,30 @@ cmd({
     category: "owner",
     filename: __filename
 },
-async (conn, mek, m, { from, isOwner, reply }) => { // මෙතන isOwner ලෙස වෙනස් කළා
+async (conn, mek, m, { from, isOwner, reply }) => {
     try {
-        // 1. Owner Check (දැන් index.js එකෙන් එන isOwner මෙතන වැඩ කරනවා)
         if (!isOwner) return reply("❌ This command is only for the bot owner.");
 
-        // 2. Quoted Image එකක්ද බලන්න
-        if (!m.quoted || !['imageMessage'].includes(m.quoted.mtype)) {
+        // --- 2. IMAGE DETECTION FIX ---
+        // මෙතනදී අපි බලනවා රිප්ලයි කරපු මැසේජ් එකේ imageMessage එකක් තියෙනවාද කියලා
+        const quotedMsg = m.quoted ? m.quoted : mek.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+        const isImage = quotedMsg?.imageMessage || quotedMsg?.viewOnceMessage?.message?.imageMessage || quotedMsg?.viewOnceMessageV2?.message?.imageMessage;
+
+        if (!isImage) {
             return reply("❌ Please reply to an *image* to set it as full size PP.");
         }
+        // ------------------------------
 
         await conn.sendMessage(from, { react: { text: '📸', key: mek.key } }).catch(() => null);
 
-        // 3. පින්තූරය Download කර ගැනීම
+        // 3. පින්තූරය Download කර ගැනීම (m.quoted හරහා හෝ කෙලින්ම)
         const buffer = await m.quoted.download();
         
-        // 4. Jimp හරහා Full Size සකස් කිරීම
         const jimpImage = await Jimp.read(buffer);
-        const width = jimpImage.getWidth();
-        const height = jimpImage.getHeight();
-        
-        // Quality එක 100% තබාගෙන Buffer එකක් ලබා ගැනීම
         const img = await jimpImage
             .quality(100)
             .getBufferAsync(Jimp.MIME_JPEG);
 
-        // 5. WhatsApp සර්වර් එකට Update එක යැවීම
-        // conn.user.id එකෙන් bot ගේ JID එක නිවැරදිව ලබා ගැනීම
         const botJid = conn.user.id.split(":")[0] + "@s.whatsapp.net";
         await conn.updateProfilePicture(botJid, img);
 
