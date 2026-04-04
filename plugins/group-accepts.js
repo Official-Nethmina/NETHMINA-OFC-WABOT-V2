@@ -8,17 +8,29 @@ cmd({
     category: "group",
     filename: __filename
 },
-async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
+async (conn, mek, m, { from, reply, sender }) => { // <--- මෙතනට sender එකතු කළා
     try {
         const isGroupChat = from.endsWith('@g.us');
         if (!isGroupChat) return reply("❌ This command can only be used in groups.");
-        if (!isAdmins) return reply("❌ Only group admins can use this command.");
-        if (!isBotAdmins) return reply("❌ I need to be an admin to view join requests.");
 
-        // Reaction: ⏳
+        const groupMetadata = await conn.groupMetadata(from);
+        const participants = groupMetadata.participants;
+
+        // Bot Admin Check
+        const botNumber = conn.user.id.split(":")[0] + "@s.whatsapp.net";
+        const botParticipant = participants.find(p => p.id === botNumber);
+        const isBotActuallyAdmin = botParticipant && (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin');
+
+        if (!isBotActuallyAdmin) return reply("❌ I need to be an admin to perform this action.");
+
+        // User Admin Check
+        const userParticipant = participants.find(p => p.id === sender.split(":")[0] + "@s.whatsapp.net");
+        const isUserActuallyAdmin = userParticipant && (userParticipant.admin === 'admin' || userParticipant.admin === 'superadmin');
+
+        if (!isUserActuallyAdmin) return reply("❌ Only group admins can use this command.");
+
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
-        // Pending Requests ලබා ගැනීම
         const requests = await conn.groupRequestParticipantsList(from);
         
         if (!requests || requests.length === 0) {
@@ -27,11 +39,10 @@ async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
         }
 
         let text = `📋 *ＰᴇɴᴅɪɴＧ ＪᴏɪＮ ＲᴇQᴜᴇꜱᴛＳ (${requests.length})*\n\n`;
-        const mentions = [];
+        const mentions = requests.map(u => u.jid);
 
         requests.forEach((user, i) => {
             text += `${i + 1}. @${user.jid.split('@')[0]}\n`;
-            mentions.push(user.jid);
         });
 
         text += `\n*Use .acceptall or .rejectall to manage.*`;
@@ -41,8 +52,7 @@ async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
 
     } catch (error) {
         console.error("Request list error:", error);
-        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } });
-        return reply("❌ *Error:* Failed to fetch requests. Make sure 'Approve New Members' is ON in group settings.");
+        reply("❌ *Error:* Failed to fetch requests.");
     }
 });
 
@@ -54,20 +64,29 @@ cmd({
     category: "group",
     filename: __filename
 },
-async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
+async (conn, mek, m, { from, reply, sender }) => { // <--- මෙතනටත් sender එකතු කළා
     try {
         const isGroupChat = from.endsWith('@g.us');
         if (!isGroupChat) return reply("❌ This command can only be used in groups.");
-        if (!isAdmins) return reply("❌ Only group admins can use this command.");
-        if (!isBotAdmins) return reply("❌ I need to be an admin to manage requests.");
+
+        const groupMetadata = await conn.groupMetadata(from);
+        const participants = groupMetadata.participants;
+
+        const botNumber = conn.user.id.split(":")[0] + "@s.whatsapp.net";
+        const botParticipant = participants.find(p => p.id === botNumber);
+        if (!(botParticipant && (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin'))) {
+            return reply("❌ I need to be an admin to perform this action.");
+        }
+
+        const userParticipant = participants.find(p => p.id === sender.split(":")[0] + "@s.whatsapp.net");
+        if (!(userParticipant && (userParticipant.admin === 'admin' || userParticipant.admin === 'superadmin'))) {
+            return reply("❌ Only group admins can use this command.");
+        }
 
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
-
         const requests = await conn.groupRequestParticipantsList(from);
         
-        if (!requests || requests.length === 0) {
-            return reply("ℹ️ *𝙽𝙾 𝙿𝙴𝙽𝙳𝙸𝙽𝙶 𝙹𝙾𝙸𝙽 𝚁𝙴𝚀𝚄𝙴𝚂𝚃𝚂 𝚃𝙾 𝙰𝙲𝙲𝙴𝙿𝚃.*");
-        }
+        if (!requests || requests.length === 0) return reply("ℹ️ No pending requests.");
 
         for (let user of requests) {
             await conn.groupRequestParticipantsUpdate(from, [user.jid], "approve");
@@ -77,8 +96,7 @@ async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
         return reply(`✅ *𝐒ᴜᴄᴄᴇꜱꜱꜰᴜʟʟ𝐘 𝐀ᴄᴄᴇᴘᴛᴇ𝐃 ${requests.length} 𝐉ᴏɪ𝐍 𝐑ᴇQᴜᴇꜱᴛ𝐒.*`);
 
     } catch (error) {
-        console.error("Accept all error:", error);
-        return reply("❌ *Error:* Failed to approve requests.");
+        reply("❌ *Error:* Failed to approve requests.");
     }
 });
 
@@ -90,20 +108,29 @@ cmd({
     category: "group",
     filename: __filename
 },
-async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
+async (conn, mek, m, { from, reply, sender }) => { // <--- මෙතනටත් sender එකතු කළා
     try {
         const isGroupChat = from.endsWith('@g.us');
         if (!isGroupChat) return reply("❌ This command can only be used in groups.");
-        if (!isAdmins) return reply("❌ Only group admins can use this command.");
-        if (!isBotAdmins) return reply("❌ I need to be an admin to manage requests.");
+
+        const groupMetadata = await conn.groupMetadata(from);
+        const participants = groupMetadata.participants;
+
+        const botNumber = conn.user.id.split(":")[0] + "@s.whatsapp.net";
+        const botParticipant = participants.find(p => p.id === botNumber);
+        if (!(botParticipant && (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin'))) {
+            return reply("❌ I need to be an admin to perform this action.");
+        }
+
+        const userParticipant = participants.find(p => p.id === sender.split(":")[0] + "@s.whatsapp.net");
+        if (!(userParticipant && (userParticipant.admin === 'admin' || userParticipant.admin === 'superadmin'))) {
+            return reply("❌ Only group admins can use this command.");
+        }
 
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
-
         const requests = await conn.groupRequestParticipantsList(from);
         
-        if (!requests || requests.length === 0) {
-            return reply("ℹ️ *𝙽𝙾 𝙿𝙴𝙽𝙳𝙸𝙽𝙶 𝙹𝙾𝙸𝙽 𝚁𝙴𝚀𝚄𝙴𝚂𝚃𝚂 𝚃𝙾 𝚁𝙴𝙹𝙴𝙲𝚃.*");
-        }
+        if (!requests || requests.length === 0) return reply("ℹ️ No pending requests.");
 
         for (let user of requests) {
             await conn.groupRequestParticipantsUpdate(from, [user.jid], "reject");
@@ -113,7 +140,6 @@ async (conn, mek, m, { from, isGroup, isBotAdmins, isAdmins, reply }) => {
         return reply(`✅ *𝐒ᴜᴄᴄᴇꜱꜱꜰᴜʟʟ𝐘 𝐑ᴇᴊᴇᴄᴛᴇ𝐃 ${requests.length} 𝐉ᴏɪ𝐍 𝐑ᴇQᴜᴇꜱᴛ𝐒.*`);
 
     } catch (error) {
-        console.error("Reject all error:", error);
-        return reply("❌ *Error:* Failed to reject requests.");
+        reply("❌ *Error:* Failed to reject requests.");
     }
 });
