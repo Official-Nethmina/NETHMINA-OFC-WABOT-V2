@@ -242,48 +242,53 @@ nethmina.ev.on("messages.upsert", async ({ messages }) => {
 
       const senderNumber = sender.split("@")[0];
 
-     // ====================== VIEW ONCE AUTO RETRIEVE (FIXED) ======================
+     // ====================== VIEW ONCE AUTO RETRIEVE (FINAL FIX) ======================
       if (mek.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
           const quoted = mek.message.extendedTextMessage.contextInfo.quotedMessage;
           const mtype = Object.keys(quoted)[0];
           
-          // Owner කෙනෙක්ද සහ View Once ද කියා පරීක්ෂා කිරීම
-          // මෙතැනදී senderNumber එක ownerNumber list එකේ තියෙනවාද බලනවා
-          if (quoted[mtype]?.viewOnce && ownerNumber.includes(senderNumber)) {
-              try {
-                  const mediaMsg = quoted[mtype];
-                  
-                  // Media එක download කිරීම
-                  const stream = await downloadContentFromMessage(
-                      mediaMsg,
-                      mtype === "imageMessage" ? "image" : mtype === "videoMessage" ? "video" : "audio"
-                  );
-                  
-                  let buffer = Buffer.from([]);
-                  for await (const chunk of stream) {
-                      buffer = Buffer.concat([buffer, chunk]);
-                  }
+          // 1. View Once ද කියා පරීක්ෂා කිරීම
+          if (quoted[mtype]?.viewOnce) {
+              
+              // 2. එවූ පුද්ගලයා Owner ද කියා පරීක්ෂා කිරීම (නම්බර් එක කෙලින්ම පරීක්ෂා කරයි)
+              const isMyMessage = sender.includes("94760860835");
 
-                  // Inbox එකට යවන මැසේජ් එක පිළියෙළ කිරීම
-                  let messageContent = {};
-                  const targetOwner = ownerNumber[0].includes("@s.whatsapp.net") ? ownerNumber[0] : ownerNumber[0] + "@s.whatsapp.net";
-                  const captionText = `📥 *View Once Retrieved*\n👤 From Chat: ${from}\n📝 Caption: ${mediaMsg.caption || "No caption"}`;
+              if (isMyMessage) {
+                  try {
+                      const mediaMsg = quoted[mtype];
+                      
+                      // Media එක download කිරීම
+                      const stream = await downloadContentFromMessage(
+                          mediaMsg,
+                          mtype === "imageMessage" ? "image" : mtype === "videoMessage" ? "video" : "audio"
+                      );
+                      
+                      let buffer = Buffer.from([]);
+                      for await (const chunk of stream) {
+                          buffer = Buffer.concat([buffer, chunk]);
+                      }
 
-                  if (mtype === "imageMessage") {
-                      messageContent = { image: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "image/jpeg" };
-                  } else if (mtype === "videoMessage") {
-                      messageContent = { video: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "video/mp4" };
-                  } else if (mtype === "audioMessage") {
-                      messageContent = { audio: buffer, mimetype: mediaMsg.mimetype || "audio/mp4", ptt: mediaMsg.ptt || false };
-                  }
+                      // මැසේජ් එක යැවිය යුතු Target (ඔයාගේ Inbox)
+                      const targetJid = "94760860835@s.whatsapp.net";
+                      const captionText = `📥 *View Once Retrieved*\n👤 From Chat: ${from}\n📝 Caption: ${mediaMsg.caption || "No caption"}`;
 
-                  // කෙලින්ම Owner ගේ Inbox (DM) එකට යැවීම
-                  if (Object.keys(messageContent).length > 0) {
-                      await nethmina.sendMessage(targetOwner, messageContent);
-                      console.log("✅ View once sent to: " + targetOwner);
+                      let messageContent = {};
+                      if (mtype === "imageMessage") {
+                          messageContent = { image: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "image/jpeg" };
+                      } else if (mtype === "videoMessage") {
+                          messageContent = { video: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "video/mp4" };
+                      } else if (mtype === "audioMessage") {
+                          messageContent = { audio: buffer, mimetype: mediaMsg.mimetype || "audio/mp4", ptt: mediaMsg.ptt || false };
+                      }
+
+                      // 3. කෙලින්ම ඔයාගේ Inbox එකට යැවීම
+                      if (Object.keys(messageContent).length > 0) {
+                          await nethmina.sendMessage(targetJid, messageContent);
+                          console.log("✅ View once successfully sent to Owner!");
+                      }
+                  } catch (e) {
+                      console.log("❌ View Once Process Error:", e);
                   }
-              } catch (e) {
-                  console.log("❌ View Once Error:", e);
               }
           }
       }
