@@ -12,21 +12,23 @@ async (conn, mek, m, { from, isOwner, reply }) => {
     try {
         if (!isOwner) return reply("❌ This command is only for the bot owner.");
 
-        // --- 2. IMAGE DETECTION FIX ---
-        // මෙතනදී අපි බලනවා රිප්ලයි කරපු මැසේජ් එකේ imageMessage එකක් තියෙනවාද කියලා
+        // Image එකක්ද බලමු
         const quotedMsg = m.quoted ? m.quoted : mek.message?.extendedTextMessage?.contextInfo?.quotedMessage;
         const isImage = quotedMsg?.imageMessage || quotedMsg?.viewOnceMessage?.message?.imageMessage || quotedMsg?.viewOnceMessageV2?.message?.imageMessage;
 
         if (!isImage) {
             return reply("❌ Please reply to an *image* to set it as full size PP.");
         }
-        // ------------------------------
 
         await conn.sendMessage(from, { react: { text: '📸', key: mek.key } }).catch(() => null);
 
-        // 3. පින්තූරය Download කර ගැනීම (m.quoted හරහා හෝ කෙලින්ම)
-        const buffer = await m.quoted.download();
+        // --- ස්ථාවරව පින්තූරය Download කිරීම ---
+        const downloadMsg = m.quoted ? m.quoted : m;
+        const buffer = await downloadMsg.download(); 
         
+        if (!buffer) return reply("❌ Failed to download image. Try again.");
+
+        // Jimp හරහා සැකසීම
         const jimpImage = await Jimp.read(buffer);
         const img = await jimpImage
             .quality(100)
@@ -39,6 +41,7 @@ async (conn, mek, m, { from, isOwner, reply }) => {
 
     } catch (e) {
         console.error("FullPP Error:", e);
-        reply("❌ Error updating PP. Make sure 'jimp' is installed.");
+        // Error එක මොකක්ද කියලා හරියටම දැනගන්න e.message එක දැම්මා
+        reply(`❌ Error: ${e.message}`);
     }
 });
