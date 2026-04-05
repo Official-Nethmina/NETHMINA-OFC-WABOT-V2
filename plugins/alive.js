@@ -28,7 +28,7 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
         const oggData = ffmpeg.FS('readFile', 'alive.ogg');
 
         await nethmina.sendMessage(from, { 
-         audio: { url: "../Voice-notes/alive.mp3" },
+         audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" },
             mimetype: 'audio/mpeg',
               ptt: true
               },      { quoted: mek });
