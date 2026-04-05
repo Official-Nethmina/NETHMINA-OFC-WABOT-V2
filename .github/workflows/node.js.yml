@@ -11,7 +11,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -27,13 +26,20 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
-    # --- npm installation ---
     - name: Install FFmpeg
       run: |
         sudo apt-get update
         sudo apt-get install -y ffmpeg
 
     - name: Install dependencies
+      run: npm install
+
+    - name: Start the Bot
+      run: npm start
+
+    # මෙතන - ලකුණ ඉස්සරහට වැඩිපුර Space එකක් තිබුණ නිසා තමයි කලින් Error එක ආවේ.
+    - name: Run Tests
+      run: npm test
       run: npm install
 
     - name: Start the Bot
