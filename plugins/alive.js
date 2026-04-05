@@ -87,7 +87,7 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
                 await nethmina.sendMessage(from, {
                     audio: { url: audioUrl },
                     mimetype: 'audio/mpeg',
-                    ptt: true
+                    ptt: false
                 }, { quoted: mek });
             } catch (audioError) {
                 console.error('Fallback audio error:', audioError);
