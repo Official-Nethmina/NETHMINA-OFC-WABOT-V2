@@ -1,8 +1,9 @@
 const { cmd } = require('../command');
 const config = require('../config');
 const fs = require('fs');
-const { exec } = require('child_process');
 const path = require('path');
+const { createFFmpeg, fetchFile } = require('@ffmpeg/ffmpeg');
+const ffmpeg = createFFmpeg({ log: true });
 
 cmd({
     pattern: "alive",
@@ -17,21 +18,21 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
             await nethmina.sendMessage(from, { react: { text: "🎃", key: mek.key } });
         }
         const mp3Path = path.join(__dirname, "..", "Voice-notes", "alive.mp3");
-        const oggPath = path.join(__dirname, "..", "Voice-notes", "alive.ogg");
-        await new Promise((resolve, reject) => {
-            exec(`ffmpeg -y -i "${mp3Path}" -c:a libopus -b:a 64k -vbr on "${oggPath}"`, (err, stdout, stderr) => {
-                if (err) return reject(err);
-                resolve();
-            });
-        });
 
-        await nethmina.sendMessage(from, { 
-            audio: fs.readFileSync(oggPath),
+        if (!ffmpeg.isLoaded()) await ffmpeg.load();
+
+        ffmpeg.FS('writeFile', 'alive.mp3', await fetchFile(mp3Path));
+
+        await ffmpeg.run('-i', 'alive.mp3', '-c:a', 'libopus', '-b:a', '64k', '-vbr', 'on', 'alive.ogg');
+        
+        const oggData = ffmpeg.FS('readFile', 'alive.ogg');
+
+        await nethmina.sendMessage(from, {
+            audio: oggData.buffer,
             mimetype: 'audio/ogg; codecs=opus',
-            ptt: true 
+            ptt: true
         }, { quoted: mek });
 
-        // Send video note
         await nethmina.sendMessage(
             from,
             {
@@ -42,7 +43,6 @@ async (nethmina, mek, m, { from, quoted, reply }) => {
             { quoted: mek }
         );
 
-        // Send alive image with caption
         return await nethmina.sendMessage(
             from,
             { image: { url: config.ALIVE_IMG }, caption: config.ALIVE_MSG },
