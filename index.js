@@ -291,9 +291,14 @@ Type *.menu* to see commands
       const reply = (txt) =>
         nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
-      // ====================== GLOBAL PERMISSIONS ======================
+      // ====================== GLOBAL PERMISSIONS (UPDATED) ======================
       const isGroup = from.endsWith('@g.us');
       const isMe = mek.key.fromMe;
+      
+      // Bot ගේ අංකය ලබා ගැනීම
+      const botNumber = nethmina.user.id.split(':')[0] + '@s.whatsapp.net';
+      const isBot = sender === botNumber; // මැසේජ් එක එවන්නේ බොට්මද?
+
       const isOwner = ownerNumber.includes(senderNumber) || isMe;
 
       let isAdmins = false;
@@ -303,16 +308,20 @@ Type *.menu* to see commands
           try {
               const groupMetadata = await nethmina.groupMetadata(from);
               const participants = groupMetadata.participants;
+              
+              // යවන්නා Admin ද?
               const user = participants.find(p => p.id === sender);
               isAdmins = user && (user.admin === 'admin' || user.admin === 'superadmin');
-              const bot = participants.find(p => p.id === (nethmina.user.id.split(':')[0] + '@s.whatsapp.net'));
-              isBotAdmins = bot && (bot.admin === 'admin' || bot.admin === 'superadmin');
+              
+              // බොට් Admin ද?
+              const botInGroup = participants.find(p => p.id === botNumber);
+              isBotAdmins = botInGroup && (botInGroup.admin === 'admin' || botInGroup.admin === 'superadmin');
           } catch (e) {
               isAdmins = false;
               isBotAdmins = false;
           }
       }
-
+      
       // Auto-react for owner
       if (isOwner && isCmd) {
         await nethmina.sendMessage(from, {
