@@ -1,9 +1,9 @@
-const { cmd } = require('../command');
 const config = require('../config');
+const { cmd } = require('../command');
+const { runtime } = require('../lib/functions');
 const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
-const { runtime } = require('../lib/functions');
 
 // Temp directory setup
 const tempDir = path.join(__dirname, '../temp');
@@ -11,8 +11,7 @@ if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
 cmd({
     pattern: "alive",
-    react: "🎃",
-    desc: "Alive message with voice, video note and status reply.",
+    desc: "Check bot online status",
     category: "main",
     filename: __filename
 },
@@ -21,7 +20,11 @@ async (conn, mek, m, { from, pushname, reply }) => {
         // 1. Reaction
         await conn.sendMessage(from, { react: { text: "🎃", key: m.key } });
 
-        // 2. Voice Note (Conversion Logic)
+        const uptime = runtime(process.uptime());
+        const date = new Date().toLocaleDateString('en-GB');
+        const time = new Date().toLocaleTimeString('en-US', { hour12: true });
+
+        // 2. Voice Note (Conversion)
         const audioUrl = "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3";
         const outputOgg = path.join(tempDir, `voice_${Date.now()}.ogg`);
 
@@ -56,54 +59,68 @@ async (conn, mek, m, { from, pushname, reply }) => {
             ptv: true
         }, { quoted: mek });
 
-        // 4. Final Alive Message with Status Reply
-        const uptime = runtime(process.uptime());
-        const date = new Date().toLocaleDateString('en-GB');
-        const time = new Date().toLocaleTimeString('en-US', { hour12: true });
-
-        let aliveMsg = `👋 *HELLOW*, *${pushname}*
+        // 4. Alive Message Caption
+        let mainCaption = `👋 *HELLOW*, *${pushname}*
 
 *╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」──●●►*
-*│*📅 Date : ${date}      
+*│*📅 Date : ${date}
 *│*🕒 Time : ${time}
 *╰──────────●●►*
 
 *╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」──●●►*
 *│*👤 User : ${pushname}
-*│*🧑‍💻 Owner : ${config.OWNER_NAME || "Nethmina Ofc"} 
+*│*🧑‍💻 Owner : ${config.OWNER_NAME}
 *│*✒️ Prefix : ${config.PREFIX}
-*│*🧬 Version : V 01
+*│*🧬 Version : V 02
 *│*📟 Uptime : ${uptime}
 *╰──────────●●►*
 
-🔢 *REPLY THE NUMBER BELLOW* 01 ❯❯◦ COMMANDS MENU
+🔢 *REPLY THE NUMBER BELLOW*
+01 ❯❯◦ COMMANDS MENU
 02 ❯❯◦ CHECK BOT PING
 
-*POWERED BY NETHMINA 〽️D ㋡*`;
+*> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||*`;
 
+        // 5. Final Message with Newsletter Forwarding + Contact Quoted Logic
         return await conn.sendMessage(from, { 
-            image: { url: config.ALIVE_IMG }, 
-            caption: aliveMsg,
+            image: { url: config.ALIVE_IMG },
+            caption: mainCaption,
             contextInfo: {
                 forwardingScore: 999,
                 isForwarded: true,
+                forwardedNewsletterMessageInfo: {
+                    newsletterJid: '120363233544482017@newsletter',
+                    newsletterName: 'NETHMINA-OFC-WA-BOT',
+                    serverMessageId: 143
+                },
                 externalAdReply: {
-                    title: `HELLO THERE I'M ALIVE NOW 🎀`,
-                    body: `NETHMINA-OFC-WA-BOT V1 🍒`,
+                    title: `NETHMINA-OFC WA-BOT IS ONLINE 🎀`,
+                    body: `NETHMINA-OFC-WA-BOT V2 🍒`,
                     mediaType: 1,
                     sourceUrl: "https://github.com/nethmina-ofc",
                     thumbnailUrl: config.ALIVE_IMG,
-                    renderLargerThumbnail: true,
+                    renderLargerThumbnail: false,
                     showAdAttribution: true
                 }
             }
-        }, { quoted: {
-            key: { remoteJid: 'status@broadcast', fromMe: false, participant: '0@s.whatsapp.net' },
-            message: { extendedTextMessage: { text: "NETHMINA OFC AUTO SVC ID 719" } }
-        }});
+        }, { 
+            quoted: {
+                key: { 
+                    remoteJid: 'status@broadcast', 
+                    fromMe: false, 
+                    participant: '16505361212@s.whatsapp.net' 
+                },
+                message: {
+                    contactMessage: {
+                        displayName: "NETHMINA-OFC-WA-BOT ツ",
+                        vcard: `BEGIN:VCARD\nVERSION:3.0\nN:;NETHMINA-OFC-WA-BOT ツ;;;\nFN:NETHMINA-OFC-WA-BOT ツ\nitem1.TEL;waid=94760860835:+94 76 086 0835\nitem1.X-ABLabel:PSTN\nEND:VCARD`
+                    }
+                }
+            }
+        });
 
     } catch (e) {
-        console.log(e);
-        reply(`❌ Error: ${e.message}`);
+        console.error(e);
+        reply(`Error: ${e}`);
     }
 });
