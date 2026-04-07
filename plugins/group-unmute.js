@@ -8,39 +8,26 @@ cmd({
     category: "group",
     filename: __filename
 },           
-async (conn, mek, m, { from, q, reply, sender }) => {
+async (conn, mek, m, { from, q, reply, isGroup, isAdmins, isBotAdmins }) => {
     try {
-        // 1. Group & Admin Checks (Manual Logic)
-        const isGroupChat = from.endsWith('@g.us');
-        if (!isGroupChat) return reply("❌ This command can only be used in groups.");
+        // 1. Group & Admin Checks (Using global permissions from index.js)
+        if (!isGroup) return reply("❌ This command can only be used in groups.");
+        if (!isBotAdmins) return reply("❌ I need to be an *admin* to unmute the group.");
+        if (!isAdmins) return reply("❌ Only group admins can use this command.");
 
-        const groupMetadata = await conn.groupMetadata(from);
-        const participants = groupMetadata.participants;
-
-        const botNumber = conn.user.id.split(":")[0] + "@s.whatsapp.net";
-        const botParticipant = participants.find(p => p.id === botNumber);
-        const isBotActuallyAdmin = botParticipant && (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin');
-
-        if (!isBotActuallyAdmin) return reply("❌ I need to be an *admin* to unmute the group.");
-
-        const userParticipant = participants.find(p => p.id === sender.split(":")[0] + "@s.whatsapp.net");
-        const isUserActuallyAdmin = userParticipant && (userParticipant.admin === 'admin' || userParticipant.admin === 'superadmin');
-
-        if (!isUserActuallyAdmin) return reply("❌ Only group admins can use this command.");
-
-        // 2. Instant Unmute (Input එකක් නැතිනම්)
+        // 2. Instant Unmute (If no input time provided)
         if (!q) {
-            // Reaction for Instant: 🔊
             await conn.sendMessage(from, { react: { text: '🔊', key: mek.key } });
-            
             await conn.groupSettingUpdate(from, 'not_announcement');
             return reply("✅ *𝐆ʀᴏᴜ𝐏 𝐔ɴᴍᴜᴛᴇ𝐃 𝐈ɴꜱᴛᴀɴᴛʟ𝐘.* \nEveryone can send messages now.");
         }
 
-        // 3. Time Logic (Minutes/Hours/Days අඳුනා ගැනීම)
+        // 3. Time Logic (Minutes/Hours/Days detection)
         let milliseconds = 0;
         let timeValue = parseInt(q.replace(/[^0-9]/g, ''));
         let timeUnit = q.toLowerCase().replace(/[0-9]/g, '').trim();
+
+        if (isNaN(timeValue)) return reply("❌ Please provide a valid number. (Example: .unmute 10m)");
 
         if (timeUnit === 'd' || timeUnit === 'day' || timeUnit === 'days') {
             milliseconds = timeValue * 24 * 60 * 60 * 1000;
@@ -57,10 +44,10 @@ async (conn, mek, m, { from, q, reply, sender }) => {
         // 4. Reaction for Scheduled: ⏳
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
-        // 5. නියමිත වේලාව තෙක් රැඳී සිටීම
+        // 5. Waiting for the scheduled time
         await sleep(milliseconds);
 
-        // 6. Group එක Unmute කිරීම
+        // 6. Final Group Unmute Update
         await conn.groupSettingUpdate(from, 'not_announcement');
         await conn.sendMessage(from, { text: "🔊 *𝐆ʀᴏᴜ𝐏 𝐔ɴᴍᴜᴛᴇ𝐃 𝐀ᴜᴛᴏᴍᴀᴛɪᴄᴀʟʟ𝐘.* \nEveryone can send messages now." });
 
