@@ -21,8 +21,8 @@ async (conn, mek, m, { from, pushname, reply }) => {
         await conn.sendMessage(from, { react: { text: "🎃", key: m.key } });
 
         const uptime = runtime(process.uptime());
-        const date = new Date().toLocaleDateString('en-GB');
-        const time = new Date().toLocaleTimeString('en-US', { hour12: true });
+        const date = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' });
+        const time = new Date().toLocaleTimeString('en-US', { hour12: true, timeZone: 'Asia/Colombo' });
 
         // 2. Voice Note (Conversion)
         const audioUrl = "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3";
@@ -60,7 +60,7 @@ async (conn, mek, m, { from, pushname, reply }) => {
         }, { quoted: mek });
 
         // 4. Alive Message Caption
-        let mainCaption = `👋 *HELLOW*, *${pushname}*
+        let mainCaption = `👋 *HELLOW*, *${pushname || 'User'}*
 
 *╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」──●●►*
 *│*📅 Date : ${date}
@@ -68,7 +68,7 @@ async (conn, mek, m, { from, pushname, reply }) => {
 *╰──────────●●►*
 
 *╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」──●●►*
-*│*👤 User : ${pushname}
+*│*👤 User : ${pushname || 'User'}
 *│*🧑‍💻 Owner : ${config.OWNER_NAME}
 *│*✒️ Prefix : ${config.PREFIX}
 *│*🧬 Version : V 02
@@ -76,6 +76,7 @@ async (conn, mek, m, { from, pushname, reply }) => {
 *╰──────────●●►*
 
 🔢 *REPLY THE NUMBER BELLOW*
+
 01 ❯❯◦ COMMANDS MENU
 02 ❯❯◦ CHECK BOT PING
 
