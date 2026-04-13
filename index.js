@@ -214,6 +214,48 @@ Type *.menu* to see commands
     }
   });
 
+  nethmina.ev.on('messages.upsert', async (chatUpdate) => {
+    try {
+        const mek = chatUpdate.messages[0];
+        if (!mek.message || mek.key.fromMe) return;
+
+        const from = mek.key.remoteJid;
+        const body = (mek.message.conversation || mek.message.extendedTextMessage?.text || "").toUpperCase();
+        const pushname = mek.pushName || 'Dear';
+
+        // පරීක්ෂා කළ යුතු වචන
+        if (body.includes("HAPPY NEW YEAR") || body.includes("සුභ නව වසරක් වේවා") || body.includes("සුබ නව වසරක් වේවා")) {
+            
+            // එවන්න අවශ්‍ය පිළිතුර
+            const wishText = `
+*SAME TO YOU ${pushname}! 🥰*
+
+*ලබන්නා වූ සිංහල හා දෙමළ අලුත් අවුරුද්ද සාමය සතුට සෞභාග්‍ය සපිරි නිරෝගීමාත් වාසනාවන්ත සුභම සුභ නව වසරක් වේවා! ☀️🙏*
+
+---
+
+*May this New Year bring you new beginnings, fresh hope, and bright smiles. Wishing you and your loved ones a joyful and prosperous Sinhala and Tamil New Year! 🤝💗*
+
+---
+
+*அனைவருக்கும் இனிய புத்தாண்டு நல்வாழ்த்துக்கள்! 🌟🎆*
+
+> ᴡɪꜱʜᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ 🎊`;
+
+            // Image එකක් සමඟ Reply කිරීම
+            await nethmina.sendMessage(from, { 
+                image: { url: 'https://github.com/Nethmina-dev/NETHMINA-OFC-WABOT-V2/blob/main/IMG-20260413-WA0070.jpg' }, // මෙතනට New Year Image එකක Link එකක් දෙන්න
+                caption: wishText 
+            }, { quoted: mek });
+        }
+        
+    } catch (e) {
+        console.log("Auto Reply Error: ", e);
+    }
+});
+
+
+
   // ====================== MESSAGE HANDLING ======================
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
