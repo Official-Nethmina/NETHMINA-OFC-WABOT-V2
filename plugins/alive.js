@@ -1,13 +1,9 @@
 const config = require('../config');
 const { cmd } = require('../command');
 const { runtime } = require('../lib/functions');
-const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const path = require('path');
 
-// Temp directory setup
-const tempDir = path.join(__dirname, '../temp');
-if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
 cmd({
     pattern: "alive",
@@ -24,34 +20,7 @@ async (conn, mek, m, { from, pushname, reply }) => {
         const date = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' });
         const time = new Date().toLocaleTimeString('en-US', { hour12: true, timeZone: 'Asia/Colombo' });
 
-        // 2. Voice Note (Conversion)
-        const audioUrl = "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3";
-        const outputOgg = path.join(tempDir, `voice_${Date.now()}.ogg`);
-
-        const convertAudio = (url, out) => {
-            return new Promise((resolve, reject) => {
-                ffmpeg(url)
-                    .audioCodec('libopus')
-                    .audioBitrate('16k')
-                    .format('ogg')
-                    .on('end', () => resolve(out))
-                    .on('error', (err) => reject(err))
-                    .save(out);
-            });
-        };
-
-        try {
-            await convertAudio(audioUrl, outputOgg);
-            await conn.sendMessage(from, { 
-                audio: fs.readFileSync(outputOgg), 
-                mimetype: 'audio/ogg; codecs=opus',
-                ptt: true 
-            }, { quoted: mek });
-            if (fs.existsSync(outputOgg)) fs.unlinkSync(outputOgg);
-        } catch (err) {
-            console.error("Audio Error:", err);
-        }
-
+        
         // 3. Video Note (PTV)
         await conn.sendMessage(from, {
             video: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Video-notes/PTV-20250623-WA0021.mp4" },
