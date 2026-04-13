@@ -11,9 +11,9 @@ cmd({
     category: "main",
     filename: __filename
 },
-async (nethmina, mek, m, { from, pushname, reply }) => {
+async (nethmina, mek, m, { from, reply }) => {
     try {
-        
+        const pushname = m.pushName || 'User';
         await nethmina.sendMessage(from, { react: { text: "🎃", key: m.key } });
 
         const uptime = runtime(process.uptime());
@@ -36,7 +36,8 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
         }, { quoted: mek });
 
         // 4. Alive Message Caption (Monospace Fixed)
-        let mainCaption = `👋  𝐇𝐄𝐋𝐋𝐎, ${pushname || 'User'} 𝐈❜𝐀𝐌 𝐀𝐋𝐈𝐕𝐄 𝐍𝐎𝐖 👾
+        const userNumber = m.sender.split('@')[0];
+let mainCaption = `👋  𝐇𝐄𝐋𝐋𝐎, ${m.pushname || 'User'} 𝐈❜𝐀𝐌 𝐀𝐋𝐈𝐕𝐄 𝐍𝐎𝐖 👾
 
 ╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」
 │📅 \`Date\` : ${date}
@@ -44,7 +45,7 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
 ╰──────────●●►
 
 ╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」
-│👤 User: ${pushname || 'User'}
+│👤 User: @${userNumber}
 │✒️ \`Prefix\` : ${config.PREFIX}
 │🧬 \`Version\` : v2.0.0
 │🎈 \`Platform\` : Linux
