@@ -52,8 +52,8 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
 
 *> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||*`;
 
-        // 5. Final Message with Newsletter Forwarding + Contact Quoted Logic
-        return await nethmina.sendMessage(from, { 
+        // 5. Final Message with Newsletter Forwarding + Verified Contact Quoted Logic
+        return await conn.sendMessage(from, { 
             image: { url: config.ALIVE_IMG },
             caption: mainCaption,
             contextInfo: {
@@ -79,12 +79,13 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
                 key: { 
                     remoteJid: 'status@broadcast', 
                     fromMe: false, 
-                    participant: '16505361212@s.whatsapp.net' 
+                    // මේ Participant ID එක දැම්මම තමයි Verified Blue Tick එක වැටෙන්නේ
+                    participant: '0@s.whatsapp.net' 
                 },
                 message: {
                     contactMessage: {
-                        displayName: "NETHMINA-OFC-WA-BOT ツ",
-                        vcard: `BEGIN:VCARD\nVERSION:3.0\nN:;NETHMINA-OFC-WA-BOT ツ;;;\nFN:NETHMINA-OFC-WA-BOT ツ\nitem1.TEL;waid=94760860835:+94 76 086 0835\nitem1.X-ABLabel:PSTN\nEND:VCARD`
+                        displayName: "SANDES-AI ツ", // මෙතනට ඔයාට ඕන නම දෙන්න
+                        vcard: `BEGIN:VCARD\nVERSION:3.0\nN:;SANDES-AI ツ;;;\nFN:SANDES-AI ツ\nitem1.TEL;waid=94760860835:+94 76 086 0835\nitem1.X-ABLabel:PSTN\nEND:VCARD`
                     }
                 }
             }
