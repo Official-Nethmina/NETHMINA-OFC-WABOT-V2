@@ -20,7 +20,8 @@ async (conn, mek, m, { from, pushname, reply }) => {
         const date = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' });
         const time = new Date().toLocaleTimeString('en-US', { hour12: true, timeZone: 'Asia/Colombo' });
 
-        
+        await nethmina.sendPresenceUpdate('recording', from);
+        await nethmina.sendMessage(from, { audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp33" }, mimetype: 'audio/mpeg', ptt: false }, { quoted: mek });
         // 3. Video Note (PTV)
         await conn.sendMessage(from, {
             video: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Video-notes/PTV-20250623-WA0021.mp4" },
