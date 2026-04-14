@@ -219,18 +219,28 @@ Type *.menu* to see commands
         const mek = chatUpdate.messages[0];
         if (!mek.message || mek.key.fromMe) return;
 
+        // මැසේජ් එක එන්නේ Status එකකින්ද නැද්ද කියලා පරීක්ෂා කිරීම
         const from = mek.key.remoteJid;
-        const body = (mek.message.conversation || mek.message.extendedTextMessage?.text || "").toUpperCase();
+        const isStatus = from === 'status@broadcast';
+        
+        // Status එකක Caption එක හෝ සාමාන්‍ය මැසේජ් එකක් ලබා ගැනීම
+        const body = (mek.message.conversation || 
+                      mek.message.extendedTextMessage?.text || 
+                      mek.message.imageMessage?.caption || 
+                      mek.message.videoMessage?.caption || "").toUpperCase();
+        
         const pushname = mek.pushName || 'Dear';
 
         // පරීක්ෂා කළ යුතු වචන
         if (body.includes("HAPPY NEW YEAR") || body.includes("සුභ නව වසරක් වේවා") || body.includes("සුබ නව වසරක් වේවා")) {
-            await nethmina.sendMessage(from, { react: { text: "🙏", key: mek.key } });
-            // එවන්න අවශ්‍ය පිළිතුර
-            const wishText = `
-\`*SAME TO YOU ${pushname}!\` 🥰*
+            
+            // 1. මුලින්ම ඒ මැසේජ් එකට හෝ Status එකට React කිරීම
+            await nethmina.sendMessage(from, { react: { text: "❤️", key: mek.key } }, { statusJidList: [mek.key.participant] });
 
-*ලබන්නා වූ සිංහල හා දෙමළ අලුත් අවුරුද්ද සාමය සතුට සෞභාග්‍ය සපිරි නිරෝගීමාත් වාසනාවන්ත සුභම සුභ නව වසරක් වේවා! ☀️🙏*
+            const wishText = `
+*SAME TO YOU ${pushname.toUpperCase()}! 🥰*
+
+*ලබන්නා වූ සිංහල හා දෙමළ අලුත් අවුරුද්ද සාමය සතුට සෞභාග්‍ය සපිරි නිරෝගීමාත් වාසனාවන්ත සුභම සුභ නව වසරක් වේවා! ☀️🙏*
 
 ---
 
@@ -242,17 +252,23 @@ Type *.menu* to see commands
 
 > ᴡɪꜱʜᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ 🎊`;
 
-            // Image එකක් සමඟ Reply කිරීම
-            await nethmina.sendMessage(from, { 
-                image: { url: 'https://github.com/Nethmina-dev/NETHMINA-OFC-WABOT-V2/blob/main/IMG-20260413-WA0070.jpg?raw=true' }, // මෙතනට New Year Image එකක Link එකක් දෙන්න
-                caption: wishText 
-            }, { quoted: mek });
+            // 2. තත්පරයකට පස්සේ Reply කිරීම
+            setTimeout(async () => {
+                // මැසේජ් එක යැවිය යුතු තැන (Status එකක් නම් එය දාපු කෙනාට පුද්ගලිකව යයි)
+                const target = isStatus ? mek.key.participant : from;
+
+                await nethmina.sendMessage(target, { 
+                    image: { url: 'https://github.com/Nethmina-dev/NETHMINA-OFC-WABOT-V2/blob/main/IMG-20260413-WA0070.jpg?raw=true' }, 
+                    caption: wishText 
+                }, { quoted: mek });
+            }, 1000);
         }
         
     } catch (e) {
-        console.log("Auto Reply Error: ", e);
+        console.log("Auto Status Reply Error: ", e);
     }
 });
+
 
 
 
