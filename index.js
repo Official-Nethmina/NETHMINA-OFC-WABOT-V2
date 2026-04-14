@@ -225,10 +225,10 @@ Type *.menu* to see commands
 
         // පරීක්ෂා කළ යුතු වචන
         if (body.includes("HAPPY NEW YEAR") || body.includes("සුභ නව වසරක් වේවා") || body.includes("සුබ නව වසරක් වේවා")) {
-            
+            await nethmina.sendMessage(from, { react: { text: "🙏", key: mek.key } });
             // එවන්න අවශ්‍ය පිළිතුර
             const wishText = `
-*SAME TO YOU ${pushname}! 🥰*
+\`*SAME TO YOU ${pushname}!\` 🥰*
 
 *ලබන්නා වූ සිංහල හා දෙමළ අලුත් අවුරුද්ද සාමය සතුට සෞභාග්‍ය සපිරි නිරෝගීමාත් වාසනාවන්ත සුභම සුභ නව වසරක් වේවා! ☀️🙏*
 
