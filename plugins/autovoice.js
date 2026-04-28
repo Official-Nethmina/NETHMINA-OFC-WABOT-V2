@@ -1,40 +1,55 @@
-const { cmd } = require('../command');
+const axios = require("axios");
 
-cmd({
-    on: "body"
-},    
-async (conn, mek, m, { from, body, isOwner, readEnv }) => {
+// 🎧 Words → voice URLs mapping
+const voiceReplies = {
+  hi: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/hi%23old.mp3",
+  mk: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/Mk.mp3"
+};
+
+module.exports = {
+  onMessage: async (conn, mek) => {
     try {
-        
-        if (m.key.fromMe) return;
+      if (!mek.message) return;
 
-        const msgText = body ? body.toLowerCase().trim() : "";
-         const config = await readEnv();
-        
-        if (config.AUTO_VOICE === 'true') {
-            
-            let voiceUrl = '';
+      const type = Object.keys(mek.message)[0];
+      const msg =
+        type === "conversation"
+          ? mek.message.conversation
+          : mek.message.extendedTextMessage?.text || "";
 
-            
-            if (msgText === 'hi' || msgText === 'hello') {
-                voiceUrl = 'https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/hi%23old.mp3';
-            } else if (msgText === 'mk' || msgText === 'මොකෝ') {
-                voiceUrl = 'https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/Mk.mp3';
-            }
+      if (!msg) return;
 
-            
-            if (voiceUrl !== '') {
-                
-                await conn.sendPresenceUpdate('recording', from);
+      const text = msg.toLowerCase().trim();
+      const from = mek.key.remoteJid;
 
-                await conn.sendMessage(from, { 
-                    audio: { url: voiceUrl }, 
-                    mimetype: 'audio/mpeg', 
-                    ptt: false
-                }, { quoted: mek });
-            }
-       }
-    } catch (e) {
-        console.log("Auto Voice Error: ", e);
+      // 🔍 Check matching keyword
+      const matchKey = Object.keys(voiceReplies).find(k =>
+        text === k || text.includes(k)
+      );
+
+      if (!matchKey) return;
+
+      const voiceUrl = voiceReplies[matchKey];
+
+      // 📥 Download audio → buffer
+      const res = await axios.get(voiceUrl, {
+        responseType: "arraybuffer"
+      });
+      const buffer = Buffer.from(res.data);
+
+      // 🎤 Send voice note (PTT)
+      await conn.sendMessage(
+        from,
+        {
+          audio: buffer,
+          mimetype: "audio/mpeg",
+          ptt: true
+        },
+        { quoted: mek }
+      );
+
+    } catch (err) {
+      console.log("AutoVoice Error:", err);
     }
-});
+  }
+};
