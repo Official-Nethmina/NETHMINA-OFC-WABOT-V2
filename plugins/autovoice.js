@@ -9,8 +9,8 @@ async (conn, mek, m, { from, body, isOwner, readEnv }) => {
         if (m.key.fromMe) return;
 
         const msgText = body ? body.toLowerCase().trim() : "";
-        // const config = await readEnv();
-        // config එකේ AUTO_VOICE 'true' නම් පමණක් වැඩ කරන්න
+         const config = await readEnv();
+        
       //  if (config.AUTO_VOICE === 'true') {
             
             let voiceUrl = '';
