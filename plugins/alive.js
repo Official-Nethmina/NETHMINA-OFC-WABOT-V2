@@ -3,6 +3,7 @@ const { cmd } = require('../command');
 const { runtime } = require('../lib/functions');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const os = require('os');
 const ffmpegPath = require('ffmpeg-static')
 cmd({
@@ -25,11 +26,11 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
         /*
         await nethmina.sendMessage(from, { 
             audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" }, 
-            mimetype: 'audio/mpeg', 
+   */         mimetype: 'audio/mpeg', 
             ptt: false 
         }, { quoted: mek });
 
-        */
+        
 
          await nethmina.sendMessage(from, { 
             video: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" }, 
