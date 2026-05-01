@@ -36,7 +36,6 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
             ptv: true 
         }, { quoted: mek })
         
-        await sleep(1000)
         
         await nethmina.sendPresenceUpdate('recording', from)
         
