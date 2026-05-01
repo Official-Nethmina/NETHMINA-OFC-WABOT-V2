@@ -22,11 +22,11 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
         const time = new Date().toLocaleTimeString('en-US', { hour12: true, timeZone: 'Asia/Colombo' });
 
        
-        await nethmina.sendPresenceUpdate('recording', from);
-        /*
+      /*  await nethmina.sendPresenceUpdate('recording', from);
+        
         await nethmina.sendMessage(from, { 
             audio: { url: "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3" }, 
-   */         mimetype: 'audio/mpeg', 
+            mimetype: 'audio/mpeg', 
             ptt: false 
         }, { quoted: mek });
 
@@ -37,7 +37,7 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
             ptv: true 
         }, { quoted: mek })
         
-        
+        */
         await nethmina.sendPresenceUpdate('recording', from)
         
         const audioUrl = "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3"
