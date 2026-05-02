@@ -1,4 +1,4 @@
-const config = require('../config');
+ const config = require('../config');
 const { cmd } = require('../command');
 const { runtime } = require('../lib/functions');
 const { exec } = require('child_process');
@@ -59,10 +59,10 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
             exec(`"${ffmpegPath}" -i ${inputPath} -c:a libopus -b:a 64k -vbr on -f ogg ${outputPath}`, async (error) => {
                 if (error) {
                     console.error("FFmpeg Error:", error)
-                    await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek })
+                    await nethmina.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek })
                 } else {
                     const buffer = fs.readFileSync(outputPath)
-                    await conn.sendMessage(from, {
+                    await nethmina.sendMessage(from, {
                         audio: buffer,
                         mimetype: 'audio/ogg; codecs=opus',
                         ptt: true
