@@ -311,7 +311,7 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
 
         await nethmina.sendPresenceUpdate('recording', from);
         
-        const audioUrl = "https://files.catbox.moe/xn9djn.mp3";
+        const audioUrl = "https://limewire.com/d/MbgwU#utQwgFvTPB";
         const tempMp3 = path.join(os.tmpdir(), `temp_${Date.now()}.mp3`);
         const tempOpus = path.join(os.tmpdir(), `temp_${Date.now()}.opus`);
 
