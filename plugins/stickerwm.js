@@ -1,51 +1,55 @@
 const { cmd } = require('../command');
+const { Sticker, StickerTypes } = require('wa-sticker-formatter');
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 cmd({
     pattern: "wm",
-    alias: ["watermark", "packname"],
-    desc: "Change sticker pack name and author.",
-    category: "main",
+    desc: "Sticker එකේ pack name සහ author name වෙනස් කරයි.",
+    category: "convert",
     filename: __filename
 },
-async (conn, mek, m, { from, reply }) => {
+async (conn, mek, m, { from, reply, quoted, body }) => {
     try {
-        // 👤 React
-        await conn.sendMessage(from, {
-            react: { text: '🖊️', key: mek.key }
-        }).catch(() => null);
+        if (!quoted) return reply("*Please reply to a sticker. 😊*");
 
-        // ✅ Check if quoted message is a sticker
-        if (!m.quoted || m.quoted.mtype !== 'stickerMessage') {
-            return reply("❌ Please reply to a sticker to change its watermark.");
+        const isSticker = quoted.mtype === 'stickerMessage' || 
+                          (quoted.message && quoted.message.stickerMessage);
+
+        if (!isSticker) return reply("*You did not reply to a sticker. Please reply to a sticker. 🙂*");
+
+        let pack = "💟 𝙽𝙴𝚃𝙷𝙼𝙸𝙽𝙰 - 𝚂𝚃𝙸𝙲𝙺𝙴𝚁𝚂 💟"; 
+        let author = "© 🧑🏻‍💻 ɴᴇᴛʜᴍɪɴᴀ ᴏꜰꜰɪᴄɪᴀʟ ᴄᴏᴍᴍᴜɴɪᴛʏ 🧑🏻‍💻";
+
+        if (body && body.includes('|')) {
+            let splitData = body.split('|');
+            pack = splitData[0].replace('.wm', '').trim() || pack;
+            author = splitData[1].trim() || author;
         }
 
-        // 📥 Download the sticker
-        const stickerBuffer = await m.quoted.download();
-        if (!stickerBuffer) return reply("❌ Failed to download sticker.");
+        await conn.sendMessage(from, { react: { text: '🖊️', key: mek.key } });
 
-        // 🏷️ Your custom pack info — edit these!
-        const packname = "NETHMINA OFC";
-        const author = "© Nethmina";
+       
+        const message = quoted.message?.stickerMessage || quoted;
+        const stream = await downloadContentFromMessage(message, 'image');
+        let buffer = Buffer.from([]);
+        for await (const chunk of stream) {
+            buffer = Buffer.concat([buffer, chunk]);
+        }
+        // ------------------------------------------
 
-        // 📦 Build sticker with new metadata
-        const { Sticker, StickerTypes } = require('wa-sticker-formatter');
-
-        const sticker = new Sticker(stickerBuffer, {
-            pack: packname,
+        const sticker = new Sticker(buffer, {
+            pack: pack,
             author: author,
             type: StickerTypes.FULL,
-            quality: 100
+            categories: ['🤩', '🎉'],
+            quality: 70,
         });
 
-        const stickerOut = await sticker.toBuffer();
-
-        // 📤 Send the new sticker
-        await conn.sendMessage(from, {
-            sticker: stickerOut
-        }, { quoted: mek });
+        const stickerBuffer = await sticker.toBuffer();
+        return await conn.sendMessage(from, { sticker: stickerBuffer }, { quoted: mek });
 
     } catch (e) {
-        console.error("WM Error:", e);
-        reply("❌ Failed to change sticker watermark.");
+        console.log("WM Error: ", e);
+        reply("*Something went wrong! Please try again. 🛠*");
     }
 });
