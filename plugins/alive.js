@@ -238,13 +238,13 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
 ╰──────────●●►
 
 ╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」
-│👤 \`User\`: ${userPushname}
+│👤 \`User\`: @${userNum}
 │✒️ \`Prefix\` : ${config.PREFIX}
 │🧬 \`Version\` : v2.0.0
 │🎈 \`Platform\` : Linux
 │📡 \`Host\` : ${os.hostname()}
 │📟 \`Uptime\` : ${uptime}
-│📂 \`Memory\` : ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB
+│📂 \`Memory\` : ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB / ${Math.round(os.totalmem() / 1024 / 1024)}MB
 ╰──────────●●►
 
 ╭─「 ᴍᴀɪɴ ᴄᴏᴍᴍᴀɴᴅꜱ 」
