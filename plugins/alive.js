@@ -190,7 +190,7 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
 
         await nethmina.sendPresenceUpdate('recording', from);
         
-        const audioUrl = "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3";
+        const audioUrl = "https://files.catbox.moe/xn9djn.mp3";
         const tempDir = os.tmpdir();
         const inputPath = path.join(tempDir, `alive_${Date.now()}.mp3`);
         const outputPath = path.join(tempDir, `alive_${Date.now()}.opus`);
@@ -306,7 +306,7 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
 
         await nethmina.sendPresenceUpdate('recording', from);
         
-        const audioUrl = "https://github.com/Nethmina-dev/BOT-DATA/raw/refs/heads/main/Voice-notes/alive.mp3";
+        const audioUrl = "https://files.catbox.moe/xn9djn.mp3";
         const tempMp3 = path.join(os.tmpdir(), `temp_${Date.now()}.mp3`);
         const tempOpus = path.join(os.tmpdir(), `temp_${Date.now()}.opus`);
 
