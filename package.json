@@ -9,7 +9,8 @@
     "restart": "pm2 restart NETHMINA-OFC-WA-BOT"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "@whiskeysockets/baileys": "github:AmilaPrabathKumara/Baileys-Latest#fix-leak-upload",
+    "jimp": "*",
     "api-dylux": "^1.8.5",
     "axios": "^1.13.6",
     "browser-id3-writer": "^6.3.1",
