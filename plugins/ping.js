@@ -22,14 +22,14 @@ cmd(
     const start = Date.now();
     const sent = await nethmina.sendMessage(
       from,
-      { text: "🏓 Pong!" },
+      { text: "🚀 Pinging..." },
       { quoted: mek }
     );
 
     // 3. Calculate latency and edit the message
     const latency = Date.now() - start;
     await nethmina.sendMessage(from, {
-      text: `🏓 Pong!\n\n*Response time:* ${latency}ms`,
+      text: `🏓 Pong!\n*Response time:* ${latency}ms`,
       edit: sent.key,
     });
 
