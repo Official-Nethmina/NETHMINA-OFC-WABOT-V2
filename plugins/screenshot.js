@@ -1,4 +1,4 @@
-const { cmd } = require("../command");
+/*const { cmd } = require("../command");
 const puppeteer = require("puppeteer");
 const fs = require("fs-extra");
 const path = require("path");
@@ -62,3 +62,4 @@ cmd({
     reply("❌ *Failed to take screenshot.* Please check the URL or try again later.");
   }
 });
+*/
