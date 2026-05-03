@@ -40,7 +40,9 @@ const credsPath = path.join(__dirname, "/auth_info_baileys/creds.json");
 // ====================== PLUGIN SYSTEM ======================
 global.pluginHooks = global.pluginHooks || [];
 const antiDeletePlugin = require("./plugins/antidelete.js");
+const antiEditPlugin = require("./plugins/antiedit.js"); 
 global.pluginHooks.push(antiDeletePlugin);
+global.pluginHooks.push(antiEditPlugin); 
 
 // ====================== SESSION HANDLER ======================
 async function ensureSessionFile() {
@@ -384,19 +386,35 @@ Type *.menu* to see commands
     }
   });
 
-  // ====================== MESSAGE DELETE EVENT ======================
-  nethmina.ev.on("messages.update", async (updates) => {
-    for (const plugin of global.pluginHooks) {
-      if (plugin.onDelete) {
-        try {
-          await plugin.onDelete(nethmina, updates);
-        } catch (err) {
-          console.log("❌ onDelete error:", err);
-        }
-      }
-    }
-  });
-}
+ // ====================== MESSAGE DELETE & EDIT EVENT ======================
+  nethmina.ev.on("messages.update", async (updates) => {
+    for (const update of updates) {
+      for (const plugin of global.pluginHooks) {
+        
+        // --- 1. Anti-Delete handle කිරීම ---
+        if (plugin.onDelete && (update.action === 'delete' || update.update?.message === null)) {
+          try {
+            await plugin.onDelete(nethmina, [update]);
+          } catch (err) {
+            console.log("❌ onDelete error:", err);
+          }
+        }
+
+        // --- 2. Anti-Edit handle කිරීම ---
+        // Edit එකකදී update.update.message ඇතුළේ protocolMessage එකක් එනවා
+        if (plugin.onEdit && update.update?.message?.protocolMessage?.type === 14) {
+          try {
+            await plugin.onEdit(nethmina, update);
+          } catch (err) {
+            console.log("❌ onEdit error:", err);
+          }
+        }
+
+      }
+    // ... කලින් කොටස ...
+    }
+  });
+} // <--- මේ සගල වරහන අනිවාර්යයි (connectToWA function එක ඉවර කරන්න)
 
 // ====================== START BOT ======================
 ensureSessionFile();
