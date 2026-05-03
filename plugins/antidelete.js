@@ -126,11 +126,15 @@ module.exports = {
       const from = key.remoteJid;
       const sender = key.participant || from;
 
-      let caption =
-`🗑️ *Deleted Message Recovered*
+      // ලංකාවේ වෙලාව සහ දිනය හරියටම ලබා ගැනීම
+      const time = new Date().toLocaleTimeString('en-US', { hour12: true, timeZone: 'Asia/Colombo' });
+      const date = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' });
+
+      let caption = `🗑️ *Deleted Message Recovered*
 
 👤 *Sender:* @${sender.split('@')[0]}
-🕒 *Time:* ${new Date().toLocaleString()}`;
+📅 *Date:* ${date}
+🕒 *Time:* ${time}`;
 
       try {
         const mediaPath = mediaStore.get(keyId);
