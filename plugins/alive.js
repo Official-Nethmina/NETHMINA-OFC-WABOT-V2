@@ -25,7 +25,7 @@ cmd({
 },
 async (nethmina, mek, m, { from, pushname, reply, }) => {
     try {
-        
+        const userPushname = m.pushName || 'User';
         await nethmina.sendMessage(from, { react: { text: "🎃", key: m.key } });
 
         const uptime = runtime(process.uptime());
@@ -76,7 +76,7 @@ async (nethmina, mek, m, { from, pushname, reply, }) => {
         
         let mainCaption = `👋 𝐇𝐄𝐋𝐋𝐎, ${userPushname} 𝐈❜𝐀𝐌 𝐀𝐋𝐈𝐕𝐄 𝐍𝐎𝐖 👾
 
-╭─「 ᴅᴀᴛᴇ ɪɴꜰᅩʀᴍᴀᴛɪᴏɴ 」
+╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」
 │📅 \`Date\` : ${date}
 │⏰ \`Time\` : ${time}
 ╰──────────●●►
@@ -104,13 +104,14 @@ async (nethmina, mek, m, { from, pushname, reply, }) => {
             image: { url: config.ALIVE_IMG },
             caption: mainCaption,
             contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363233544482017@newsletter',
-                    serverMessageId: 143
-                }
-            }
+    forwardingScore: 999,
+    isForwarded: true,
+    forwardedNewsletterMessageInfo: {
+        newsletterJid: '120363233544482017@newsletter',
+        serverMessageId: 143,
+        newsletterName: 'NETHMINA-OFC-WABOT-V2' // මෙතනට ඔයාට ඕන නම දෙන්න
+    }
+}
         }, { 
             quoted: {
                 key: { 
