@@ -387,28 +387,30 @@ Type *.menu* to see commands
   });
 
  // ====================== EDIT & DELETE EVENTS ======================
-  nethmina.ev.on("messages.update", async (updates) => {
+nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
-      for (const plugin of global.pluginHooks) {
-        
-        // 1. Anti-Delete
-        if (plugin.onDelete && (update.action === 'delete' || update.update?.message === null)) {
-          await plugin.onDelete(nethmina, [update]).catch(e => console.log(e));
+        // Plugin Hooks හරහා එකින් එක පරීක්ෂා කිරීම
+        for (const plugin of global.pluginHooks) {
+            try {
+                // --- 1. Anti-Delete ---
+                if (plugin.onDelete && (update.action === 'delete' || update.update?.message === null)) {
+                    await plugin.onDelete(nethmina, [update]);
+                }
+
+                // --- 2. Anti-Edit ---
+                // protocolMessage type 14 කියන්නේ WhatsApp Edit එකක්
+                if (plugin.onEdit && update.update?.message?.protocolMessage?.type === 14) {
+                    console.log("📝 Edit Detected for ID:", update.key.id);
+                    await plugin.onEdit(nethmina, update);
+                }
+            } catch (err) {
+                console.error("❌ Plugin Event Error:", err);
+            }
         }
-
-        // 2. Anti-Edit
-        if (update.update?.message?.protocolMessage?.type === 14) {
-    console.log("📝 Edit Detected for ID:", update.key.id); // මේක වැටෙනවාද බලන්න
-    try {
-        await plugin.onEdit(nethmina, update);
-    } catch (err) {
-        console.log("❌ onEdit error:", err);
     }
-}
-    }
-  });
+});
 
-} // connectToWA end
+} // connectToWA function එක මෙතනින් අවසන් වේ (Closing the function)
 
-// START
+// ====================== START BOT ======================
 ensureSessionFile();
