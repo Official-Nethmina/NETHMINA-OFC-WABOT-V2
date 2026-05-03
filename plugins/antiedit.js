@@ -1,10 +1,8 @@
 const fs = require('fs');
 
-// පරණ මැසේජ් මතක තබා ගැනීමට (RAM එකේ තාවකාලිකව)
 if (!global.msgStore) global.msgStore = new Map();
 
 module.exports = {
-    // සෑම මැසේජ් එකක්ම Store කරගැනීම
     onMessage: async (conn, mek) => {
         try {
             if (!mek.message || mek.message.protocolMessage) return;
@@ -18,7 +16,8 @@ module.exports = {
             if (content) {
                 global.msgStore.set(msgId, {
                     text: content,
-                    sender: mek.key.participant || mek.key.remoteJid
+                    sender: mek.key.participant || mek.key.remoteJid,
+                    time: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour12: true })
                 });
             }
             
@@ -27,7 +26,6 @@ module.exports = {
         } catch (e) { console.log(e); }
     },
 
-    // Edit එකක් වූ විට ක්‍රියාත්මක වීම
     onEdit: async (conn, mek) => {
         try {
             const protocolMsg = mek.message.protocolMessage;
@@ -37,23 +35,33 @@ module.exports = {
 
             if (!editedMsg) return;
 
-            // අලුත් (Edit කරපු) Text එක
             const newText = editedMsg.conversation || 
                             editedMsg.extendedTextMessage?.text || 
                             editedMsg.imageMessage?.caption || 
                             editedMsg.videoMessage?.caption;
 
-            // පරණ (Store කරපු) මැසේජ් එක
             const oldMsg = global.msgStore.get(msgId);
 
             if (oldMsg && newText && oldMsg.text !== newText) {
-                let report = `*⚠️ ANTI-EDIT DETECTED!* ⚠️\n\n` +
-                             `*🚫 Original:* ${oldMsg.text}\n\n` +
-                             `*✅ Edited To:* ${newText}`;
+                // Professional Report Design
+                let report = `*╭───  「 📝 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗘𝗗𝗜𝗧 」  ────*
+*│*
+*│*  🕒 *Time:* ${oldMsg.time}
+*│*  👤 *User:* @${oldMsg.sender.split('@')[0]}
+*│*
+*│*  *📑 𝗢𝗿𝗶𝗴𝗶𝗻𝗮𝗹 𝗠𝗲𝘀𝘀𝗮𝗴𝗲:*
+*│*  \`\`\`${oldMsg.text}\`\`\`
+*│*
+*│*  *✨ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗠𝗲𝘀𝘀𝗮𝗴𝗲:*
+*│*  \`\`\`${newText}\`\`\`
+*│*
+*╰───────────────────────────*`;
 
-                await conn.sendMessage(from, { text: report }, { quoted: mek });
+                await conn.sendMessage(from, { 
+                    text: report, 
+                    mentions: [oldMsg.sender] 
+                }, { quoted: mek });
                 
-                // දැනුම් දුන්නට පස්සේ Store එකෙන් අයින් කරන්න පුළුවන්
                 global.msgStore.delete(msgId);
             }
         } catch (e) { console.log("Edit Plugin Error:", e); }
