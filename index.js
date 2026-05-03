@@ -216,201 +216,110 @@ Type *.menu* to see commands
     }
   });
 
-  // ====================== MESSAGE HANDLING ======================
-  nethmina.ev.on("messages.upsert", async ({ messages }) => {
-    for (const mek of messages) {
-      if (!mek.message) continue;
+  // ====================== MAIN MESSAGE HANDLING ======================
+  nethmina.ev.on("messages.upsert", async ({ messages }) => {
+    for (const mek of messages) {
+      if (!mek.message) continue;
 
-      // Plugin hooks
-      for (const plugin of global.pluginHooks) {
-        if (plugin.onMessage) plugin.onMessage(nethmina, mek);
-      }
-
-      const from = mek.key.remoteJid;
-      const type = getContentType(mek.message);
-
-      const body =
-        type === "conversation"
-          ? mek.message.conversation
-          : type === "extendedTextMessage"
-          ? mek.message.extendedTextMessage.text
-          : type === "imageMessage"
-          ? mek.message.imageMessage.caption
-          : type === "videoMessage"
-          ? mek.message.videoMessage.caption
-          : "";
-
-      const sender = mek.key.fromMe
-        ? nethmina.user.id
-        : mek.key.participant || mek.key.remoteJid;
-
-      const senderNumber = sender.split("@")[0];
-
-      // ====================== VIEW ONCE AUTO RETRIEVE ======================
-      if (mek.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
-          const quoted = mek.message.extendedTextMessage.contextInfo.quotedMessage;
-          const mtype = Object.keys(quoted)[0];
-          if (quoted[mtype]?.viewOnce) {
-              const isMyMessage = sender.includes("94760860835");
-              if (isMyMessage) {
-                  try {
-                      const mediaMsg = quoted[mtype];
-                      const stream = await downloadContentFromMessage(
-                          mediaMsg,
-                          mtype === "imageMessage" ? "image" : mtype === "videoMessage" ? "video" : "audio"
-                      );
-                      let buffer = Buffer.from([]);
-                      for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-
-                      const targetJid = "94760860835@s.whatsapp.net";
-                      const captionText = `📥 *View Once Retrieved*\n👤 From Chat: ${from}\n📝 Caption: ${mediaMsg.caption || "No caption"}`;
-
-                      let messageContent = {};
-                      if (mtype === "imageMessage") {
-                          messageContent = { image: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "image/jpeg" };
-                      } else if (mtype === "videoMessage") {
-                          messageContent = { video: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "video/mp4" };
-                      } else if (mtype === "audioMessage") {
-                          messageContent = { audio: buffer, mimetype: mediaMsg.mimetype || "audio/mp4", ptt: mediaMsg.ptt || false };
-                      }
-
-                      if (Object.keys(messageContent).length > 0) {
-                          await nethmina.sendMessage(targetJid, messageContent);
-                      }
-                  } catch (e) {
-                      console.log("❌ View Once Process Error:", e);
-                  }
-              }
-          }
-      }
-
-      // ====================== COMMAND PARSING ======================
-      const isCmd = body.startsWith(prefix);
-      const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : "";
-      const args = body.trim().split(/ +/).slice(1);
-      const q = args.join(" ");
-
-      const reply = (txt) =>
-        nethmina.sendMessage(from, { text: txt }, { quoted: mek });
-
-      // ====================== GLOBAL PERMISSIONS (UPDATED) ======================
-      const isGroup = from.endsWith('@g.us');
-      const isMe = mek.key.fromMe;
-      
-      // Bot ගේ අංකය ලබා ගැනීම
-      const botNumber = nethmina.user.id.split(':')[0] + '@s.whatsapp.net';
-      const isBot = sender === botNumber; // මැසේජ් එක එවන්නේ බොට්මද?
-
-      const isOwner = ownerNumber.includes(senderNumber) || isMe;
-
-      let isAdmins = false;
-      let isBotAdmins = false;
-
-      if (isGroup) {
-          try {
-              const groupMetadata = await nethmina.groupMetadata(from);
-              const participants = groupMetadata.participants;
-              
-              // යවන්නා Admin ද?
-              const user = participants.find(p => p.id === sender);
-              isAdmins = user && (user.admin === 'admin' || user.admin === 'superadmin');
-              
-              // බොට් Admin ද?
-              const botInGroup = participants.find(p => p.id === botNumber);
-              isBotAdmins = botInGroup && (botInGroup.admin === 'admin' || botInGroup.admin === 'superadmin');
-          } catch (e) {
-              isAdmins = false;
-              isBotAdmins = false;
-          }
-      }
-      
-      // Auto-react for owner
-      if (isOwner && isCmd) {
-        await nethmina.sendMessage(from, {
-          react: { text: "🧑🏻‍💻", key: mek.key }
-        });
-      }
-
-      // ====================== COMMAND HANDLER ======================
-      if (isCmd) {
-        const cmd = commands.find(
-          (c) =>
-            c.pattern === commandName ||
-            (c.alias && c.alias.includes(commandName))
-        );
-
-        if (cmd) {
-          try {
-            const quoted = mek.message[type]?.contextInfo?.quotedMessage ? {
-                id: mek.message[type].contextInfo.stanzaId,
-                sender: mek.message[type].contextInfo.participant,
-                fromMe: mek.message[type].contextInfo.participant === (nethmina.user.id.split(':')[0] + '@s.whatsapp.net'),
-                message: mek.message[type].contextInfo.quotedMessage
-            } : null;
-
-            await cmd.function(nethmina, mek, sms(nethmina, mek), {
-              from,
-              args,
-              q,
-              sender,
-              reply,
-              command: commandName,
-              isGroup,
-              isOwner,
-              isAdmins,
-              isBotAdmins,
-              quoted
-            });
-          } catch (e) {
-            console.log("PLUGIN ERROR:", e);
-          }
-        }
-      }
-
-      // ====================== REPLY HANDLERS ======================
-      for (const handler of replyHandlers) {
-        if (handler.filter(body, { sender, message: mek })) {
-          handler.function(nethmina, mek, sms(nethmina, mek), {
-            from,
-            body,
-            sender,
-            reply,
-            isGroup,
-            isOwner,
-            isAdmins,
-            isBotAdmins
-          });
-          break;
-        }
-      }
-    }
-  });
-
- // ====================== EDIT & DELETE EVENTS ======================
-nethmina.ev.on("messages.update", async (updates) => {
-    for (const update of updates) {
-        // Plugin Hooks හරහා එකින් එක පරීක්ෂා කිරීම
+      // --- [EDIT DETECTION] ---
+      const isEdit = mek.message.protocolMessage && mek.message.protocolMessage.type === 14;
+      if (isEdit) {
         for (const plugin of global.pluginHooks) {
-            try {
-                // --- 1. Anti-Delete ---
-                if (plugin.onDelete && (update.action === 'delete' || update.update?.message === null)) {
-                    await plugin.onDelete(nethmina, [update]);
-                }
-
-                // --- 2. Anti-Edit ---
-                // protocolMessage type 14 කියන්නේ WhatsApp Edit එකක්
-                if (plugin.onEdit && update.update?.message?.protocolMessage?.type === 14) {
-                    console.log("📝 Edit Detected for ID:", update.key.id);
-                    await plugin.onEdit(nethmina, update);
-                }
-            } catch (err) {
-                console.error("❌ Plugin Event Error:", err);
-            }
+          if (plugin.onEdit) {
+            await plugin.onEdit(nethmina, mek).catch(e => console.log("Edit Plugin Error:", e));
+          }
         }
+        continue; 
+      }
+
+      // Plugin hooks (onMessage)
+      for (const plugin of global.pluginHooks) {
+        if (plugin.onMessage) plugin.onMessage(nethmina, mek);
+      }
+
+      const from = mek.key.remoteJid;
+      const type = getContentType(mek.message);
+      const body = type === "conversation" ? mek.message.conversation : 
+                   type === "extendedTextMessage" ? mek.message.extendedTextMessage.text : 
+                   type === "imageMessage" ? mek.message.imageMessage.caption : 
+                   type === "videoMessage" ? mek.message.videoMessage.caption : "";
+
+      const sender = mek.key.fromMe ? nethmina.user.id : mek.key.participant || mek.key.remoteJid;
+      const senderNumber = sender.split("@")[0];
+
+      // ====================== COMMAND PARSING ======================
+      const isCmd = body.startsWith(prefix);
+      const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : "";
+      const args = body.trim().split(/ +/).slice(1);
+      const q = args.join(" ");
+
+      const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
+
+      const isGroup = from.endsWith('@g.us');
+      const isMe = mek.key.fromMe;
+      const botNumber = nethmina.user.id.split(':')[0] + '@s.whatsapp.net';
+      const isOwner = ownerNumber.includes(senderNumber) || isMe;
+
+      let isAdmins = false;
+      let isBotAdmins = false;
+      if (isGroup) {
+          try {
+              const groupMetadata = await nethmina.groupMetadata(from);
+              const participants = groupMetadata.participants;
+              const user = participants.find(p => p.id === sender);
+              isAdmins = user && (user.admin === 'admin' || user.admin === 'superadmin');
+              const botInGroup = participants.find(p => p.id === botNumber);
+              isBotAdmins = botInGroup && (botInGroup.admin === 'admin' || botInGroup.admin === 'superadmin');
+          } catch (e) { }
+      }
+      
+      if (isOwner && isCmd) {
+        await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } });
+      }
+
+      if (isCmd) {
+        const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
+        if (cmd) {
+          try {
+            const quoted = mek.message[type]?.contextInfo?.quotedMessage ? {
+                id: mek.message[type].contextInfo.stanzaId,
+                sender: mek.message[type].contextInfo.participant,
+                fromMe: mek.message[type].contextInfo.participant === botNumber,
+                message: mek.message[type].contextInfo.quotedMessage
+            } : null;
+
+            await cmd.function(nethmina, mek, sms(nethmina, mek), {
+              from, args, q, sender, reply, command: commandName, isGroup, isOwner, isAdmins, isBotAdmins, quoted
+            });
+          } catch (e) { console.log("PLUGIN ERROR:", e); }
+        }
+      }
+
+      // Reply Handlers
+      for (const handler of replyHandlers) {
+        if (handler.filter(body, { sender, message: mek })) {
+          handler.function(nethmina, mek, sms(nethmina, mek), {
+            from, body, sender, reply, isGroup, isOwner, isAdmins, isBotAdmins
+          });
+          break;
+        }
+      }
     }
-});
+  });
 
-} // connectToWA function එක මෙතනින් අවසන් වේ (Closing the function)
+  // ====================== DELETE EVENTS ======================
+  nethmina.ev.on("messages.update", async (updates) => {
+    for (const update of updates) {
+      for (const plugin of global.pluginHooks) {
+        try {
+          if (plugin.onDelete && (update.action === 'delete' || update.update?.message === null)) {
+            await plugin.onDelete(nethmina, [update]);
+          }
+        } catch (err) { }
+      }
+    }
+  });
 
-// ====================== START BOT ======================
+} // connectToWA End
+
 ensureSessionFile();
