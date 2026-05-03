@@ -1,80 +1,61 @@
-const { unwrapMessage } = require('./antidelete'); // කලින් ලිපියේ unwrapMessage function එක මෙතනටත් ඕන වෙනවා
+const fs = require('fs');
 
-// මැසේජ් තාවකාලිකව තබා ගැනීමට (Original messages store)
-const editStore = new Map();
+// මැසේජ් තාවකාලිකව මතක තබා ගැනීමට (Memory Store)
+if (!global.msgStore) global.msgStore = new Map();
 
 module.exports = {
-    name: 'antiedit',
+    // 1. මැසේජ් එකක් ආපු ගමන් ඒක මතක තබා ගැනීම
+    onMessage: async (conn, mek) => {
+        try {
+            if (!mek.message) return;
+            const msgId = mek.key.id;
+            
+            // මැසේජ් එකේ අන්තර්ගතය ලබා ගැනීම
+            let content = mek.message.conversation || 
+                          mek.message.extendedTextMessage?.text || 
+                          mek.message.imageMessage?.caption || 
+                          mek.message.videoMessage?.caption || "";
 
-    onMessage: async (conn, msg) => {
-        if (!msg?.message || msg.key.fromMe) return;
-
-        const keyId = msg.key.id;
-        const remoteJid = msg.key.remoteJid;
-
-        // මැසේජ් එකේ Text එක ලබා ගැනීම
-        let originalText = msg.message.conversation || 
-                           msg.message.extendedTextMessage?.text || 
-                           msg.message.imageMessage?.caption || 
-                           msg.message.videoMessage?.caption || 
-                           '';
-
-        // මැසේජ් එක text එකක් නම් පමණක් Store එකට දාන්න
-        if (originalText) {
-            editStore.set(keyId, {
-                text: originalText,
-                sender: msg.key.participant || remoteJid,
-                time: new Date()
+            // මැසේජ් එක Store එකට දැමීම
+            global.msgStore.set(msgId, {
+                text: content,
+                sender: mek.key.participant || mek.key.remoteJid,
+                time: Date.now()
             });
 
-            // විනාඩි 10 කට පසු Store එකෙන් ඉවත් කරන්න (RAM එක ඉතිරි කර ගැනීමට)
-            setTimeout(() => {
-                editStore.delete(keyId);
-            }, 10 * 60 * 1000);
+            // Store එක ඕනෑවට වඩා පිරෙන එක වැළැක්වීමට පැයකට පසු මැකීම
+            setTimeout(() => global.msgStore.delete(msgId), 3600000);
+        } catch (e) {
+            console.log("Error in Anti-Edit Store:", e);
         }
     },
 
+    // 2. මැසේජ් එක Edit වුණු විට ක්‍රියාත්මක වීම
     onEdit: async (conn, update) => {
-        // update එකේ තියෙන්නේ edit කරපු මැසේජ් එකේ තොරතුරු
-        const keyId = update.key.id;
-        const from = update.key.remoteJid;
-        const stored = editStore.get(keyId);
-
-        if (!stored) return; // අපේ ළඟ කලින් මැසේජ් එක නැත්නම් මුකුත් කරන්න එපා
-
-        // අලුත් (Edited) මැසේජ් එක ලබා ගැනීම
-        const newText = update.message.protocolMessage?.editedMessage?.conversation || 
-                        update.message.protocolMessage?.editedMessage?.extendedTextMessage?.text || 
-                        "";
-
-        if (!newText || newText === stored.text) return;
-
-        const time = new Date().toLocaleTimeString('en-US', { hour12: true, timeZone: 'Asia/Colombo' });
-        const date = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' });
-
-        let editCaption = `✏️ *Message Edited Detected*
-
-👤 *Sender:* @${stored.sender.split('@')[0]}
-📅 *Date:* ${date}
-🕒 *Time:* ${time}
-
-🚫 *Original Message:*
-${stored.text}
-
-✅ *Edited Message:*
-${newText}`;
-
         try {
-            await conn.sendMessage(from, { 
-                text: editCaption, 
-                mentions: [stored.sender] 
-            }, { quoted: update });
-            
-            // මැසේජ් එක යැවූ පසු Store එකෙන් අයින් කරන්න (නැවත edit කළොත් අලුත් එක ගන්න)
-            editStore.set(keyId, { ...stored, text: newText });
+            const msgId = update.key.id;
+            const from = update.key.remoteJid;
+            const newText = update.update.message.protocolMessage.editedMessage.conversation || 
+                            update.update.message.protocolMessage.editedMessage.extendedTextMessage?.text;
 
-        } catch (err) {
-            console.log('❌ AntiEdit Error:', err.message);
+            // පරණ මැසේජ් එක අපේ Store එකේ තියෙනවාද බැලීම
+            const oldMsg = global.msgStore.get(msgId);
+
+            if (oldMsg && oldMsg.text !== newText) {
+                const senderName = update.pushName || oldMsg.sender.split('@')[0];
+
+                let report = `*⚠️ ANTI-EDIT DETECTED!* ⚠️\n\n` +
+                             `*👤 Sender:* ${senderName}\n` +
+                             `*🚫 Original Message:* \n${oldMsg.text}\n\n` +
+                             `*✅ Edited To:* \n${newText}`;
+
+                await conn.sendMessage(from, { text: report }, { quoted: update });
+                
+                // Update එකෙන් පසු Store එකෙන් ඉවත් කිරීම
+                global.msgStore.delete(msgId);
+            }
+        } catch (e) {
+            console.log("Error in Anti-Edit Plugin:", e);
         }
     }
 };
