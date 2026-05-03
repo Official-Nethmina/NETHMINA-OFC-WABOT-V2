@@ -1,4 +1,4 @@
-const { cmd } = require("../command");
+/*const { cmd } = require("../command");
 const puppeteer = require("puppeteer");
 
 const pendingSearch = {};
@@ -186,3 +186,4 @@ setInterval(() => {
 }, 5*60*1000);
 
 module.exports = { pendingSearch, pendingQuality };
+*\
