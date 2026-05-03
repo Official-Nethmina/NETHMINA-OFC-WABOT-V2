@@ -186,4 +186,4 @@ setInterval(() => {
 }, 5*60*1000);
 
 module.exports = { pendingSearch, pendingQuality };
-*\
+*/
