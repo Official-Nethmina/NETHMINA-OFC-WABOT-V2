@@ -23,9 +23,9 @@ cmd({
     category: "main",
     filename: __filename
 },
-async (nethmina, mek, m, { from, pushname, reply, sender }) => {
+async (nethmina, mek, m, { from, pushname, reply, }) => {
     try {
-        const userPushname = m.pushName || 'User';
+        
         await nethmina.sendMessage(from, { react: { text: "🎃", key: m.key } });
 
         const uptime = runtime(process.uptime());
@@ -72,7 +72,7 @@ async (nethmina, mek, m, { from, pushname, reply, sender }) => {
             mimetype: 'video/mp4',
             ptv: true
         }, { quoted: mek });
-        const userNum = sender.split('@')[0];
+        
         
         let mainCaption = `👋 𝐇𝐄𝐋𝐋𝐎, ${userPushname} 𝐈❜𝐀𝐌 𝐀𝐋𝐈𝐕𝐄 𝐍𝐎𝐖 👾
 
@@ -82,7 +82,7 @@ async (nethmina, mek, m, { from, pushname, reply, sender }) => {
 ╰──────────●●►
 
 ╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」
-│👤 \`User\`: @${userNum}
+│👤 \`User\`: ${userPushname}
 │✒️ \`Prefix\` : ${config.PREFIX}
 │🧬 \`Version\` : v2.0.0
 │🎈 \`Platform\` : Linux
@@ -103,7 +103,6 @@ async (nethmina, mek, m, { from, pushname, reply, sender }) => {
         await nethmina.sendMessage(from, { 
             image: { url: config.ALIVE_IMG },
             caption: mainCaption,
-            mentions: [sender],
             contextInfo: {
                 forwardingScore: 999,
                 isForwarded: true,
@@ -134,6 +133,8 @@ async (nethmina, mek, m, { from, pushname, reply, sender }) => {
     }
 });
 
+// ===============================================================================================================================
+    
 cmd({
     pattern: "alive2",
     desc: "Check bot online status",
@@ -151,7 +152,7 @@ async (nethmina, mek, m, { from, pushname, reply }) => {
 
         await nethmina.sendPresenceUpdate('recording', from);
         
-        const audioUrl = "https://limewire.com/d/MbgwU#utQwgFvTPB";
+        const audioUrl = "https://mp3tourl.com/audio/1777817542904-12f4250b-fb48-4a97-ac7f-7ef9d0aa5564.m4a";
         const tempMp3 = path.join(os.tmpdir(), `temp_${Date.now()}.mp3`);
         const tempOpus = path.join(os.tmpdir(), `temp_${Date.now()}.opus`);
 
