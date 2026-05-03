@@ -397,10 +397,14 @@ Type *.menu* to see commands
         }
 
         // 2. Anti-Edit
-        if (plugin.onEdit && update.update?.message?.protocolMessage?.type === 14) {
-           await plugin.onEdit(nethmina, update).catch(e => console.log(e));
-        }
-      }
+        if (update.update?.message?.protocolMessage?.type === 14) {
+    console.log("📝 Edit Detected for ID:", update.key.id); // මේක වැටෙනවාද බලන්න
+    try {
+        await plugin.onEdit(nethmina, update);
+    } catch (err) {
+        console.log("❌ onEdit error:", err);
+    }
+}
     }
   });
 
