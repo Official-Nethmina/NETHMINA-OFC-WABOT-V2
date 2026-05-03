@@ -386,35 +386,25 @@ Type *.menu* to see commands
     }
   });
 
- // ====================== MESSAGE DELETE & EDIT EVENT ======================
+ // ====================== EDIT & DELETE EVENTS ======================
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
       for (const plugin of global.pluginHooks) {
         
-        // --- 1. Anti-Delete handle කිරීම ---
+        // 1. Anti-Delete
         if (plugin.onDelete && (update.action === 'delete' || update.update?.message === null)) {
-          try {
-            await plugin.onDelete(nethmina, [update]);
-          } catch (err) {
-            console.log("❌ onDelete error:", err);
-          }
+          await plugin.onDelete(nethmina, [update]).catch(e => console.log(e));
         }
 
-        // --- 2. Anti-Edit handle කිරීම ---
-        // Edit එකකදී update.update.message ඇතුළේ protocolMessage එකක් එනවා
+        // 2. Anti-Edit
         if (plugin.onEdit && update.update?.message?.protocolMessage?.type === 14) {
-          try {
-            await plugin.onEdit(nethmina, update);
-          } catch (err) {
-            console.log("❌ onEdit error:", err);
-          }
+           await plugin.onEdit(nethmina, update).catch(e => console.log(e));
         }
-
       }
-    // ... කලින් කොටස ...
     }
   });
-} // <--- මේ සගල වරහන අනිවාර්යයි (connectToWA function එක ඉවර කරන්න)
 
-// ====================== START BOT ======================
+} // connectToWA end
+
+// START
 ensureSessionFile();
