@@ -12,10 +12,8 @@ OWNER_NAME: process.env.OWNER_NAME || "Bhashitha Nethmina",
 PREFIX: process.env.PREFIX || ".", 
 AUTO_STATUS_SEEN: process.env.AUTO_STATUS_SEEN || "true",
 AUTO_STATUS_REACT: process.env.AUTO_STATUS_REACT || "true",
-ALWAYS_ONLINE: process.env.ALWAYS_ONLINE || "false",
-AUTO_RECORDING: process.env.AUTO_RECORDING || "false",
-AUTO_TYPING: process.env.AUTO_TYPING || "false",
-
+AUTO_CALL_REJECT: process.env.AUTO_CALL_REJECT || "true",
+OWNER_REACT: process.env.OWNER_REACT || "true",
 
 
 };
