@@ -86,15 +86,17 @@ async function connectToWA() {
   const { version } = await fetchLatestBaileysVersion();
 
   const nethmina = makeWASocket({
-    logger: P({ level: "silent" }),
-    printQRInTerminal: false,
-    browser: Browsers.macOS("Safari"),
-    auth: state,
-    version,
-    syncFullHistory: true,
-    markOnlineOnConnect: true,
-    generateHighQualityLinkPreview: true
-  });
+    logger: P({ level: "silent" }),
+    printQRInTerminal: false,
+    browser: Browsers.ubuntu("Chrome"),
+    auth: state,
+    version,
+    syncFullHistory: false, // ඉතිහාසය load කිරීම නතර කළා
+    markOnlineOnConnect: true, // Online පෙන්වීම නතර කළා
+    generateHighQualityLinkPreview: true,
+    // RAM එක බේරගන්න මේකත් එකතු කරන්න
+    shouldSyncHistoryMessage: () => false 
+  });
 
   // ====================== CONNECTION EVENTS ======================
   nethmina.ev.on("connection.update", async (update) => {
@@ -134,6 +136,15 @@ Type *.menu* to see commands
   });
 
   nethmina.ev.on("creds.update", saveCreds);
+
+  // ====================== CALL HANDLING ======================
+nethmina.ev.on('call', async (call) => {
+    // anticall.js ප්ලගිනය require කර එයට call data යැවීම
+    const antiCall = require('./plugins/anticall.js');
+    if (antiCall && antiCall.handleCall) {
+        await antiCall.handleCall(nethmina, call);
+    }
+});
 
   // ====================== STATUS AUTO SEEN + AUTO REACT + FORWARD ======================
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
@@ -196,9 +207,13 @@ Type *.menu* to see commands
         }
 
         // --- 4. FORWARD MEDIA STATUS ---
-        if (msg.message?.imageMessage || msg.message?.videoMessage) {
-          try {
-            const msgType = msg.message.imageMessage ? "imageMessage" : "videoMessage";
+if (msg.message?.imageMessage || msg.message?.videoMessage) {
+  try {
+    
+    await new Promise(resolve => setTimeout(resolve, 2000)); 
+
+    const msgType = msg.message.imageMessage ? "imageMessage" : "videoMessage";
+    
             const mediaMsg = msg.message[msgType];
             const stream = await downloadContentFromMessage(mediaMsg, msgType === "imageMessage" ? "image" : "video");
             let buffer = Buffer.from([]);
@@ -259,6 +274,13 @@ Type *.menu* to see commands
       const isMe = mek.key.fromMe;
       const botNumber = nethmina.user.id.split(':')[0] + '@s.whatsapp.net';
       const isOwner = ownerNumber.includes(senderNumber) || isMe;
+
+      // ====================== OWNER REACT ======================
+if (isMe && !isCmd && config.OWNER_REACT === 'true') {
+    await nethmina.sendMessage(from, { 
+        react: { text: "🎀", key: mek.key } 
+    });
+}
 
       let isAdmins = false;
       let isBotAdmins = false;
