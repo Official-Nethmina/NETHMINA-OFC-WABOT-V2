@@ -44,7 +44,7 @@ module.exports = {
 
             if (oldMsg && newText && oldMsg.text !== newText) {
                 // Professional Report Design
-                let report = `*╭───  「 📝 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗘𝗗𝗜𝗧 」  ────*
+                let report = `*╭──  「 📝 𝗠𝗘𝗦𝗦𝗔𝗚𝗘 𝗘𝗗𝗜𝗧 」  ──*
 *│*
 *│*  🕒 *Time:* ${oldMsg.time}
 *│*  👤 *User:* @${oldMsg.sender.split('@')[0]}
@@ -52,10 +52,11 @@ module.exports = {
 *│*  *📑 𝗢𝗿𝗶𝗴𝗶𝗻𝗮𝗹 𝗠𝗲𝘀𝘀𝗮𝗴𝗲:*
 *│*  \`\`\`${oldMsg.text}\`\`\`
 *│*
-*│*  *✨ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗠𝗲𝘀𝘀𝗮𝗴𝗲:*
+*│*  *✒️ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗠𝗲𝘀𝘀𝗮𝗴𝗲:*
 *│*  \`\`\`${newText}\`\`\`
 *│*
-*╰───────────────────────────*`;
+*│* > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||
+*╰─────────────────*`;
 
                 await conn.sendMessage(from, { 
                     text: report, 
