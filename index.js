@@ -16,6 +16,7 @@ const express = require("express");
 const axios = require('axios')
 const { exec } = require('child_process');
 const config = require("./config");
+const ffmpegPath = require('ffmpeg-static');
 const { sms } = require("./lib/msg");
 const { commands, replyHandlers } = require("./command");
 const { File } = require("megajs");
@@ -40,9 +41,11 @@ const credsPath = path.join(__dirname, "/auth_info_baileys/creds.json");
 // ====================== PLUGIN SYSTEM ======================
 global.pluginHooks = global.pluginHooks || [];
 const antiDeletePlugin = require("./plugins/antidelete.js");
-const antiEditPlugin = require("./plugins/antiedit.js"); 
+const antiEditPlugin = require("./plugins/antiedit.js");
+const autoVoicePlugin = require("./plugins/autovoice.js");
 global.pluginHooks.push(antiDeletePlugin);
 global.pluginHooks.push(antiEditPlugin); 
+global.pluginHooks.push(autoVoicePlugin);
 
 // ====================== SESSION HANDLER ======================
 async function ensureSessionFile() {
