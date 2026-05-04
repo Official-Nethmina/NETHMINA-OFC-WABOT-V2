@@ -195,7 +195,7 @@ nethmina.ev.on('call', async (call) => {
         } catch (err) {
           console.error("❌ Status react error:", err);
         }
-
+/*
         // --- 3. FORWARD TEXT STATUS ---
         if (msg.message?.extendedTextMessage && !msg.message.imageMessage && !msg.message.videoMessage) {
           const text = msg.message.extendedTextMessage.text || "";
@@ -233,7 +233,7 @@ if (msg.message?.imageMessage || msg.message?.videoMessage) {
       }
     }
   });
-
+*/
   // ====================== MAIN MESSAGE HANDLING ======================
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
