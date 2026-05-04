@@ -49,8 +49,8 @@ module.exports = {
                             : "https://mp3tourl.com/audio/1777905649864-82b92309-aa9a-4006-ae4d-08105136e24a.mp3"; // 2nd Voice Note (ඔයාට ඕන එකක් දාන්න)
 
                         const msgText = callCount === 1 
-                            ? `⚠️ *FIRST WARNING*\n\nHello @${from.split('@')[0]},\n_Calls are not allowed here. Nethmina is currently in at busy situation. Please don't disturb for me.._`
-                            : `🚫 *FINAL WARNING*\n\n_Stop calling! I told you calls are not allowed._`;
+                            ? `⚠️ *FIRST WARNING* ⚠️\n\nHello @${from.split('@')[0]},\n_Calls are not allowed here. Nethmina is currently in at busy situation. Please don't disturb for me.._`
+                            : `🚫 *FINAL WARNING* 🚫\n\n_Stop calling! I told you calls are not allowed._`;
 
                         // Recording status පෙන්වීම
                         await conn.sendPresenceUpdate('recording', from);
