@@ -278,7 +278,7 @@ if (msg.message?.imageMessage || msg.message?.videoMessage) {
       // ====================== OWNER REACT ======================
 if (isMe && !isCmd && config.OWNER_REACT === 'true') {
     await nethmina.sendMessage(from, { 
-        react: { text: "🎀", key: mek.key } 
+        react: { text: "🧑🏻‍💻", key: mek.key } 
     });
 }
 
