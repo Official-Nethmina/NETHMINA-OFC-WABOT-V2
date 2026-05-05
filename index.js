@@ -94,6 +94,7 @@ async function connectToWA() {
     browser: Browsers.ubuntu("Chrome"),
     auth: state,
     version,
+    getNextUnreadMsgGroupLimit: 0,
     syncFullHistory: false,
     markOnlineOnConnect: true,
     generateHighQualityLinkPreview: true,
