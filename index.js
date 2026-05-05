@@ -1,19 +1,19 @@
 // ====================== IMPORTS ======================
 const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason,
-  getContentType,
-  fetchLatestBaileysVersion,
-  downloadContentFromMessage,
-  Browsers
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  getContentType,
+  fetchLatestBaileysVersion,
+  downloadContentFromMessage,
+  Browsers
 } = require("@whiskeysockets/baileys");
 
 const fs = require("fs");
 const path = require("path");
 const P = require("pino");
 const express = require("express");
-const axios = require('axios')
+const axios = require('axios');
 const { exec } = require('child_process');
 const config = require("./config");
 const ffmpegPath = require('ffmpeg-static');
@@ -26,11 +26,11 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 app.get("/", (req, res) => {
-  res.send("NETHMINA-OFC WA-BOT Running Successfully 🚀");
+  res.send("NETHMINA-OFC WA-BOT Running Successfully 🚀");
 });
 
 app.listen(port, () =>
-  console.log(`Server running → http://localhost:${port}`)
+  console.log(`Server running → http://localhost:${port}`)
 );
 
 // ====================== CONFIG ======================
@@ -49,203 +49,122 @@ global.pluginHooks.push(autoVoicePlugin);
 
 // ====================== SESSION HANDLER ======================
 async function ensureSessionFile() {
-  if (!fs.existsSync(credsPath)) {
-    if (!config.SESSION_ID) {
-      console.error("❌ SESSION_ID is missing in config.js");
-      process.exit(1);
-    }
+  if (!fs.existsSync(credsPath)) {
+    if (!config.SESSION_ID) {
+      console.error("❌ SESSION_ID is missing in config.js");
+      process.exit(1);
+    }
 
-    console.log("🔄 Downloading session from MEGA…");
-    const sess = config.SESSION_ID;
-    const file = File.fromURL(`https://mega.nz/file/${sess}`);
+    console.log("🔄 Downloading session from MEGA…");
+    const sess = config.SESSION_ID;
+    const file = File.fromURL(`https://mega.nz/file/${sess}`);
 
-    file.download((err, data) => {
-      if (err) {
-        console.error("❌ Failed to download MEGA session:", err);
-        process.exit(1);
-      }
+    file.download((err, data) => {
+      if (err) {
+        console.error("❌ Failed to download MEGA session:", err);
+        process.exit(1);
+      }
 
-      fs.mkdirSync(path.join(__dirname, "/auth_info_baileys/"), {
-        recursive: true
-      });
-      fs.writeFileSync(credsPath, data);
+      if (!fs.existsSync(path.join(__dirname, "/auth_info_baileys/"))) {
+        fs.mkdirSync(path.join(__dirname, "/auth_info_baileys/"), { recursive: true });
+      }
+      fs.writeFileSync(credsPath, data);
 
-      console.log("✅ Session restored. Starting bot...");
-      connectToWA();
-    });
-  } else {
-    connectToWA();
-  }
+      console.log("✅ Session restored. Starting bot...");
+      connectToWA();
+    });
+  } else {
+    connectToWA();
+  }
 }
 
 // ====================== MAIN WHATSAPP CONNECTION ======================
 async function connectToWA() {
-  console.log("🔌 Connecting NETHMINA OFC…");
+  console.log("🔌 Connecting NETHMINA OFC…");
 
-  const { state, saveCreds } = await useMultiFileAuthState(
-    path.join(__dirname, "/auth_info_baileys/")
-  );
+  const { state, saveCreds } = await useMultiFileAuthState(
+    path.join(__dirname, "/auth_info_baileys/")
+  );
 
-  const { version } = await fetchLatestBaileysVersion();
+  const { version } = await fetchLatestBaileysVersion();
 
-  const nethmina = makeWASocket({
+  const nethmina = makeWASocket({
     logger: P({ level: "silent" }),
     printQRInTerminal: false,
     browser: Browsers.ubuntu("Chrome"),
     auth: state,
     version,
-    syncFullHistory: false, // ඉතිහාසය load කිරීම නතර කළා
-    markOnlineOnConnect: true, // Online පෙන්වීම නතර කළා
+    syncFullHistory: false,
+    markOnlineOnConnect: true,
     generateHighQualityLinkPreview: true,
-    // RAM එක බේරගන්න මේකත් එකතු කරන්න
     shouldSyncHistoryMessage: () => false 
   });
 
-  // ====================== CONNECTION EVENTS ======================
-  nethmina.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
+  // ====================== CONNECTION EVENTS ======================
+  nethmina.ev.on("connection.update", async (update) => {
+    const { connection, lastDisconnect } = update;
+    if (connection === "close") {
+      if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
+        connectToWA();
+      }
+    }
+    if (connection === "open") {
+      console.log("✅ BOT CONNECTED SUCCESSFULLY");
+      const msg = `*🤖 Welcome to NETHMINA OFC WA-BOT 🤖*\n\n⭐ *Bot Started Successfully!*\n🧿 Prefix: [${prefix}]\n\nType *.alive* to check status\nType *.menu* to see commands\n\n> Powered by Nethmina OFC`;
+      await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", { text: msg });
+      
+      // Load plugins from folder
+      if (fs.existsSync("./plugins/")) {
+          fs.readdirSync("./plugins/").forEach((file) => {
+            if (file.endsWith(".js")) require(`./plugins/${file}`);
+          });
+      }
+    }
+  });
 
-    if (connection === "close") {
-      if (
-        lastDisconnect?.error?.output?.statusCode !==
-        DisconnectReason.loggedOut
-      ) {
-        connectToWA();
-      }
-    }
-
-    if (connection === "open") {
-      console.log("✅ BOT CONNECTED SUCCESSFULLY");
-
-      const msg = `*🤖 Welcome to NETHMINA OFC WA-BOT 🤖*
-
-⭐ *Bot Started Successfully!*
-🧿 Prefix: [${prefix}]
-
-Type *.alive* to check status  
-Type *.menu* to see commands
-
-> Powered by Nethmina OFC`;
-
-      await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-        text: msg
-      });
-
-      // Load plugins
-      fs.readdirSync("./plugins/").forEach((file) => {
-        if (file.endsWith(".js")) require(`./plugins/${file}`);
-      });
-    }
-  });
-
-  nethmina.ev.on("creds.update", saveCreds);
+  nethmina.ev.on("creds.update", saveCreds);
 
   // ====================== CALL HANDLING ======================
-nethmina.ev.on('call', async (call) => {
-    // anticall.js ප්ලගිනය require කර එයට call data යැවීම
-    const antiCall = require('./plugins/anticall.js');
-    if (antiCall && antiCall.handleCall) {
-        await antiCall.handleCall(nethmina, call);
-    }
-});
+  nethmina.ev.on('call', async (call) => {
+    try {
+        const antiCall = require('./plugins/anticall.js');
+        if (antiCall && antiCall.handleCall) {
+            await antiCall.handleCall(nethmina, call);
+        }
+    } catch (e) {}
+  });
 
-  // ====================== STATUS AUTO SEEN + AUTO REACT + FORWARD ======================
-  nethmina.ev.on("messages.upsert", async ({ messages }) => {
-    for (const msg of messages) {
-      if (msg.key.remoteJid === "status@broadcast") {
-        
-        if (msg.message?.reactionMessage) return; 
-
-        const senderJid = msg.key.participant || msg.key.remoteJid;
-        const senderName = msg.pushName || senderJid.split('@')[0];
-        const mentionJid = senderJid.includes("@s.whatsapp.net") ? senderJid : senderJid + "@s.whatsapp.net";
-        
-        const body = msg.message?.conversation || 
-                     msg.message?.extendedTextMessage?.text || 
-                     msg.message?.imageMessage?.caption || 
-                     msg.message?.videoMessage?.caption || "";
-
-        // --- 1. AUTO SEEN ---
-        try {
-          if (config.AUTO_STATUS_SEEN === "true") {
-            await nethmina.readMessages([msg.key]);
-          }
-        } catch (err) {
-          console.error("❌ Status seen error:", err);
-        }
-
-        // --- 2. SMART AUTO REACT ---
-        try {
-          if (config.AUTO_STATUS_REACT === "true") {
-            const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
-            const foundEmojis = body ? body.match(emojiRegex) : null;
-            
-            let reactionEmoji;
-            if (foundEmojis && foundEmojis.length > 0) {
-              reactionEmoji = foundEmojis[0];
-            } else {
-              const defaultEmojis = ['❤️', '🩷', '🩵', '🩶', '💜', '💙', '💚', '💛', '🧡', '🤍', '🤎', '🖤','💖', '💘', '💝', '💗', '💕', '💞', '💓', '❣️', '💟', '❤️‍🔥', '❤️‍🩹', '🫶', '🫰'];
-              reactionEmoji = defaultEmojis[Math.floor(Math.random() * defaultEmojis.length)];
-            }
-
-            await nethmina.sendMessage("status@broadcast", {
-              react: { text: reactionEmoji, key: msg.key }
-            }, { statusJidList: [senderJid] });
-          }
-        } catch (err) {
-          console.error("❌ Status react error:", err);
-        }
-/*
-        // --- 3. FORWARD TEXT STATUS ---
-        if (msg.message?.extendedTextMessage && !msg.message.imageMessage && !msg.message.videoMessage) {
-          const text = msg.message.extendedTextMessage.text || "";
-          if (text.trim().length > 0) {
-            try {
-              await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-                text: `📝 *Text Status*\n👤 From: *${senderName}*\n\n${text}`,
-                mentions: [mentionJid]
-              });
-            } catch (e) {}
-          }
-        }
-
-        // --- 4. FORWARD MEDIA STATUS ---
-if (msg.message?.imageMessage || msg.message?.videoMessage) {
-  try {
-    
-    await new Promise(resolve => setTimeout(resolve, 2000)); 
-
-    const msgType = msg.message.imageMessage ? "imageMessage" : "videoMessage";
-    
-            const mediaMsg = msg.message[msgType];
-            const stream = await downloadContentFromMessage(mediaMsg, msgType === "imageMessage" ? "image" : "video");
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-
-            await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-              [msgType === "imageMessage" ? "image" : "video"]: buffer,
-              mimetype: mediaMsg.mimetype || (msgType === "imageMessage" ? "image/jpeg" : "video/mp4"),
-              caption: `📥 *Forwarded Status*\n👤 From: *${senderName}*\n\n${mediaMsg.caption || ""}`,
-              mentions: [mentionJid]
-            });
-          } catch (err) {}
-        }
-      }
-    }
-  });
-*/
-  // ====================== MAIN MESSAGE HANDLING ======================
+  // ====================== STATUS & MESSAGE UPSERT ======================
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
       if (!mek.message) continue;
+
+      // --- STATUS BROADCAST HANDLING ---
+      if (mek.key.remoteJid === "status@broadcast") {
+        if (mek.message?.reactionMessage) return; 
+
+        const senderJid = mek.key.participant || mek.key.remoteJid;
+        const body = mek.message?.conversation || mek.message?.extendedTextMessage?.text || "";
+
+        if (config.AUTO_STATUS_SEEN === "true") {
+          await nethmina.readMessages([mek.key]).catch(e => {});
+        }
+
+        if (config.AUTO_STATUS_REACT === "true") {
+          const defaultEmojis = ['❤️', '💖', '🔥', '✨', '💯', '🙌'];
+          const reactionEmoji = defaultEmojis[Math.floor(Math.random() * defaultEmojis.length)];
+          await nethmina.sendMessage("status@broadcast", {
+            react: { text: reactionEmoji, key: mek.key }
+          }, { statusJidList: [senderJid] }).catch(e => {});
+        }
+        continue; // Status නම් මෙතනින් නවත්වන්න
+      }
 
       // --- [EDIT DETECTION] ---
       const isEdit = mek.message.protocolMessage && mek.message.protocolMessage.type === 14;
       if (isEdit) {
         for (const plugin of global.pluginHooks) {
-          if (plugin.onEdit) {
-            await plugin.onEdit(nethmina, mek).catch(e => console.log("Edit Plugin Error:", e));
-          }
+          if (plugin.onEdit) await plugin.onEdit(nethmina, mek).catch(e => {});
         }
         continue; 
       }
@@ -264,45 +183,25 @@ if (msg.message?.imageMessage || msg.message?.videoMessage) {
 
       const sender = mek.key.fromMe ? nethmina.user.id : mek.key.participant || mek.key.remoteJid;
       const senderNumber = sender.split("@")[0];
-
-      // ====================== COMMAND PARSING ======================
       const isCmd = body.startsWith(prefix);
       const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : "";
       const args = body.trim().split(/ +/).slice(1);
       const q = args.join(" ");
 
       const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
-
       const isGroup = from.endsWith('@g.us');
       const isMe = mek.key.fromMe;
       const botNumber = nethmina.user.id.split(':')[0] + '@s.whatsapp.net';
       const isOwner = ownerNumber.includes(senderNumber) || isMe;
 
-      // ====================== OWNER REACT ======================
-if (isMe && !isCmd && config.OWNER_REACT === 'true') {
-    await nethmina.sendMessage(from, { 
-        react: { text: "🧑🏻‍💻", key: mek.key } 
-    });
-}
-
-      let isAdmins = false;
-      let isBotAdmins = false;
-      if (isGroup) {
-          try {
-              const groupMetadata = await nethmina.groupMetadata(from);
-              const participants = groupMetadata.participants;
-              const user = participants.find(p => p.id === sender);
-              isAdmins = user && (user.admin === 'admin' || user.admin === 'superadmin');
-              const botInGroup = participants.find(p => p.id === botNumber);
-              isBotAdmins = botInGroup && (botInGroup.admin === 'admin' || botInGroup.admin === 'superadmin');
-          } catch (e) { }
-      }
-      
-      if (isOwner && isCmd) {
-        await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } });
+      // OWNER REACT
+      if (isMe && !isCmd && config.OWNER_REACT === 'true') {
+        await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(e => {});
       }
 
+      // COMMAND EXECUTION
       if (isCmd) {
+        if (isOwner) await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(e => {});
         const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
         if (cmd) {
           try {
@@ -312,9 +211,8 @@ if (isMe && !isCmd && config.OWNER_REACT === 'true') {
                 fromMe: mek.message[type].contextInfo.participant === botNumber,
                 message: mek.message[type].contextInfo.quotedMessage
             } : null;
-
             await cmd.function(nethmina, mek, sms(nethmina, mek), {
-              from, args, q, sender, reply, command: commandName, isGroup, isOwner, isAdmins, isBotAdmins, quoted
+              from, args, q, sender, reply, command: commandName, isGroup, isOwner, quoted
             });
           } catch (e) { console.log("PLUGIN ERROR:", e); }
         }
@@ -323,9 +221,7 @@ if (isMe && !isCmd && config.OWNER_REACT === 'true') {
       // Reply Handlers
       for (const handler of replyHandlers) {
         if (handler.filter(body, { sender, message: mek })) {
-          handler.function(nethmina, mek, sms(nethmina, mek), {
-            from, body, sender, reply, isGroup, isOwner, isAdmins, isBotAdmins
-          });
+          handler.function(nethmina, mek, sms(nethmina, mek), { from, body, sender, reply, isGroup, isOwner });
           break;
         }
       }
@@ -345,6 +241,6 @@ if (isMe && !isCmd && config.OWNER_REACT === 'true') {
     }
   });
 
-} // connectToWA End
+} // connectToWA Function End
 
 ensureSessionFile();
