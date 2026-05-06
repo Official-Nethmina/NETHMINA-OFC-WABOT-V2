@@ -66,7 +66,7 @@ async function connectToWA() {
     markOnlineOnConnect: true
   });
 
-  // --- [CONNECTION EVENTS] ---
+// --- [CONNECTION EVENTS] ---
   nethmina.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === "close") {
@@ -77,11 +77,12 @@ async function connectToWA() {
         fs.readdirSync("./plugins/").forEach((file) => {
           if (file.endsWith(".js")) {
             try {
-    const plugin = require(`./plugins/${file}`);
-    global.pluginHooks.push(plugin);
-} catch (e) {
-    console.error(`❌ Error loading plugin ${file}:`, e);
-}
+              const plugin = require(`./plugins/${file}`);
+              global.pluginHooks.push(plugin);
+            } catch (e) {
+              console.error(`❌ Error loading plugin ${file}:`, e);
+            }
+          } // <-- මෙන්න මේ bracket එක ඔයාගේ code එකේ අඩුවෙලා තිබුණේ
         });
       }
     }
