@@ -73,6 +73,14 @@ async function connectToWA() {
       if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) connectToWA();
     } else if (connection === "open") {
       console.log("✅ BOT CONNECTED SUCCESSFULLY");
+
+      // බොට් කනෙක්ට් වූ පසු ඔනර්ට මැසේජ් එකක් යැවීම
+      try {
+        const connMsg = `✅ *NETHMINA-OFC BOT CONNECTED*\n\nPrefix: [ ${prefix} ]\nOwner: ${ownerNumber[0]}\n\n_බොට් සාර්ථකව ක්‍රියාත්මක වේ...🚀_`;
+        await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", { text: connMsg });
+      } catch (e) {
+        console.log("❌ Error sending connection message:", e);
+      }
       if (fs.existsSync("./plugins/")) {
         fs.readdirSync("./plugins/").forEach((file) => {
           if (file.endsWith(".js")) {
