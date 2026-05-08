@@ -5,6 +5,8 @@ const axios = require('axios');
 const os = require('os');
 const ffmpegPath = require('ffmpeg-static');
 
+const processedMessages = new Set();
+
 const voiceData = {
     "hi": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
     "mk": "https://mp3tourl.com/audio/1777910196056-487d7486-78dc-43b9-88d9-55cf57c6c7cb.mp3"
@@ -24,6 +26,9 @@ module.exports = {
         try {
             if (!mek.message || mek.key.fromMe) return;
 
+            const msgId = mek.key.id;
+            if (processedMessages.has(msgId)) return;
+
             const from = mek.key.remoteJid;
             const type = Object.keys(mek.message)[0];
             const body = (type === 'conversation') ? mek.message.conversation : 
@@ -34,10 +39,15 @@ module.exports = {
             if (!body) return;
             const lowerBody = body.toLowerCase().trim();
 
-            // වෙනස් කළ කොටස: වාක්‍යය ඇතුළේ වචනය තියෙනවාදැයි පරීක්ෂා කිරීම
-            const matchedKey = Object.keys(voiceData).find(key => lowerBody.includes(key));
+            // --- [වෙනස් කළ කොටස] ---
+            // Regex පාවිච්චි කරලා වචනයක් විදිහට විතරක් තියෙනවාද බලනවා (\b = word boundary)
+            const matchedKey = Object.keys(voiceData).find(key => {
+                const regex = new RegExp(`\\b${key}\\b`, 'g'); 
+                return regex.test(lowerBody);
+            });
 
             if (matchedKey) {
+                processedMessages.add(msgId);
                 const audioUrl = voiceData[matchedKey];
                 
                 await conn.sendPresenceUpdate('recording', from);
@@ -62,18 +72,13 @@ module.exports = {
                         ptt: true
                     }, { quoted: mek });
 
-                    console.log(`✅ AutoVoice Sent: ${matchedKey}`);
-
                 } catch (vError) {
-                    console.error("❌ Conversion Error:", vError);
-                    await conn.sendMessage(from, { 
-                        audio: { url: audioUrl }, 
-                        mimetype: "audio/mpeg", 
-                        ptt: true 
-                    }, { quoted: mek });
+                    console.error("❌ Error:", vError);
+                    await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek });
                 } finally {
                     if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
                     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+                    setTimeout(() => processedMessages.delete(msgId), 120000);
                 }
             }
         } catch (e) {
