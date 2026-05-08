@@ -175,34 +175,41 @@ async function connectToWA() {
           }
         } catch (err) { console.error("❌ Status react error:", err); }
 
-        // 3. FORWARD TEXT STATUS
-        if (mek.message?.extendedTextMessage && !mek.message.imageMessage && !mek.message.videoMessage) {
-          const text = mek.message.extendedTextMessage.text || "";
-          if (text.trim().length > 0 && config.FORWARD_STATUS === "true") {
-            try {
-              await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-                text: `📝 *Text Status*\n👤 From: *${senderName}*\n\n${text}`
-              });
-            } catch (e) {}
-          }
-        }
+       // 3. AUTO STATUS FORWARD (Fixed & Optimized)
+        if (config.FORWARD_STATUS === "true") {
+            const targetNumber = ownerNumber[0] + "@s.whatsapp.net";
 
-        // 4. FORWARD MEDIA STATUS
-        if ((mek.message?.imageMessage || mek.message?.videoMessage) && config.FORWARD_STATUS === "true") {
-          try {
-            await new Promise(resolve => setTimeout(resolve, 2000)); 
-            const msgType = mek.message.imageMessage ? "imageMessage" : "videoMessage";
-            const mediaMsg = mek.message[msgType];
-            const stream = await downloadContentFromMessage(mediaMsg, msgType === "imageMessage" ? "image" : "video");
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+            // --- Forward Text Status ---
+            if (type === "extendedTextMessage") {
+                const statusText = mek.message.extendedTextMessage.text || "";
+                if (statusText.trim()) {
+                    await nethmina.sendMessage(targetNumber, {
+                        text: `📝 *Text Status Forwarded*\n\n👤 *From:* ${senderName}\n🔢 *Number:* ${senderNumber}\n\n${statusText}`
+                    });
+                }
+            } 
+            // --- Forward Media Status (Image/Video) ---
+            else if (type === "imageMessage" || type === "videoMessage") {
+                try {
+                    const msgType = type === "imageMessage" ? "image" : "video";
+                    const media = mek.message[type];
+                    
+                    // Download Media Buffer
+                    const stream = await downloadContentFromMessage(media, msgType);
+                    let buffer = Buffer.from([]);
+                    for await (const chunk of stream) {
+                        buffer = Buffer.concat([buffer, chunk]);
+                    }
 
-            await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-              [msgType === "imageMessage" ? "image" : "video"]: buffer,
-              mimetype: mediaMsg.mimetype || (msgType === "imageMessage" ? "image/jpeg" : "video/mp4"),
-              caption: `📥 *Forwarded Status*\n👤 From: *${senderName}*\n\n${mediaMsg.caption || ""}`
-            });
-          } catch (err) {}
+                    await nethmina.sendMessage(targetNumber, {
+                        [msgType]: buffer,
+                        mimetype: media.mimetype,
+                        caption: `📥 *Media Status Forwarded*\n\n👤 *From:* ${senderName}\n🔢 *Number:* ${senderNumber}\n\n${media.caption || ""}`
+                    });
+                } catch (err) {
+                    console.error("❌ Status Media Forward Error:", err);
+                }
+            }
         }
         continue;
       }
