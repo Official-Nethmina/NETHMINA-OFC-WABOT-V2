@@ -103,12 +103,20 @@ async function connectToWA() {
   // --- [DELETE EVENTS] ---
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
-      for (const plugin of global.pluginHooks) {
-        try {
-          if (plugin.onDelete && (update.action === 'delete' || update.update?.message === null)) {
-            await plugin.onDelete(nethmina, [update]);
-          }
-        } catch (err) { }
+      // ඩිලීට් එකක්ද කියලා හරියටම චෙක් කරනවා
+      const isDelete = update.update?.message === null || update.action === 'delete';
+      
+      if (isDelete) {
+        for (const plugin of global.pluginHooks) {
+          try {
+            if (plugin.onDelete) {
+              // එක update එකක් සඳහා onDelete එකපාරක් පමණක් අමතනවා
+              await plugin.onDelete(nethmina, [update]);
+            }
+          } catch (err) { }
+        }
+        // එකම update එකට නැවත onDelete run වීම වැළැක්වීමට මෙතැනින් loop එක නතර කරනවා
+        break; 
       }
     }
   });
