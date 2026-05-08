@@ -9,7 +9,7 @@ module.exports = {
                          (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : '';
 
             // අපි බලනවා මැසේජ් එක "save", "send", "එවන්න" වගේ එකක්ද කියලා
-            const triggerWords = ["save", "send", "danna", "ewanna", "denna"];
+            const triggerWords = ["save", "send", "danna", "ewanna", "denna", "dpn", "ona", "oni", "ewapn", "ewno", "dano"];
             const isTrigger = triggerWords.some(word => body.toLowerCase().includes(word));
 
             // මැසේජ් එක status එකකට කරපු reply එකක්ද කියලා බලනවා
