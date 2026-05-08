@@ -122,23 +122,33 @@ async function connectToWA() {
     } catch (e) {}
   });
 
-  // --- [DELETE EVENTS] ---
+  // --- [DELETE & EDIT EVENTS] ---
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
-      // ඩිලීට් එකක්ද කියලා හරියටම චෙක් කරනවා
+      const from = update.key.remoteJid;
+
+      // 1. [ANTI-DELETE DETECTION]
       const isDelete = update.update?.message === null || update.action === 'delete';
-      
       if (isDelete) {
         for (const plugin of global.pluginHooks) {
           try {
-            if (plugin.onDelete) {
-              // එක update එකක් සඳහා onDelete එකපාරක් පමණක් අමතනවා
-              await plugin.onDelete(nethmina, [update]);
+            if (plugin.onDelete) await plugin.onDelete(nethmina, update);
+          } catch (err) { }
+        }
+      }
+
+      // 2. [ANTI-EDIT DETECTION]
+      // Edit කළ මැසේජ් එකක සාමාන්‍යයෙන් editContextInfo හෝ protocolMessage අඩංගු වේ
+      const isEdit = update.update?.message || update.update?.editedMessage;
+      if (isEdit && !update.key.fromMe) {
+        for (const plugin of global.pluginHooks) {
+          try {
+            if (plugin.onEdit) {
+              // Edit එක හඳුනා ගැනීමට මුළු update object එකම ප්ලගින් එකට යවනවා
+              await plugin.onEdit(nethmina, update);
             }
           } catch (err) { }
         }
-        // එකම update එකට නැවත onDelete run වීම වැළැක්වීමට මෙතැනින් loop එක නතර කරනවා
-        break; 
       }
     }
   });
@@ -161,14 +171,6 @@ async function connectToWA() {
                    type === "imageMessage" ? mek.message.imageMessage.caption : 
                    type === "videoMessage" ? mek.message.videoMessage.caption : "";
 
-      // --- [EDIT DETECTION] ---
-      const isEdit = mek.message.protocolMessage && mek.message.protocolMessage.type === 14;
-      if (isEdit) {
-        for (const plugin of global.pluginHooks) {
-          if (plugin.onEdit) await plugin.onEdit(nethmina, mek).catch(e => {});
-        }
-        continue; 
-      }
 
       // --- [STATUS HANDLING] ---
       if (isStatus) {
