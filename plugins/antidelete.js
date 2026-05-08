@@ -180,8 +180,13 @@ module.exports = {
           mentions: [sender]
         });
 
+      // antidelete.js ඇතුළත onDelete function එකේ අවසානයට..
+
       } catch (err) {
         console.log('❌ AntiDelete resend error:', err.message);
+      } finally {
+        // වැදගත්ම කොටස: එකපාරක් මැසේජ් එක යැවූ පසු store එකෙන් අයින් කරනවා
+        messageStore.delete(keyId);
       }
     }
   }
