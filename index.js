@@ -33,22 +33,36 @@ global.pluginHooks = [];
 
 // ====================== SESSION HANDLER ======================
 async function ensureSessionFile() {
-  if (!fs.existsSync(credsPath)) {
-    if (!config.SESSION_ID) {
-      console.error("❌ SESSION_ID is missing");
+  const authFolder = path.join(__dirname, "/auth_info_baileys/");
+  
+  // 1. පරණ folder එකක් තියෙනවා නම් ඒක මුලින්ම මකමු (Force Reset)
+  if (fs.existsSync(authFolder)) {
+    console.log("🗑️ Cleaning up old session folder...");
+    fs.rmSync(authFolder, { recursive: true, force: true });
+  }
+
+  // 2. Folder එක අලුතින් හදමු
+  fs.mkdirSync(authFolder, { recursive: true });
+
+  if (!config.SESSION_ID) {
+    console.error("❌ SESSION_ID is missing");
+    process.exit(1);
+  }
+
+  console.log("🔄 Downloading session from MEGA…");
+  const file = File.fromURL(`https://mega.nz/file/${config.SESSION_ID}`);
+  
+  file.download((err, data) => {
+    if (err) {
+      console.error("❌ MEGA Download Error:", err);
       process.exit(1);
     }
-    console.log("🔄 Downloading session from MEGA…");
-    const file = File.fromURL(`https://mega.nz/file/${config.SESSION_ID}`);
-    file.download((err, data) => {
-      if (err) process.exit(1);
-      if (!fs.existsSync(path.dirname(credsPath))) fs.mkdirSync(path.dirname(credsPath), { recursive: true });
-      fs.writeFileSync(credsPath, data);
-      connectToWA();
-    });
-  } else {
+    
+    // creds.json එක නියමිත තැනටම ලියමු
+    fs.writeFileSync(credsPath, data);
+    console.log("✅ Session downloaded successfully!");
     connectToWA();
-  }
+  });
 }
 
 // ====================== MAIN WHATSAPP CONNECTION ======================
