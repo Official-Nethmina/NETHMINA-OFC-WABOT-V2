@@ -5,15 +5,11 @@ const axios = require('axios');
 const os = require('os');
 const ffmpegPath = require('ffmpeg-static');
 
-// ==========================================
-// CONFIGURATION: වචන සහ URL මෙතනට ඇඩ් කරන්න
-// ==========================================
 const voiceData = {
     "hi": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
     "mk": "https://mp3tourl.com/audio/1777910196056-487d7486-78dc-43b9-88d9-55cf57c6c7cb.mp3"
 };
 
-// Voice Note එක Opus වලට හරවන function එක
 const convertToOpus = (input, output) => {
     return new Promise((resolve, reject) => {
         exec(`"${ffmpegPath}" -i "${input}" -c:a libopus -b:a 128k -vbr on "${output}"`, (error) => {
@@ -38,11 +34,12 @@ module.exports = {
             if (!body) return;
             const lowerBody = body.toLowerCase().trim();
 
-            // වචනය ගැලපෙනවාදැයි පරීක්ෂා කිරීම
-            if (voiceData[lowerBody]) {
-                const audioUrl = voiceData[lowerBody];
+            // වෙනස් කළ කොටස: වාක්‍යය ඇතුළේ වචනය තියෙනවාදැයි පරීක්ෂා කිරීම
+            const matchedKey = Object.keys(voiceData).find(key => lowerBody.includes(key));
+
+            if (matchedKey) {
+                const audioUrl = voiceData[matchedKey];
                 
-                // Recording status පෙන්වීම
                 await conn.sendPresenceUpdate('recording', from);
                 
                 const tempDir = os.tmpdir();
@@ -50,7 +47,6 @@ module.exports = {
                 const outputPath = path.join(tempDir, `voice_${Date.now()}.opus`);
 
                 try {
-                    // 1. Audio එක Download කිරීම
                     const response = await axios({
                         method: 'get',
                         url: audioUrl,
@@ -58,28 +54,24 @@ module.exports = {
                     });
                     fs.writeFileSync(inputPath, response.data);
 
-                    // 2. Opus වලට Convert කිරීම (Real Voice Note එකක් කරන්න)
                     await convertToOpus(inputPath, outputPath);
 
-                    // 3. යැවීම
                     await conn.sendMessage(from, {
                         audio: fs.readFileSync(outputPath),
                         mimetype: 'audio/ogg; codecs=opus',
                         ptt: true
                     }, { quoted: mek });
 
-                    console.log(`✅ AutoVoice Sent: ${lowerBody}`);
+                    console.log(`✅ AutoVoice Sent: ${matchedKey}`);
 
                 } catch (vError) {
-                    console.error("❌ Conversion Error, sending normal MP3:", vError);
-                    // මොකක් හරි හේතුවකින් Convert වුණේ නැත්නම් සාමාන්‍ය එක යවනවා
+                    console.error("❌ Conversion Error:", vError);
                     await conn.sendMessage(from, { 
                         audio: { url: audioUrl }, 
                         mimetype: "audio/mpeg", 
                         ptt: true 
                     }, { quoted: mek });
                 } finally {
-                    // Temp files මකා දැමීම
                     if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
                     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
                 }
