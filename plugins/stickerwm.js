@@ -8,48 +8,56 @@ cmd({
     category: "convert",
     filename: __filename
 },
-async (conn, mek, m, { from, reply, quoted, body }) => {
+async (conn, mek, m, { from, reply, quoted, body, args }) => {
     try {
+        // 1. Quoted message එකක් තියෙනවාද බලනවා
         if (!quoted) return reply("*Please reply to a sticker. 😊*");
 
+        // 2. Sticker එකක්ද කියලා හරියටම check කරනවා (mtype හෝ type පාවිච්චි කරමින්)
         const isSticker = quoted.mtype === 'stickerMessage' || 
+                          quoted.type === 'stickerMessage' ||
                           (quoted.message && quoted.message.stickerMessage);
 
         if (!isSticker) return reply("*You did not reply to a sticker. Please reply to a sticker. 🙂*");
 
+        // Default Watermark values
         let pack = "💟 𝙽𝙴𝚃𝙷𝙼𝙸𝙽𝙰 - 𝚂𝚃𝙸𝙲𝙺𝙴𝚁𝚂 💟"; 
         let author = "© 🧑🏻‍💻 ɴᴇᴛʜᴍɪɴᴀ ᴏꜰꜰɪᴄɪᴀʟ ᴄᴏᴍᴍᴜɴɪᴛʏ 🧑🏻‍💻";
 
-        if (body && body.includes('|')) {
-            let splitData = body.split('|');
-            pack = splitData[0].replace('.wm', '').trim() || pack;
-            author = splitData[1].trim() || author;
+        // 3. User පරාමිතීන් දීලා තියෙනවා නම් (e.g. .wm MyPack | MyName)
+        const input = args.join(" ");
+        if (input && input.includes('|')) {
+            const [p, a] = input.split('|');
+            pack = p.trim() || pack;
+            author = a.trim() || author;
         }
 
         await conn.sendMessage(from, { react: { text: '🖊️', key: mek.key } });
 
-       
-        const message = quoted.message?.stickerMessage || quoted;
-        const stream = await downloadContentFromMessage(message, 'image');
+        // 4. Sticker content එක නිවැරදිව ලබා ගැනීම
+        const stickerMsg = quoted.message?.stickerMessage || quoted;
+        
+        // 5. Download Media Buffer
+        const stream = await downloadContentFromMessage(stickerMsg, 'sticker');
         let buffer = Buffer.from([]);
         for await (const chunk of stream) {
             buffer = Buffer.concat([buffer, chunk]);
         }
-        // ------------------------------------------
 
         const sticker = new Sticker(buffer, {
             pack: pack,
             author: author,
             type: StickerTypes.FULL,
             categories: ['🤩', '🎉'],
-            quality: 70,
+            id: mek.key.id,
+            quality: 100, // Quality එක 100 කළා
         });
 
         const stickerBuffer = await sticker.toBuffer();
         return await conn.sendMessage(from, { sticker: stickerBuffer }, { quoted: mek });
 
     } catch (e) {
-        console.log("WM Error: ", e);
+        console.error("WM Error: ", e);
         reply("*Something went wrong! Please try again. 🛠*");
     }
 });
