@@ -1,5 +1,6 @@
 const { cmd } = require('../command');
 
+// --- BLOCK COMMAND ---
 cmd({
     pattern: "block",
     alias: ["ban"],
@@ -9,46 +10,44 @@ cmd({
 },
 async (nethmina, mek, m, { from, isOwner, reply }) => {
     try {
-        // 1. Owner පරීක්ෂාව
-        if (!isOwner) return reply("❌ මේ විධානය පාවිච්චි කළ හැක්කේ බොට්ගේ අයිතිකරුට (Owner) පමණි.");
+        if (!isOwner) return reply("❌ මේ විධානය පාවිච්චි කළ හැක්කේ බොට්ගේ අයිතිකරුට පමණි.");
 
-        // 2. ඉලක්කගත පුද්ගලයා (Target JID) හඳුනා ගැනීම
-        let targetJid = m.quoted ? m.quoted.sender : from;
+        // JID එක ලබාගෙන පිරිසිදු කිරීම
+        let rawJid = m.quoted ? m.quoted.sender : from;
+        let targetJid = rawJid.split(':')[0].split('@')[0] + '@s.whatsapp.net';
 
-        if (targetJid.endsWith('@g.us')) {
-            return reply("❌ කරුණාකර පුද්ගලයෙකුගේ මැසේජ් එකකට reply කර හෝ Inbox එකේදී මෙම විධානය භාවිතා කරන්න.");
+        if (from.endsWith('@g.us') && !m.quoted) {
+            return reply("❌ කරුණාකර පුද්ගලයෙකුගේ මැසේජ් එකකට reply කරන්න.");
         }
 
-        // 3. මුලින්ම අදාළ පුද්ගලයාට දැනුම්දීමේ මැසේජ් එකක් යැවීම
+        // 1. දැනුම්දීමේ මැසේජ් එක යැවීම
         await nethmina.sendMessage(targetJid, { 
-            text: "⚠️ *You have been blocked by the Owner.*\n\nYou can no longer interact with the bot. Goodbye! 👋" 
+            text: "⚠️ *You have been blocked by the Owner.*\n\nYou can no longer interact with the bot." 
         });
 
-        // 4. Reaction එකක් දැමීම
+        // 2. Reaction එකක් දැමීම
         await nethmina.sendMessage(from, { react: { text: "🚫", key: mek.key } });
 
-        // 5. තත්පර 2ක ප්‍රමදයකින් පසු Block කිරීම (Delay Logic)
-        reply(`⏳ @${targetJid.split('@')[0]} ව block කිරීමට මදක් රැඳී සිටින්න...`, { mentions: [targetJid] });
+        reply(`⏳ @${targetJid.split('@')[0]} ව block කරමින් පවතියි...`, { mentions: [targetJid] });
 
+        // 3. තත්පර 2ක Delay එකකින් පසු ඇත්තටම block කිරීම
         setTimeout(async () => {
             try {
                 await nethmina.updateBlockStatus(targetJid, "block");
                 return reply(`✅ @${targetJid.split('@')[0]} සාර්ථකව Block කරන ලදී.`, { mentions: [targetJid] });
-            } catch (blockErr) {
-                console.error("Delayed Block Error:", blockErr);
+            } catch (err) {
+                console.error("Block Error:", err);
+                reply("❌ Block කිරීමේදී තාක්ෂණික දෝෂයක් ආවා.");
             }
-        }, 2000); // මිලි තත්පර 2000 = තත්පර 2
+        }, 2000);
 
     } catch (e) {
         console.error("Block Plugin Error:", e);
-        reply("❌ Block කිරීමේදී දෝෂයක් සිදු විය.");
+        reply("❌ දෝෂයක් සිදු විය.");
     }
 });
 
-//================Unblock=================
-
-const { cmd } = require('../command');
-
+// --- UNBLOCK COMMAND ---
 cmd({
     pattern: "unblock",
     alias: ["pardon"],
@@ -58,23 +57,18 @@ cmd({
 },
 async (nethmina, mek, m, { from, isOwner, reply }) => {
     try {
-        // 1. Owner ද කියලා බලනවා
         if (!isOwner) return reply("❌ මේ විධානය පාවිච්චි කළ හැක්කේ බොට්ගේ අයිතිකරුට පමණි.");
 
-        // 2. Unblock කළ යුතු පුද්ගලයා තෝරා ගැනීම
-        let targetJid = m.quoted ? m.quoted.sender : from;
+        let rawJid = m.quoted ? m.quoted.sender : from;
+        let targetJid = rawJid.split(':')[0].split('@')[0] + '@s.whatsapp.net';
 
-        if (targetJid.endsWith('@g.us')) {
-            return reply("❌ කරුණාකර පුද්ගලයෙකුගේ මැසේජ් එකකට reply කර හෝ Inbox එකේදී මෙම විධානය භාවිතා කරන්න.");
+        if (from.endsWith('@g.us') && !m.quoted) {
+            return reply("❌ කරුණාකර පුද්ගලයෙකුගේ මැසේජ් එකකට reply කරන්න.");
         }
 
-        // 3. React කිරීම
         await nethmina.sendMessage(from, { react: { text: "✅", key: mek.key } });
 
-        // 4. Unblock කිරීමේ ක්‍රියාවලිය
         await nethmina.updateBlockStatus(targetJid, "unblock");
-
-        // 5. සාර්ථක බව දැනුම් දීම
         return reply(`✅ @${targetJid.split('@')[0]} සාර්ථකව Unblock කරන ලදී.`, { mentions: [targetJid] });
 
     } catch (e) {
