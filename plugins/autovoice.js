@@ -29,7 +29,7 @@ const voiceData = {
     "yno,ynna,yannm": "https://mp3tourl.com/audio/1778306274122-e104cbee-e525-41b8-b283-848d361e8cf0.mp3",
     "patiyo,mcho": "https://mp3tourl.com/audio/1778305621396-88a0eacc-a22b-41a1-a3f3-5da62d288f9d.mp3",
     "puh": "https://mp3tourl.com/audio/1778308752311-12d424ce-bb45-4cdc-87aa-af4b95aab4a9.mp3",
-    "nethmina,bro,brh,mchn": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3"
+    "nethmina,bro,brh,mchn,hey there": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3"
 };
 
 const ownerExceptionWords = ["puh", "yno", "ynna", "yannm"]; 
