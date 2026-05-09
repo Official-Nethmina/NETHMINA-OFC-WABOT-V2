@@ -5,24 +5,26 @@ if (!global.msgStore) global.msgStore = new Map();
 module.exports = {
     onMessage: async (conn, mek) => {
         try {
+            // මැසේජ් එක ස්ටෝර් කරගැනීම (පසුව edit කළොත් පරණ එක පෙන්වීමට)
             if (!mek.message || mek.message.protocolMessage) return;
-            const msgId = mek.key.id;
             
-            // මැසේජ් එකේ අන්තර්ගතය ලබා ගැනීම
+            const msgId = mek.key.id;
             const type = getContentType(mek.message);
-            let content = type === "conversation" ? mek.message.conversation : 
-                          type === "extendedTextMessage" ? mek.message.extendedTextMessage.text : 
-                          type === "imageMessage" ? mek.message.imageMessage.caption : 
-                          type === "videoMessage" ? mek.message.videoMessage.caption : "";
+            
+            let content = "";
+            if (type === "conversation") content = mek.message.conversation;
+            else if (type === "extendedTextMessage") content = mek.message.extendedTextMessage.text;
+            else if (type === "imageMessage") content = mek.message.imageMessage.caption;
+            else if (type === "videoMessage") content = mek.message.videoMessage.caption;
 
-            if (content || mek.message.imageMessage || mek.message.videoMessage) {
+            if (content) {
                 global.msgStore.set(msgId, {
-                    text: content || "« Media without caption »",
+                    text: content,
                     sender: mek.key.participant || mek.key.remoteJid,
                     time: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour12: true })
                 });
-                // පැයකට පසු මකන්න
-                setTimeout(() => global.msgStore.delete(msgId), 3600000);
+                // පැය 2 කට පසු මතකයෙන් ඉවත් කරයි
+                setTimeout(() => global.msgStore.delete(msgId), 7200000);
             }
         } catch (e) { console.log("AntiEdit Store Error:", e); }
     },
@@ -32,28 +34,42 @@ module.exports = {
             const msgId = update.key.id;
             const from = update.key.remoteJid;
             const oldMsg = global.msgStore.get(msgId);
+            
+            // පරණ මැසේජ් එකක් අපේ ළඟ නැත්නම් හෝ තමන්ම Edit කළ එකක් නම් නවත්වන්න
             if (!oldMsg || update.key.fromMe) return;
 
-            // Edit කළ අලුත් මැසේජ් එකේ content එක
-            const msg = update.update.message || update.update.editedMessage;
-            const type = getContentType(msg);
+            // Baileys Edit Message Structure එක කියවීම
+            const protocolMsg = update.update.message.protocolMessage;
+            if (!protocolMsg || protocolMsg.type !== 14) return; // type 14 is MESSAGE_EDIT
+
+            const editedMsg = protocolMsg.editedMessage;
+            const type = getContentType(editedMsg);
+            
             let newText = "";
+            if (type === "conversation") newText = editedMsg.conversation;
+            else if (type === "extendedTextMessage") newText = editedMsg.extendedTextMessage.text;
+            else if (type === "imageMessage") newText = editedMsg.imageMessage.caption;
+            else if (type === "videoMessage") newText = editedMsg.videoMessage.caption;
 
-            if (type === "protocolMessage") {
-                const edit = msg.protocolMessage.editedMessage;
-                const innerType = getContentType(edit);
-                newText = innerType === "conversation" ? edit.conversation : 
-                          innerType === "extendedTextMessage" ? edit.extendedTextMessage.text : 
-                          innerType === "imageMessage" ? edit.imageMessage.caption : 
-                          innerType === "videoMessage" ? edit.videoMessage.caption : "";
-            }
-
+            // පරණ එක සහ අලුත් එක වෙනස් නම් පමණක් Report කරන්න
             if (newText && oldMsg.text !== newText) {
-                let report = `✍️ *Message Edited Detected*\n\n🕒 *Time:* ${oldMsg.time}\n👤 *User:* @${oldMsg.sender.split('@')[0]}\n\n*📑 Original:* \`\`\`${oldMsg.text}\`\`\`\n\n*✒️ Edited:* \`\`\`${newText}\`\`\`\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
+                let report = `✍️ *MESSAGE EDITED DETECTED*\n\n` +
+                             `👤 *User:* @${oldMsg.sender.split('@')[0]}\n` +
+                             `🕒 *Time:* ${oldMsg.time}\n\n` +
+                             `*📑 Original Message:* \n\`\`\`${oldMsg.text}\`\`\`\n\n` +
+                             `*✒️ Edited Message:* \n\`\`\`${newText}\`\`\`\n\n` +
+                             `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
 
-                await conn.sendMessage(from, { text: report, mentions: [oldMsg.sender] }, { quoted: update });
+                await conn.sendMessage(from, { 
+                    text: report, 
+                    mentions: [oldMsg.sender] 
+                }, { quoted: update });
+                
+                // එක පාරක් Report කළාට පස්සේ Store එකෙන් අයින් කරනවා
                 global.msgStore.delete(msgId);
             }
-        } catch (e) { }
+        } catch (e) { 
+            console.log("AntiEdit Report Error:", e); 
+        }
     }
 };
