@@ -8,9 +8,32 @@ const ffmpegPath = require('ffmpeg-static');
 const processedMessages = new Set();
 
 const voiceData = {
-    "hi": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
-    "mk": "https://mp3tourl.com/audio/1777910196056-487d7486-78dc-43b9-88d9-55cf57c6c7cb.mp3"
+    "hi,hii,hey,halo": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
+    "mk,mko krnne": "https://mp3tourl.com/audio/1777910196056-487d7486-78dc-43b9-88d9-55cf57c6c7cb.mp3",
+    "hy,හායි,හලෝ": "https://mp3tourl.com/audio/1778259822854-80f34266-3cfa-4f0c-9b86-c4809c79ebca.mp3",
+    "bye,byee": "https://mp3tourl.com/audio/1778305373905-198089fa-f1b8-48d9-a728-c95dbd27543b.mp3",
+    "bs,budu sarnyi": "https://mp3tourl.com/audio/1778305427736-4057aab7-129c-45ed-a341-d15ebb04e464.mp3",
+    "fuck,sex,sexy,hukahn,hukpn": "https://mp3tourl.com/audio/1778305486997-d4d3e96a-9825-4a59-b2eb-76a0bac37472.mp3",
+    "gm,good morning": "https://mp3tourl.com/audio/1778305538644-2b1fb414-681b-41ac-ae9a-0d07d64c3770.m4a",
+    "gn,good night": "https://mp3tourl.com/audio/1778305590591-b1301665-91dc-4c4c-8158-41925464deaa.mp3",
+    "ai ai,aii": "https://mp3tourl.com/audio/1778305739899-bd371fee-d65a-4a95-aabb-7309ac6df90e.mp3",
+    "hm,mm,hmm,mmm": "https://mp3tourl.com/audio/1778305787723-052e4c62-7534-4de6-9718-8bbdfe79e6d5.m4a",
+    "pissud,pissu,pissuda": "https://mp3tourl.com/audio/1778305832535-f10955b3-68b1-4a99-8c2e-168450737c23.mp3",
+    "hutta,hutto,pco,pky,pckyo,hukanno,pakayo,pakya,utto,huththo,uttiye,huttiye": "https://mp3tourl.com/audio/1778305945222-2e5e0533-3b1e-42e3-8b9d-0e5a4b61e405.mp3",
+    "kewad,kawad,kewd,kawada,kawayi": "https://mp3tourl.com/audio/1778306050683-b20bb36e-6166-426a-924c-724902fbcea8.mp3",
+    "ko,koo": "https://mp3tourl.com/audio/1778306084359-eb4e75c6-bd45-4bee-8c2a-fd3e10a039d5.mp3",
+    "ummh,adareyi,adarei": "https://mp3tourl.com/audio/1778306130900-3a11c961-447c-4fd4-91f6-75e1d1f1a975.mp3",
+    "kollekd,kellekd": "https://mp3tourl.com/audio/1778306187607-20f4164f-994a-461f-89e3-5aa576422774.mp3",
+    "love": "https://mp3tourl.com/audio/1778306228893-9db847fb-6463-42e8-81f0-9e03fe4b2785.mp3",
+    "thota puluwnnm,puluwnd": "https://mp3tourl.com/audio/1778306315124-4a797f41-2908-4ea4-8438-2b6a14a612aa.mp3",
+    "yno,ynna,yannm": "https://mp3tourl.com/audio/1778306274122-e104cbee-e525-41b8-b283-848d361e8cf0.mp3",
+    "patiyo,mcho": "https://mp3tourl.com/audio/1778305621396-88a0eacc-a22b-41a1-a3f3-5da62d288f9d.mp3",
+    "puh": "https://mp3tourl.com/audio/1778306495613-dd657de1-27aa-44df-aac8-4842a1f39b0d.m4a",
+    "nethmina,bro,brh,mchn": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3"
 };
+
+const ownerExceptionWords = ["puh", "yno", "ynna", "yannm"]; 
+const exactMatchOnlyWords = ["patiyo", "mcho", "nethmina", "bro", "brh", "mchn"]; 
 
 const convertToOpus = (input, output) => {
     return new Promise((resolve, reject) => {
@@ -24,12 +47,10 @@ const convertToOpus = (input, output) => {
 module.exports = {
     onMessage: async (conn, mek) => {
         try {
-            if (!mek.message || mek.key.fromMe) return;
-
-            const msgId = mek.key.id;
-            if (processedMessages.has(msgId)) return;
+            if (!mek.message) return;
 
             const from = mek.key.remoteJid;
+            const isMe = mek.key.fromMe;
             const type = Object.keys(mek.message)[0];
             const body = (type === 'conversation') ? mek.message.conversation : 
                          (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : 
@@ -37,19 +58,49 @@ module.exports = {
                          (type === 'videoMessage') ? mek.message.videoMessage.caption : '';
 
             if (!body) return;
-            const lowerBody = body.toLowerCase().trim();
+            let lowerBody = body.toLowerCase().trim();
+            const msgId = mek.key.id;
 
-            // --- [වෙනස් කළ කොටස] ---
-            // Regex පාවිච්චි කරලා වචනයක් විදිහට විතරක් තියෙනවාද බලනවා (\b = word boundary)
-            const matchedKey = Object.keys(voiceData).find(key => {
-                const regex = new RegExp(`\\b${key}\\b`, 'g'); 
-                return regex.test(lowerBody);
-            });
+            if (processedMessages.has(msgId)) return;
 
-            if (matchedKey) {
+            // --- [අලුතින් එකතු කළ කොටස: Command Logic] ---
+            let isForceSend = false;
+            if (isMe && lowerBody.startsWith('#')) {
+                isForceSend = true;
+                lowerBody = lowerBody.slice(1).trim(); // # ඉවත් කර ඉතිරි වචනය ගමු
+            }
+
+            let audioUrl = null;
+
+            for (const key in voiceData) {
+                const keywords = key.split(',');
+                const isMatch = keywords.some(word => {
+                    const trimmedWord = word.trim().toLowerCase();
+                    
+                    // Force send (Owner # ගැහුවොත්) ලොජික් එක bypass කරනවා
+                    if (isForceSend && trimmedWord === lowerBody) return true;
+
+                    // සාමාන්‍ය Owner check: Owner යවනවා නම් අදාළ වචන ලැයිස්තුවේ තියෙන්නම ඕනේ
+                    if (isMe && !isForceSend && !ownerExceptionWords.includes(trimmedWord)) return false;
+
+                    // Exact Match Only check
+                    if (exactMatchOnlyWords.includes(trimmedWord)) {
+                        return lowerBody === trimmedWord;
+                    }
+
+                    // Word match
+                    const regex = new RegExp(`\\b${trimmedWord}\\b`, 'g');
+                    return regex.test(lowerBody);
+                });
+
+                if (isMatch) {
+                    audioUrl = voiceData[key];
+                    break;
+                }
+            }
+
+            if (audioUrl) {
                 processedMessages.add(msgId);
-                const audioUrl = voiceData[matchedKey];
-                
                 await conn.sendPresenceUpdate('recording', from);
                 
                 const tempDir = os.tmpdir();
@@ -57,13 +108,8 @@ module.exports = {
                 const outputPath = path.join(tempDir, `voice_${Date.now()}.opus`);
 
                 try {
-                    const response = await axios({
-                        method: 'get',
-                        url: audioUrl,
-                        responseType: 'arraybuffer'
-                    });
+                    const response = await axios({ method: 'get', url: audioUrl, responseType: 'arraybuffer' });
                     fs.writeFileSync(inputPath, response.data);
-
                     await convertToOpus(inputPath, outputPath);
 
                     await conn.sendMessage(from, {
@@ -73,7 +119,6 @@ module.exports = {
                     }, { quoted: mek });
 
                 } catch (vError) {
-                    console.error("❌ Error:", vError);
                     await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek });
                 } finally {
                     if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
@@ -82,7 +127,7 @@ module.exports = {
                 }
             }
         } catch (e) {
-            console.log("AutoVoice Plugin Error:", e);
+            console.log("AutoVoice Error:", e);
         }
     }
 };
