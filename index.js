@@ -119,26 +119,34 @@ async function connectToWA() {
   });
 
   // --- [DELETE & EDIT EVENTS IN INDEX.JS] ---
-  nethmina.ev.on("messages.update", async (updates) => {
+nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
-        // Edit කිරීමක් නම් පමණක් (protocolMessage එකක් ඇතුළේ එන්නේ)
+        // Message එක Edit කිරීමක්දැයි පරීක්ෂා කිරීම
         if (update.update && update.update.message && update.update.message.protocolMessage) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
-                    try { await plugin.onEdit(nethmina, update); } catch (e) { console.error(e); }
+                    try { 
+                        await plugin.onEdit(nethmina, update); 
+                    } catch (e) { 
+                        console.error("Edit Event Error:", e); 
+                    }
                 }
             }
         }
-        // Delete කිරීමක් නම්
+        // Message එක Delete කිරීමක්දැයි පරීක්ෂා කිරීම
         if (update.update && update.update.message === null) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onDelete) {
-                    try { await plugin.onDelete(nethmina, update); } catch (e) { console.error(e); }
+                    try { 
+                        await plugin.onDelete(nethmina, update); 
+                    } catch (e) { 
+                        console.error("Delete Event Error:", e); 
+                    }
                 }
             }
         }
     }
-  });
+});
 
   // --- [MESSAGE HANDLING] ---
 nethmina.ev.on("messages.upsert", async ({ messages }) => {
