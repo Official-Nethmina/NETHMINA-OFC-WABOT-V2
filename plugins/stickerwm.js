@@ -8,14 +8,15 @@ cmd({
     category: "convert",
     filename: __filename
 },
-async (conn, mek, m, { from, reply, quoted, args }) => {
+async (conn, mek, m, { from, reply, args }) => {
     try {
-        // 1. Quoted check - Baileys වල quoted message එක තියෙන්නේ මෙහෙමයි
+        // 1. Quoted message එක direct අරගනිමු (මෙතනයි වැරැද්ද තිබුණේ)
+        const quoted = m.quoted ? m.quoted : (m.msg?.contextInfo?.quotedMessage ? m.msg.contextInfo.quotedMessage : null);
+        
         if (!quoted) return reply("*Please reply to a sticker. 😊*");
 
-        // 2. Sticker එකක්ද කියලා හරියටම check කරනවා (සියලුම අවස්ථා ආවරණය වන පරිදි)
-        const mime = quoted.mimetype || quoted.msg?.mimetype || '';
-        const isSticker = mime.includes('sticker') || quoted.type === 'stickerMessage' || quoted.mtype === 'stickerMessage';
+        // 2. Sticker එකක්ද කියලා බලමු (Type එක හරියටම check කිරීම)
+        const isSticker = m.quoted ? (m.quoted.mtype === 'stickerMessage' || m.quoted.type === 'stickerMessage') : false;
 
         if (!isSticker) return reply("*You did not reply to a sticker. Please reply to a sticker. 🙂*");
 
@@ -33,13 +34,9 @@ async (conn, mek, m, { from, reply, quoted, args }) => {
 
         await conn.sendMessage(from, { react: { text: '🖊️', key: mek.key } });
 
-        // 4. Media Download කිරීම - වඩාත් ආරක්ෂිත ක්‍රමය
-        const msg = quoted.msg || quoted; // Sticker data තියෙන තැන
-        const stream = await downloadContentFromMessage(msg, 'sticker');
-        let buffer = Buffer.from([]);
-        for await (const chunk of stream) {
-            buffer = Buffer.concat([buffer, chunk]);
-        }
+        // 4. Media Download කිරීම - වඩාත් ශක්තිමත් ක්‍රමය
+        // m.quoted.download() function එක තිබේනම් එය භාවිතා කරයි, නැත්නම් manual download කරයි
+        const buffer = await m.quoted.download();
 
         // 5. Sticker එක නිර්මාණය කිරීම
         const sticker = new Sticker(buffer, {
@@ -48,7 +45,7 @@ async (conn, mek, m, { from, reply, quoted, args }) => {
             type: StickerTypes.FULL,
             categories: ['🤩', '🎉'],
             id: mek.key.id,
-            quality: 80, // Quality එක 70-80 තැබීම වඩාත් සුදුසුයි Sticker size එක ලිමිට් එකේ තියාගන්න
+            quality: 80, 
         });
 
         const stickerBuffer = await sticker.toBuffer();
