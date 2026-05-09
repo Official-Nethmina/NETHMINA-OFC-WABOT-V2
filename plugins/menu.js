@@ -36,7 +36,7 @@ cmd({
 
         // 1. Voice Note එක යැවීම (Menu Voice)
         await nethmina.sendPresenceUpdate('recording', from);
-        const audioUrl = "https://mp3tourl.com/audio/1778308752311-12d424ce-bb45-4cdc-87aa-af4b95aab4a9.mp3";
+        const audioUrl = "https://mp3tourl.com/audio/1778306495613-dd657de1-27aa-44df-aac8-4842a1f39b0d.m4a";
         const tempDir = os.tmpdir();
         const inputPath = path.join(tempDir, `menu_${Date.now()}.mp3`);
         const outputPath = path.join(tempDir, `menu_${Date.now()}.opus`);
