@@ -1,47 +1,55 @@
-const fs = require('fs');
+const { getContentType } = require("@whiskeysockets/baileys");
+
 if (!global.msgStore) global.msgStore = new Map();
 
 module.exports = {
+    // සාමාන්‍ය මැසේජ් එකක් ආපු ගමන් ඒක මතක තබා ගැනීම
     onMessage: async (conn, mek) => {
         try {
-            // Edit එකක් හෝ Protocol එකක් නම් Store කරන්න එපා
             if (!mek.message || mek.message.protocolMessage) return;
             
             const msgId = mek.key.id;
-            let content = mek.message.conversation || 
-                          mek.message.extendedTextMessage?.text || 
-                          mek.message.imageMessage?.caption || 
-                          mek.message.videoMessage?.caption || "";
+            const type = getContentType(mek.message);
+            
+            let content = "";
+            if (type === "conversation") content = mek.message.conversation;
+            else if (type === "extendedTextMessage") content = mek.message.extendedTextMessage.text;
+            else if (type === "imageMessage") content = mek.message.imageMessage.caption;
+            else if (type === "videoMessage") content = mek.message.videoMessage.caption;
 
-            if (content) {
+            if (content && content.trim() !== "") {
                 global.msgStore.set(msgId, {
                     text: content,
                     sender: mek.key.participant || mek.key.remoteJid,
                     time: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour12: true })
                 });
-                // පැයකට පසු මකන්න
-                setTimeout(() => global.msgStore.delete(msgId), 3600000); 
+                // පැය 2කින් Memory එකෙන් අයින් කරන්න
+                setTimeout(() => global.msgStore.delete(msgId), 7200000);
             }
-        } catch (e) { console.log(e); }
+        } catch (e) { console.log("Store Error:", e); }
     },
 
+    // මැසේජ් එක Edit වුණු බව හඳුනාගත් විට ක්‍රියාත්මක වීම
     onEdit: async (conn, mek) => {
         try {
             const protocolMsg = mek.message.protocolMessage;
+            if (!protocolMsg || protocolMsg.type !== 14) return;
+
             const msgId = protocolMsg.key.id;
             const from = mek.key.remoteJid;
             const editedMsg = protocolMsg.editedMessage;
-
             if (!editedMsg) return;
 
-            const newText = editedMsg.conversation || 
-                            editedMsg.extendedTextMessage?.text || 
-                            editedMsg.imageMessage?.caption || 
-                            editedMsg.videoMessage?.caption;
+            const type = getContentType(editedMsg);
+            let newText = "";
+            if (type === "conversation") newText = editedMsg.conversation;
+            else if (type === "extendedTextMessage") newText = editedMsg.extendedTextMessage.text;
+            else if (type === "imageMessage") newText = editedMsg.imageMessage.caption;
+            else if (type === "videoMessage") newText = editedMsg.videoMessage.caption;
 
             const oldMsg = global.msgStore.get(msgId);
 
-            // තමන්ගේම ඒවටත් වැඩ නොකරන්න ඕනෙ නම් (update.key.fromMe) check එක දාන්න පුළුවන්
+            // පරණ එක තිබේ නම් සහ එය අලුත් එකට වඩා වෙනස් නම් පමණක් Report කරන්න
             if (oldMsg && newText && oldMsg.text !== newText) {
                 let report = `✍️ *MESSAGE EDITED DETECTED*\n\n` +
                              `🕒 *Time:* ${oldMsg.time}\n` +
@@ -59,6 +67,6 @@ module.exports = {
                 
                 global.msgStore.delete(msgId);
             }
-        } catch (e) { console.log("Edit Plugin Error:", e); }
+        } catch (e) { console.log("Edit Process Error:", e); }
     }
 };
