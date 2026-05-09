@@ -8,15 +8,14 @@ cmd({
     category: "convert",
     filename: __filename
 },
-async (conn, mek, m, { from, reply, quoted, body, args }) => {
+async (conn, mek, m, { from, reply, quoted, args }) => {
     try {
-        // 1. Quoted message එකක් තියෙනවාද බලනවා
+        // 1. Quoted check - Baileys වල quoted message එක තියෙන්නේ මෙහෙමයි
         if (!quoted) return reply("*Please reply to a sticker. 😊*");
 
-        // 2. Sticker එකක්ද කියලා හරියටම check කරනවා (mtype හෝ type පාවිච්චි කරමින්)
-        const isSticker = quoted.mtype === 'stickerMessage' || 
-                          quoted.type === 'stickerMessage' ||
-                          (quoted.message && quoted.message.stickerMessage);
+        // 2. Sticker එකක්ද කියලා හරියටම check කරනවා (සියලුම අවස්ථා ආවරණය වන පරිදි)
+        const mime = quoted.mimetype || quoted.msg?.mimetype || '';
+        const isSticker = mime.includes('sticker') || quoted.type === 'stickerMessage' || quoted.mtype === 'stickerMessage';
 
         if (!isSticker) return reply("*You did not reply to a sticker. Please reply to a sticker. 🙂*");
 
@@ -24,7 +23,7 @@ async (conn, mek, m, { from, reply, quoted, body, args }) => {
         let pack = "💟 𝙽𝙴𝚃𝙷𝙼𝙸𝙽𝙰 - 𝚂𝚃𝙸𝙲𝙺𝙴𝚁𝚂 💟"; 
         let author = "© 🧑🏻‍💻 ɴᴇᴛʜᴍɪɴᴀ ᴏꜰꜰɪᴄɪᴀʟ ᴄᴏᴍᴍᴜɴɪᴛʏ 🧑🏻‍💻";
 
-        // 3. User පරාමිතීන් දීලා තියෙනවා නම් (e.g. .wm MyPack | MyName)
+        // 3. User පරාමිතීන් (Custom Pack | Author)
         const input = args.join(" ");
         if (input && input.includes('|')) {
             const [p, a] = input.split('|');
@@ -34,23 +33,22 @@ async (conn, mek, m, { from, reply, quoted, body, args }) => {
 
         await conn.sendMessage(from, { react: { text: '🖊️', key: mek.key } });
 
-        // 4. Sticker content එක නිවැරදිව ලබා ගැනීම
-        const stickerMsg = quoted.message?.stickerMessage || quoted;
-        
-        // 5. Download Media Buffer
-        const stream = await downloadContentFromMessage(stickerMsg, 'sticker');
+        // 4. Media Download කිරීම - වඩාත් ආරක්ෂිත ක්‍රමය
+        const msg = quoted.msg || quoted; // Sticker data තියෙන තැන
+        const stream = await downloadContentFromMessage(msg, 'sticker');
         let buffer = Buffer.from([]);
         for await (const chunk of stream) {
             buffer = Buffer.concat([buffer, chunk]);
         }
 
+        // 5. Sticker එක නිර්මාණය කිරීම
         const sticker = new Sticker(buffer, {
             pack: pack,
             author: author,
             type: StickerTypes.FULL,
             categories: ['🤩', '🎉'],
             id: mek.key.id,
-            quality: 100, // Quality එක 100 කළා
+            quality: 80, // Quality එක 70-80 තැබීම වඩාත් සුදුසුයි Sticker size එක ලිමිට් එකේ තියාගන්න
         });
 
         const stickerBuffer = await sticker.toBuffer();
