@@ -91,20 +91,22 @@ async function connectToWA() {
       } catch (e) {
         console.log("❌ Error sending connection message:", e);
       }
-      if (fs.existsSync("./plugins/")) {
-        fs.readdirSync("./plugins/").forEach((file) => {
-          if (file.endsWith(".js")) {
-            try {
-              const plugin = require(`./plugins/${file}`);
-              global.pluginHooks.push(plugin);
-            } catch (e) {
-              console.error(`❌ Error loading plugin ${file}:`, e);
-            }
-          }
-        });
+      // index.js එකේ connection open එක ඇතුළත ඇති කොටස මෙයට මාරු කරන්න
+if (fs.existsSync("./plugins/")) {
+  global.pluginHooks = []; // කලින් තිබුණ ඒවා Clear කරන්න
+  fs.readdirSync("./plugins/").forEach((file) => {
+    if (file.endsWith(".js")) {
+      try {
+        const plugin = require(`./plugins/${file}`);
+        // ප්ලගින් එකේ නම හෝ logic එක අනුව register කිරීම
+        global.pluginHooks.push(plugin);
+        console.log(`✅ Loaded plugin: ${file}`);
+      } catch (e) {
+        console.error(`❌ Error loading plugin ${file}:`, e);
       }
     }
   });
+}
 
   nethmina.ev.on("creds.update", saveCreds);
 
