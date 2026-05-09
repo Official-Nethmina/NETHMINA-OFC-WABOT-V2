@@ -35,13 +35,11 @@ global.pluginHooks = [];
 async function ensureSessionFile() {
   const authFolder = path.join(__dirname, "/auth_info_baileys/");
   
-  // 1. පරණ folder එකක් තියෙනවා නම් ඒක මුලින්ම මකමු (Force Reset)
   if (fs.existsSync(authFolder)) {
     console.log("🗑️ Cleaning up old session folder...");
     fs.rmSync(authFolder, { recursive: true, force: true });
   }
 
-  // 2. Folder එක අලුතින් හදමු
   fs.mkdirSync(authFolder, { recursive: true });
 
   if (!config.SESSION_ID) {
@@ -58,7 +56,6 @@ async function ensureSessionFile() {
       process.exit(1);
     }
     
-    // creds.json එක නියමිත තැනටම ලියමු
     fs.writeFileSync(credsPath, data);
     console.log("✅ Session downloaded successfully!");
     connectToWA();
@@ -88,7 +85,6 @@ async function connectToWA() {
     } else if (connection === "open") {
       console.log("✅ BOT CONNECTED SUCCESSFULLY");
 
-      // බොට් කනෙක්ට් වූ පසු ඔනර්ට මැසේජ් එකක් යැවීම
       try {
         const connMsg = `✅ *NETHMINA-OFC BOT CONNECTED*\n\nPrefix: [ ${prefix} ]\nOwner: ${ownerNumber[0]}\n\n_බොට් සාර්ථකව ක්‍රියාත්මක වේ...🚀_`;
         await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", { text: connMsg });
@@ -104,7 +100,7 @@ async function connectToWA() {
             } catch (e) {
               console.error(`❌ Error loading plugin ${file}:`, e);
             }
-          } // <-- මෙන්න මේ bracket එක ඔයාගේ code එකේ අඩුවෙලා තිබුණේ
+          }
         });
       }
     }
@@ -122,42 +118,34 @@ async function connectToWA() {
     } catch (e) {}
   });
 
-  // --- [DELETE & EDIT EVENTS] ---
-  nethmina.ev.on("messages.update", async (updates) => {
+  // --- [DELETE & EDIT EVENTS IN INDEX.JS] ---
+nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
-      const from = update.key.remoteJid;
-
-      // 1. [ANTI-DELETE DETECTION]
-      const isDelete = update.update?.message === null || update.action === 'delete';
-      if (isDelete) {
-        for (const plugin of global.pluginHooks) {
-          try {
-            if (plugin.onDelete) await plugin.onDelete(nethmina, update);
-          } catch (err) { }
-        }
-      }
-
-      // 2. [ANTI-EDIT DETECTION]
-      // Edit කළ මැසේජ් එකක සාමාන්‍යයෙන් editContextInfo හෝ protocolMessage අඩංගු වේ
-      const isEdit = update.update?.message || update.update?.editedMessage;
-      if (isEdit && !update.key.fromMe) {
-        for (const plugin of global.pluginHooks) {
-          try {
-            if (plugin.onEdit) {
-              // Edit එක හඳුනා ගැනීමට මුළු update object එකම ප්ලගින් එකට යවනවා
-              await plugin.onEdit(nethmina, update);
+        if (update.update?.message === null || update.action === 'delete') {
+            for (const plugin of global.pluginHooks) {
+                if (plugin.onDelete) await plugin.onDelete(nethmina, update);
             }
-          } catch (err) { }
         }
-      }
+        if (update.update?.message || update.update?.editedMessage) {
+            for (const plugin of global.pluginHooks) {
+                if (plugin.onEdit) await plugin.onEdit(nethmina, update);
+            }
+        }
     }
-  });
+});
 
   // --- [MESSAGE HANDLING] ---
-  nethmina.ev.on("messages.upsert", async ({ messages }) => {
+nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
       if (!mek.message) continue;
-      
+
+      // Anti-Delete/Edit සඳහා මැසේජ් එක ස්ටෝර් කරන්න මෙතනදී ප්ලගින් එකට යවනවා
+      for (const plugin of global.pluginHooks) {
+        if (plugin.onMessage) {
+            try { await plugin.onMessage(nethmina, mek); } catch (e) {}
+        }
+      }
+
       const from = mek.key.remoteJid;
       const type = getContentType(mek.message);
       const isStatus = from === "status@broadcast";
@@ -176,14 +164,12 @@ async function connectToWA() {
       if (isStatus) {
         if (mek.message?.reactionMessage) return;
 
-        // 1. AUTO SEEN
         try {
           if (config.AUTO_STATUS_SEEN === "true") {
             await nethmina.readMessages([mek.key]);
           }
         } catch (err) { console.error("❌ Status seen error:", err); }
 
-        // 2. SMART AUTO REACT
         try {
           if (config.AUTO_STATUS_REACT === "true") {
             const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
@@ -199,11 +185,9 @@ async function connectToWA() {
           }
         } catch (err) { console.error("❌ Status react error:", err); }
 
-       // 3. AUTO STATUS FORWARD (Fixed & Optimized)
         if (config.FORWARD_STATUS === "true") {
             const targetNumber = ownerNumber[0] + "@s.whatsapp.net";
 
-            // --- Forward Text Status ---
             if (type === "extendedTextMessage") {
                 const statusText = mek.message.extendedTextMessage.text || "";
                 if (statusText.trim()) {
@@ -212,13 +196,10 @@ async function connectToWA() {
                     });
                 }
             } 
-            // --- Forward Media Status (Image/Video) ---
             else if (type === "imageMessage" || type === "videoMessage") {
                 try {
                     const msgType = type === "imageMessage" ? "image" : "video";
                     const media = mek.message[type];
-                    
-                    // Download Media Buffer
                     const stream = await downloadContentFromMessage(media, msgType);
                     let buffer = Buffer.from([]);
                     for await (const chunk of stream) {
@@ -284,10 +265,6 @@ async function connectToWA() {
 
       if (isOwner && !isCmd && config.OWNER_REACT === "true") {
         await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(() => {});
-      }
-
-      for (const plugin of global.pluginHooks) {
-        if (plugin.onMessage) plugin.onMessage(nethmina, mek);
       }
 
       if (isCmd) {
