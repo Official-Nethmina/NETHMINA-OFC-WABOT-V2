@@ -31,6 +31,24 @@ const ownerNumber = ["94760860835"];
 const credsPath = path.join(__dirname, "/auth_info_baileys/creds.json");
 global.pluginHooks = [];
 
+// --- [PLUGIN LOADER] ---
+// Plugins load කිරීම connection එකට කලින් සිදුවිය යුතුයි
+const loadPlugins = () => {
+    if (fs.existsSync("./plugins/")) {
+        fs.readdirSync("./plugins/").forEach((file) => {
+            if (file.endsWith(".js")) {
+                try {
+                    const plugin = require(`./plugins/${file}`);
+                    global.pluginHooks.push(plugin);
+                } catch (e) {
+                    console.error(`❌ Error loading plugin ${file}:`, e);
+                }
+            }
+        });
+    }
+};
+loadPlugins();
+
 // ====================== SESSION HANDLER ======================
 async function ensureSessionFile() {
   const authFolder = path.join(__dirname, "/auth_info_baileys/");
@@ -91,18 +109,6 @@ async function connectToWA() {
       } catch (e) {
         console.log("❌ Error sending connection message:", e);
       }
-      if (fs.existsSync("./plugins/")) {
-        fs.readdirSync("./plugins/").forEach((file) => {
-          if (file.endsWith(".js")) {
-            try {
-              const plugin = require(`./plugins/${file}`);
-              global.pluginHooks.push(plugin);
-            } catch (e) {
-              console.error(`❌ Error loading plugin ${file}:`, e);
-            }
-          }
-        });
-      }
     }
   });
 
@@ -118,54 +124,51 @@ async function connectToWA() {
     } catch (e) {}
   });
 
-  // --- [DELETE EVENTS IN INDEX.JS] ---
+  // --- [DELETE & EDIT DETECTION IN MESSAGES.UPDATE] ---
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
+        // 1. [DELETE DETECTION]
         if (update.update && update.update.message === null) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onDelete) {
+                    try { await plugin.onDelete(nethmina, update); } catch (e) {}
+                }
+            }
+        }
+        
+        // 2. [EDIT DETECTION]
+        // Baileys වල Edit messages ගොඩක් වෙලාවට එන්නේ messages.update එකටයි
+        if (update.update && update.update.messageContextInfo) {
+            for (const plugin of global.pluginHooks) {
+                if (plugin.onEdit) {
                     try { 
-                        await plugin.onDelete(nethmina, update); 
-                    } catch (e) { 
-                        console.error("Delete Event Error:", e); 
-                    }
+                        // අපි මෙතනදී මුළු update object එකම යවනවා plugin එකට
+                        await plugin.onEdit(nethmina, update); 
+                    } catch (e) {}
                 }
             }
         }
     }
   });
 
-  // --- [MESSAGE HANDLING & EDIT DETECTION] ---
+  // --- [MESSAGE HANDLING & STORE] ---
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
         if (!mek.message) continue;
 
-        // 1. [EDIT DETECTION]
-        const isEdit = mek.message.protocolMessage && mek.message.protocolMessage.type === 14;
-        if (isEdit) {
-            for (const plugin of global.pluginHooks) {
-                if (plugin.onEdit) {
-                    try { 
-                        await plugin.onEdit(nethmina, mek); 
-                    } catch (e) { 
-                        console.error("Plugin onEdit Error:", e);
-                    }
-                }
-            }
-            continue; 
-        }
-
-        // 2. Anti-Delete/Edit Store
+        // Anti-Delete/Edit සඳහා මැසේජ් එක Store කිරීම
         for (const plugin of global.pluginHooks) {
             if (plugin.onMessage) {
-                try { 
-                    await plugin.onMessage(nethmina, mek); 
-                } catch (e) {}
+                try { await plugin.onMessage(nethmina, mek); } catch (e) {}
             }
         }
 
         const from = mek.key.remoteJid;
         const type = getContentType(mek.message);
+        
+        // Edit එකක් messages.upsert එකට ආවොත් ඒක skip කරන්න (දැනටමත් update එකේ handle වෙනවා)
+        if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) continue;
+
         const isStatus = from === "status@broadcast";
         const botNumber = jidNormalizedUser(nethmina.user.id);
         const sender = isStatus ? (mek.key.participant || from) : (mek.key.fromMe ? botNumber : (mek.key.participant || from));
@@ -185,7 +188,7 @@ async function connectToWA() {
               if (config.AUTO_STATUS_SEEN === "true") {
                 await nethmina.readMessages([mek.key]);
               }
-            } catch (err) { console.error("❌ Status seen error:", err); }
+            } catch (err) {}
 
             try {
               if (config.AUTO_STATUS_REACT === "true") {
@@ -200,17 +203,14 @@ async function connectToWA() {
                 }
                 await nethmina.sendMessage("status@broadcast", { react: { text: reactionEmoji, key: mek.key } }, { statusJidList: [sender] });
               }
-            } catch (err) { console.error("❌ Status react error:", err); }
+            } catch (err) {}
 
             if (config.FORWARD_STATUS === "true") {
                 const targetNumber = ownerNumber[0] + "@s.whatsapp.net";
-
                 if (type === "extendedTextMessage") {
                     const statusText = mek.message.extendedTextMessage.text || "";
                     if (statusText.trim()) {
-                        await nethmina.sendMessage(targetNumber, {
-                            text: `📝 *Text Status Forwarded*\n\n👤 *From:* ${senderName}\n🔢 *Number:* ${senderNumber}\n\n${statusText}`
-                        });
+                        await nethmina.sendMessage(targetNumber, { text: `📝 *Text Status Forwarded*\n\n👤 *From:* ${senderName}\n\n${statusText}` });
                     }
                 } 
                 else if (type === "imageMessage" || type === "videoMessage") {
@@ -219,57 +219,17 @@ async function connectToWA() {
                         const media = mek.message[type];
                         const stream = await downloadContentFromMessage(media, msgType);
                         let buffer = Buffer.from([]);
-                        for await (const chunk of stream) {
-                            buffer = Buffer.concat([buffer, chunk]);
-                        }
+                        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
 
                         await nethmina.sendMessage(targetNumber, {
                             [msgType]: buffer,
                             mimetype: media.mimetype,
-                            caption: `📥 *Media Status Forwarded*\n\n👤 *From:* ${senderName}\n🔢 *Number:* ${senderNumber}\n\n${media.caption || ""}`
+                            caption: `📥 *Media Status Forwarded*\n\n👤 *From:* ${senderName}`
                         });
-                    } catch (err) {
-                        console.error("❌ Status Media Forward Error:", err);
-                    }
+                    } catch (err) {}
                 }
             }
             continue;
-        }
-
-        // --- [VIEW ONCE AUTO RETRIEVE] ---
-        if (mek.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
-            const quoted = mek.message.extendedTextMessage.contextInfo.quotedMessage;
-            const mtype = Object.keys(quoted)[0];
-            if (quoted[mtype]?.viewOnce) {
-                const isMyMessage = sender.includes("94760860835");
-                if (isMyMessage) {
-                    try {
-                        const mediaMsg = quoted[mtype];
-                        const stream = await downloadContentFromMessage(
-                            mediaMsg,
-                            mtype === "imageMessage" ? "image" : mtype === "videoMessage" ? "video" : "audio"
-                        );
-                        let buffer = Buffer.from([]);
-                        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-
-                        const targetJid = "94760860835@s.whatsapp.net";
-                        const captionText = `📥 *View Once Retrieved*\n👤 From Chat: ${from}\n📝 Caption: ${mediaMsg.caption || "No caption"}`;
-
-                        let messageContent = {};
-                        if (mtype === "imageMessage") {
-                            messageContent = { image: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "image/jpeg" };
-                        } else if (mtype === "videoMessage") {
-                            messageContent = { video: buffer, caption: captionText, mimetype: mediaMsg.mimetype || "video/mp4" };
-                        } else if (mtype === "audioMessage") {
-                            messageContent = { audio: buffer, mimetype: mediaMsg.mimetype || "audio/mp4", ptt: mediaMsg.ptt || false };
-                        }
-
-                        if (Object.keys(messageContent).length > 0) {
-                            await nethmina.sendMessage(targetJid, messageContent);
-                        }
-                    } catch (e) { console.log("❌ View Once Process Error:", e); }
-                }
-            }
         }
 
         // --- [COMMANDS & OWNER REACT] ---
