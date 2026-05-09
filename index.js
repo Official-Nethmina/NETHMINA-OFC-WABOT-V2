@@ -118,21 +118,10 @@ async function connectToWA() {
     } catch (e) {}
   });
 
-  // --- [DELETE & EDIT EVENTS IN INDEX.JS] ---
+  // --- [DELETE EVENTS IN INDEX.JS] ---
+// Edit detection එක upsert එකට ගෙන ගිය නිසා මෙතන තියෙන්නේ Delete එක විතරයි
 nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
-        // Message එක Edit කිරීමක්දැයි පරීක්ෂා කිරීම
-        if (update.update && update.update.message && update.update.message.protocolMessage) {
-            for (const plugin of global.pluginHooks) {
-                if (plugin.onEdit) {
-                    try { 
-                        await plugin.onEdit(nethmina, update); 
-                    } catch (e) { 
-                        console.error("Edit Event Error:", e); 
-                    }
-                }
-            }
-        }
         // Message එක Delete කිරීමක්දැයි පරීක්ෂා කිරීම
         if (update.update && update.update.message === null) {
             for (const plugin of global.pluginHooks) {
@@ -148,34 +137,51 @@ nethmina.ev.on("messages.update", async (updates) => {
     }
 });
 
-  // --- [MESSAGE HANDLING] ---
+// --- [MESSAGE HANDLING & EDIT DETECTION] ---
 nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
-      if (!mek.message) continue;
+        if (!mek.message) continue;
 
-      // Anti-Delete/Edit සඳහා මැසේජ් එක ස්ටෝර් කරන්න මෙතනදී ප්ලගින් එකට යවනවා
-      for (const plugin of global.pluginHooks) {
-        if (plugin.onMessage) {
-            try { await plugin.onMessage(nethmina, mek); } catch (e) {}
+        // 1. [EDIT DETECTION] - මැසේජ් එකක් Edit කළ විට එය හඳුනා ගැනීම
+        const isEdit = mek.message.protocolMessage && mek.message.protocolMessage.type === 14;
+        if (isEdit) {
+            for (const plugin of global.pluginHooks) {
+                if (plugin.onEdit) {
+                    try { 
+                        await plugin.onEdit(nethmina, mek); 
+                    } catch (e) { 
+                        console.error("Plugin onEdit Error:", e);
+                    }
+                }
+            }
+            continue; // Edit එකක් නම් සාමාන්‍ය මැසේජ් එකක් විදියට පල්ලෙහාට යන්න දෙන්න එපා
         }
-      }
 
-      const from = mek.key.remoteJid;
-      const type = getContentType(mek.message);
-      const isStatus = from === "status@broadcast";
-      const botNumber = jidNormalizedUser(nethmina.user.id);
-      const sender = isStatus ? (mek.key.participant || from) : (mek.key.fromMe ? botNumber : (mek.key.participant || from));
-      const senderNumber = sender.split("@")[0];
-      const senderName = mek.pushName || "Unknown";
+        // 2. Anti-Delete/Edit සඳහා සාමාන්‍ය මැසේජ් එක ස්ටෝර් කිරීම
+        for (const plugin of global.pluginHooks) {
+            if (plugin.onMessage) {
+                try { 
+                    await plugin.onMessage(nethmina, mek); 
+                } catch (e) {}
+            }
+        }
 
-      const body = type === "conversation" ? mek.message.conversation : 
-                   type === "extendedTextMessage" ? mek.message.extendedTextMessage.text : 
-                   type === "imageMessage" ? mek.message.imageMessage.caption : 
-                   type === "videoMessage" ? mek.message.videoMessage.caption : "";
+        // --- සාමාන්‍ය මැසේජ් සැකසීම ---
+        const from = mek.key.remoteJid;
+        const type = getContentType(mek.message);
+        const isStatus = from === "status@broadcast";
+        const botNumber = jidNormalizedUser(nethmina.user.id);
+        const sender = isStatus ? (mek.key.participant || from) : (mek.key.fromMe ? botNumber : (mek.key.participant || from));
+        const senderNumber = sender.split("@")[0];
+        const senderName = mek.pushName || "Unknown";
 
+        const body = type === "conversation" ? mek.message.conversation : 
+                     type === "extendedTextMessage" ? mek.message.extendedTextMessage.text : 
+                     type === "imageMessage" ? mek.message.imageMessage.caption : 
+                     type === "videoMessage" ? mek.message.videoMessage.caption : "";
 
-      // --- [STATUS HANDLING] ---
-      if (isStatus) {
+        // --- [STATUS HANDLING] ---
+        if (isStatus) {
         if (mek.message?.reactionMessage) return;
 
         try {
