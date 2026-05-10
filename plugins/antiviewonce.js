@@ -6,7 +6,6 @@ module.exports = {
             const from = mek.key.remoteJid;
             const type = Object.keys(mek.message || {})[0];
             
-            // අපි බලනවා මේක රිප්ලයි එකක්ද සහ ඒ රිප්ලයි කරපු මැසේජ් එක View Once ද කියලා
             const quotedMsg = mek.message?.[type]?.contextInfo?.quotedMessage;
             if (!quotedMsg) return;
 
@@ -14,32 +13,33 @@ module.exports = {
             const isViewOnce = quotedMsg[mtype]?.viewOnce;
 
             if (isViewOnce) {
-                // බොට්ගේ ඕනර් විතරක් මේක කළොත් වැඩ කරන විදිහට (ඔයාගේ නම්බර් එක මෙතන දාන්න)
                 const ownerNumber = "94760860835@s.whatsapp.net";
-                const sender = mek.key.fromMe ? nethmina.user.id.split(':')[0] + "@s.whatsapp.net" : (mek.key.participant || mek.key.remoteJid);
+                
+                // මැසේජ් එක එවපු කෙනාගේ JID එක සහ නම ලබා ගැනීම
+                const senderJid = mek.message[type].contextInfo.participant || from;
+                const senderName = mek.pushName || "Unknown User";
 
-                if (sender.includes("94760860835")) {
-                    const mediaMsg = quotedMsg[mtype];
+                // ඔයාගේ නම්බර් එකෙන් විතරක් රිප්ලයි කළොත් වැඩ කරන පරීක්ෂාව
+                if (mek.key.fromMe || mek.key.participant?.includes("94760860835") || from.includes("94760860835")) {
                     
-                    // මීඩියා වර්ගය හඳුනාගැනීම
+                    const mediaMsg = quotedMsg[mtype];
                     let mediaType;
                     if (mtype === "imageMessage") mediaType = "image";
                     else if (mtype === "videoMessage") mediaType = "video";
                     else if (mtype === "audioMessage") mediaType = "audio";
                     else return;
 
-                    // මැසේජ් එක ඩවුන්ලෝඩ් කිරීම
                     const stream = await downloadContentFromMessage(mediaMsg, mediaType);
                     let buffer = Buffer.from([]);
                     for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
 
-                    const captionText = `📥 *View Once Retrieved*\n\n👤 *From:* ${from}\n📝 *Caption:* ${mediaMsg.caption || "No caption"}\n\n> Powered by Nethmina OFC`;
+                    // මෙතනින් නම සහ Mention එක හදනවා
+                    const captionText = `📥 *View Once Retrieved*\n\n👤 *From:* ${senderName} (@${senderJid.split('@')[0]})\n📝 *Caption:* ${mediaMsg.caption || "No caption"}\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
-                    // ඕනර්ගේ ඉන්බොක්ස් එකට යැවීම
                     if (mediaType === "image") {
-                        await nethmina.sendMessage(ownerNumber, { image: buffer, caption: captionText });
+                        await nethmina.sendMessage(ownerNumber, { image: buffer, caption: captionText, mentions: [senderJid] });
                     } else if (mediaType === "video") {
-                        await nethmina.sendMessage(ownerNumber, { video: buffer, caption: captionText });
+                        await nethmina.sendMessage(ownerNumber, { video: buffer, caption: captionText, mentions: [senderJid] });
                     } else if (mediaType === "audio") {
                         await nethmina.sendMessage(ownerNumber, { audio: buffer, mimetype: mediaMsg.mimetype || "audio/mp4", ptt: mediaMsg.ptt || false });
                     }
