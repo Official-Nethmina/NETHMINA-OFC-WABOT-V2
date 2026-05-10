@@ -32,14 +32,12 @@ module.exports = {
     // මැසේජ් එක Edit වුණු බව හඳුනාගත් විට ක්‍රියාත්මක වීම
     onEdit: async (conn, update) => {
         try {
-            // Index.js එකෙන් එවන update object එකෙන් දත්ත වෙන් කර ගැනීම
-            const mek = update.update;
-            const protocolMsg = mek.message?.protocolMessage;
-            
+            // index.js එකෙන් එන දත්ත නිවැරදිව වෙන් කර ගැනීම
+            const protocolMsg = update.update?.message?.protocolMessage;
             if (!protocolMsg || protocolMsg.type !== 14) return;
 
             const msgId = protocolMsg.key.id;
-            const from = update.key?.remoteJid || protocolMsg.key.remoteJid;
+            const from = update.key.remoteJid;
             const editedMsg = protocolMsg.editedMessage;
             if (!editedMsg) return;
 
@@ -63,13 +61,16 @@ module.exports = {
                              `\`\`\`${newText}\`\`\`\n\n` +
                              `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
 
+                // update object එක කෙලින්ම quoted එකට දිය නොහැක, එය key එකක් පමණි.
                 await conn.sendMessage(from, { 
                     text: report, 
                     mentions: [oldMsg.sender] 
-                }, { quoted: update });
+                });
                 
                 global.msgStore.delete(msgId);
             }
-        } catch (e) { console.log("Edit Process Error:", e); }
+        } catch (e) { 
+            // console.log("Edit Process Error:", e); 
+        }
     }
 };
