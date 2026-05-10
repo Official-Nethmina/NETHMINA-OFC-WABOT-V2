@@ -124,7 +124,7 @@ async function connectToWA() {
     } catch (e) {}
   });
 
-  // --- [DELETE & EDIT DETECTION IN MESSAGES.UPDATE] ---
+ // --- [DELETE & EDIT DETECTION IN MESSAGES.UPDATE] ---
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
         // 1. [DELETE DETECTION]
@@ -137,20 +137,21 @@ async function connectToWA() {
         }
         
         // 2. [EDIT DETECTION]
-        // Baileys වල Edit messages ගොඩක් වෙලාවට එන්නේ messages.update එකටයි
         if (update.update && update.update.messageContextInfo) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
                     try { 
-                        // අපි මෙතනදී මුළු update object එකම යවනවා plugin එකට
-                        await plugin.onEdit(nethmina, update); 
-                    } catch (e) {}
+                        await plugin.onEdit(nethmina, {
+                            key: update.key,
+                            message: update.update.message
+                        }); 
+                    } catch (e) { console.log(e); }
                 }
             }
         }
     }
-  });
-
+  }); // <--- මම මෙතන තමයි වරහන වැහුවේ.
+  
   // --- [MESSAGE HANDLING & STORE] ---
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
@@ -258,4 +259,3 @@ async function connectToWA() {
 }
 
 ensureSessionFile();
-//==========================================
