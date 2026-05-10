@@ -30,13 +30,16 @@ module.exports = {
     },
 
     // මැසේජ් එක Edit වුණු බව හඳුනාගත් විට ක්‍රියාත්මක වීම
-    onEdit: async (conn, mek) => {
+    onEdit: async (conn, update) => {
         try {
-            const protocolMsg = mek.message.protocolMessage;
+            // Index.js එකෙන් එවන update object එකෙන් දත්ත වෙන් කර ගැනීම
+            const mek = update.update;
+            const protocolMsg = mek.message?.protocolMessage;
+            
             if (!protocolMsg || protocolMsg.type !== 14) return;
 
             const msgId = protocolMsg.key.id;
-            const from = mek.key.remoteJid;
+            const from = update.key?.remoteJid || protocolMsg.key.remoteJid;
             const editedMsg = protocolMsg.editedMessage;
             if (!editedMsg) return;
 
@@ -63,7 +66,7 @@ module.exports = {
                 await conn.sendMessage(from, { 
                     text: report, 
                     mentions: [oldMsg.sender] 
-                }, { quoted: mek });
+                }, { quoted: update });
                 
                 global.msgStore.delete(msgId);
             }
