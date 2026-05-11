@@ -6,7 +6,12 @@ const os = require('os');
 const ffmpegPath = require('ffmpeg-static');
 
 const processedMessages = new Set();
-const offChatsFile = path.join(__dirname, '../lib/off_voices.json');
+const libDir = path.join(__dirname, '../lib');
+const offChatsFile = path.join(libDir, 'off_voices.json');
+
+// lib ෆෝල්ඩර් එක සහ json ෆයිල් එක නැත්නම් හදනවා
+if (!fs.existsSync(libDir)) fs.mkdirSync(libDir, { recursive: true });
+if (!fs.existsSync(offChatsFile)) fs.writeFileSync(offChatsFile, JSON.stringify([]));
 
 const voiceData = {
     "hi,hii,halo": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
@@ -46,19 +51,44 @@ const convertToOpus = (input, output) => {
 };
 
 module.exports = {
+    // මේක තමයි Command එක (pattern එකට .offvoice ගැළපෙන්න ඕනේ)
+    pattern: "offvoice",
+    alias: ["voiceoff"],
+    function: async (conn, mek, m, { from, q, isOwner, reply }) => {
+        if (!isOwner) return reply("❌ ඔබට මෙය කළ නොහැක.");
+        let target = q ? q.trim() : from;
+        let offChats = JSON.parse(fs.readFileSync(offChatsFile));
+        if (offChats.includes(target)) return reply("⚠️ මෙම චැට් එක දැනටමත් Off කර ඇත.");
+        offChats.push(target);
+        fs.writeFileSync(offChatsFile, JSON.stringify(offChats));
+        return reply(`✅ Auto Voice Off කළා: ${target}`);
+    },
+
+    // මේක onvoice command එක
+    onvoice: {
+        pattern: "onvoice",
+        function: async (conn, mek, m, { from, q, isOwner, reply }) => {
+            if (!isOwner) return reply("❌ ඔබට මෙය කළ නොහැක.");
+            let target = q ? q.trim() : from;
+            let offChats = JSON.parse(fs.readFileSync(offChatsFile));
+            if (!offChats.includes(target)) return reply("⚠️ මෙම චැට් එක දැනටමත් On කර ඇත.");
+            offChats = offChats.filter(id => id !== target);
+            fs.writeFileSync(offChatsFile, JSON.stringify(offChats));
+            return reply(`✅ Auto Voice On කළා: ${target}`);
+        }
+    },
+
+    // සාමාන්‍ය Voice logic එක
     onMessage: async (conn, mek) => {
         try {
             if (!mek.message) return;
-
             const from = mek.key.remoteJid;
+
+            // Off කරලාද බලනවා
+            const offChats = JSON.parse(fs.readFileSync(offChatsFile));
+            if (offChats.includes(from)) return;
+
             const isMe = mek.key.fromMe;
-            
-            // --- [OFF CHECK LOGIC] ---
-            if (fs.existsSync(offChatsFile)) {
-                const offChats = JSON.parse(fs.readFileSync(offChatsFile));
-                if (offChats.includes(from)) return;
-            }
-            // -------------------------
             const type = Object.keys(mek.message)[0];
             const body = (type === 'conversation') ? mek.message.conversation : 
                          (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : 
@@ -68,49 +98,31 @@ module.exports = {
             if (!body) return;
             let lowerBody = body.toLowerCase().trim();
             const msgId = mek.key.id;
-
             if (processedMessages.has(msgId)) return;
 
-            // --- [අලුතින් එකතු කළ කොටස: Command Logic] ---
             let isForceSend = false;
             if (isMe && lowerBody.startsWith('#')) {
                 isForceSend = true;
-                lowerBody = lowerBody.slice(1).trim(); // # ඉවත් කර ඉතිරි වචනය ගමු
+                lowerBody = lowerBody.slice(1).trim(); 
             }
 
             let audioUrl = null;
-
             for (const key in voiceData) {
                 const keywords = key.split(',');
                 const isMatch = keywords.some(word => {
                     const trimmedWord = word.trim().toLowerCase();
-                    
-                    // Force send (Owner # ගැහුවොත්) ලොජික් එක bypass කරනවා
                     if (isForceSend && trimmedWord === lowerBody) return true;
-
-                    // සාමාන්‍ය Owner check: Owner යවනවා නම් අදාළ වචන ලැයිස්තුවේ තියෙන්නම ඕනේ
                     if (isMe && !isForceSend && !ownerExceptionWords.includes(trimmedWord)) return false;
-
-                    // Exact Match Only check
-                    if (exactMatchOnlyWords.includes(trimmedWord)) {
-                        return lowerBody === trimmedWord;
-                    }
-
-                    // Word match
+                    if (exactMatchOnlyWords.includes(trimmedWord)) return lowerBody === trimmedWord;
                     const regex = new RegExp(`\\b${trimmedWord}\\b`, 'g');
                     return regex.test(lowerBody);
                 });
-
-                if (isMatch) {
-                    audioUrl = voiceData[key];
-                    break;
-                }
+                if (isMatch) { audioUrl = voiceData[key]; break; }
             }
 
             if (audioUrl) {
                 processedMessages.add(msgId);
                 await conn.sendPresenceUpdate('recording', from);
-                
                 const tempDir = os.tmpdir();
                 const inputPath = path.join(tempDir, `voice_${Date.now()}.mp3`);
                 const outputPath = path.join(tempDir, `voice_${Date.now()}.opus`);
@@ -119,13 +131,7 @@ module.exports = {
                     const response = await axios({ method: 'get', url: audioUrl, responseType: 'arraybuffer' });
                     fs.writeFileSync(inputPath, response.data);
                     await convertToOpus(inputPath, outputPath);
-
-                    await conn.sendMessage(from, {
-                        audio: fs.readFileSync(outputPath),
-                        mimetype: 'audio/ogg; codecs=opus',
-                        ptt: true
-                    }, { quoted: mek });
-
+                    await conn.sendMessage(from, { audio: fs.readFileSync(outputPath), mimetype: 'audio/ogg; codecs=opus', ptt: true }, { quoted: mek });
                 } catch (vError) {
                     await conn.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg", ptt: true }, { quoted: mek });
                 } finally {
@@ -134,8 +140,6 @@ module.exports = {
                     setTimeout(() => processedMessages.delete(msgId), 120000);
                 }
             }
-        } catch (e) {
-            console.log("AutoVoice Error:", e);
-        }
+        } catch (e) { console.log("AutoVoice Error:", e); }
     }
 };
