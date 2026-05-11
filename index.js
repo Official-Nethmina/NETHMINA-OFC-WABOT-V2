@@ -125,7 +125,7 @@ async function connectToWA() {
   });
 
  // --- [DELETE & EDIT DETECTION IN MESSAGES.UPDATE] ---
-  nethmina.ev.on("messages.update", async (updates) => {
+nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
         // 1. [DELETE DETECTION]
         if (update.update && update.update.message === null) {
@@ -135,22 +135,22 @@ async function connectToWA() {
                 }
             }
         }
-        
+
         // 2. [EDIT DETECTION]
-        if (update.update && update.update.messageContextInfo) {
+        if (update.update?.message?.protocolMessage?.type === 14) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
-                    try { 
+                    try {
                         await plugin.onEdit(nethmina, {
                             key: update.key,
-                            message: update.update.message
-                        }); 
-                    } catch (e) { console.log(e); }
+                            message: update.update.message 
+                        });
+                    } catch (e) { console.log("onEdit error:", e); }
                 }
             }
         }
     }
-  }); // <--- මම මෙතන තමයි වරහන වැහුවේ.
+});
   
   // --- [MESSAGE HANDLING & STORE] ---
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
@@ -168,7 +168,7 @@ async function connectToWA() {
         const type = getContentType(mek.message);
         
         // Edit එකක් messages.upsert එකට ආවොත් ඒක skip කරන්න (දැනටමත් update එකේ handle වෙනවා)
-        if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) continue;
+        //if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) continue;
 
         const isStatus = from === "status@broadcast";
         const botNumber = jidNormalizedUser(nethmina.user.id);
