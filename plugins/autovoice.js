@@ -6,6 +6,7 @@ const os = require('os');
 const ffmpegPath = require('ffmpeg-static');
 
 const processedMessages = new Set();
+const offChatsFile = path.join(__dirname, '../lib/off_voices.json');
 
 const voiceData = {
     "hi,hii,halo": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
@@ -51,6 +52,13 @@ module.exports = {
 
             const from = mek.key.remoteJid;
             const isMe = mek.key.fromMe;
+            
+            // --- [OFF CHECK LOGIC] ---
+            if (fs.existsSync(offChatsFile)) {
+                const offChats = JSON.parse(fs.readFileSync(offChatsFile));
+                if (offChats.includes(from)) return;
+            }
+            // -------------------------
             const type = Object.keys(mek.message)[0];
             const body = (type === 'conversation') ? mek.message.conversation : 
                          (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : 
