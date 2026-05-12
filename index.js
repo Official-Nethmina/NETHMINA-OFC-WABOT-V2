@@ -124,8 +124,8 @@ async function connectToWA() {
     } catch (e) {}
   });
 
- // --- [DELETE & EDIT DETECTION IN MESSAGES.UPDATE] ---
-  nethmina.ev.on("messages.update", async (updates) => {
+// --- [DELETE & EDIT DETECTION IN MESSAGES.UPDATE] ---
+ nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
         // 1. [DELETE DETECTION]
         if (update.update && update.update.message === null) {
@@ -137,7 +137,8 @@ async function connectToWA() {
         }
         
         // 2. [EDIT DETECTION]
-        if (update.update && update.update.messageContextInfo) {
+        // මෙතන update.update.message තිබුණොත් විතරක් check කරන විදිහට හැදුවා
+        if (update.update && update.update.message) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
                     try { 
@@ -145,7 +146,7 @@ async function connectToWA() {
                             key: update.key,
                             message: update.update.message
                         }); 
-                    } catch (e) { console.log(e); }
+                    } catch (e) { console.log("Edit Hook Error:", e); }
                 }
             }
         }
