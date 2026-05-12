@@ -3,7 +3,7 @@ const { getContentType } = require("@whiskeysockets/baileys");
 if (!global.msgStore) global.msgStore = new Map();
 
 module.exports = {
-    // Message save karanawa
+    // Message save කරන කොටස
     onMessage: async (conn, mek) => {
         try {
             if (!mek.message || mek.message.protocolMessage) return;
@@ -16,7 +16,7 @@ module.exports = {
             else if (type === "imageMessage") content = mek.message.imageMessage.caption || "[Image]";
             else if (type === "videoMessage") content = mek.message.videoMessage.caption || "[Video]";
             else if (type === "stickerMessage") content = "[Sticker]";
-            else content = [${type}];
+            else content = `[${type}]`;
 
             if (content) {
                 global.msgStore.set(msgId, {
@@ -24,16 +24,20 @@ module.exports = {
                     sender: mek.key.participant || mek.key.remoteJid,
                     time: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour12: true })
                 });
-                setTimeout(() => global.msgStore.delete(msgId), 7200000); // 2 hours
+                // පැය 2කින් store එකෙන් අයින් කරනවා
+                setTimeout(() => global.msgStore.delete(msgId), 7200000); 
             }
-        } catch (e) {}
+        } catch (e) {
+            console.log("Error in antiedit onMessage:", e);
+        }
     },
 
-    // Edit detect karanawa
+    // Edit detect කරන කොටස
     onEdit: async (conn, mek) => {
         try {
+            // Edit එකකදී එන protocolMessage එක ගන්නවා
             const protocolMsg = mek.message?.protocolMessage;
-            if (!protocolMsg || protocolMsg.type!== 14) return;
+            if (!protocolMsg || protocolMsg.type !== 14) return;
 
             const msgId = protocolMsg.key.id;
             const from = mek.key.remoteJid;
@@ -47,20 +51,21 @@ module.exports = {
             else if (type === "imageMessage") newText = editedMsg.imageMessage.caption || "[Image]";
             else if (type === "videoMessage") newText = editedMsg.videoMessage.caption || "[Video]";
 
+            // කලින් save කරපු මැසේජ් එක ගන්නවා
             const oldMsg = global.msgStore.get(msgId);
 
-            if (oldMsg && newText && oldMsg.text!== newText) {
-                let report = ✍️ *MESSAGE EDITED DETECTED*\n\n +
-                             🕒 *Time:* ${oldMsg.time}\n +
-                             👤 *User:* @${oldMsg.sender.split('@')[0]}\n\n +
-                             *📑 𝗢𝗿𝗶𝗴𝗶𝗻𝗮𝗹 𝗠𝗲𝘀𝘀𝗮𝗴𝗲:*\n +
-                             \\\${oldMsg.text}\\\\n\n +
-                             *✒️ 𝗘𝗱𝗶𝘁𝗲𝗱 𝗠𝗲𝘀𝘀𝗮𝗴𝗲:*\n +
-                             \\\${newText}\\\\n\n +
-                             > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ;
+            if (oldMsg && newText && oldMsg.text !== newText) {
+                let report = `✍️ *MESSAGE EDIT DETECTED*\n\n` +
+                             `🕒 *Time:* ${oldMsg.time}\n` +
+                             `👤 *User:* @${oldMsg.sender.split('@')[0]}\n\n` +
+                             `*📑 Original Message:*\n${oldMsg.text}\n\n` +
+                             `*✒️ Edited Message:*\n${newText}\n\n` +
+                             `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
 
                 await conn.sendMessage(from, { text: report, mentions: [oldMsg.sender] });
-                global.msgStore.set(msgId, {...oldMsg, text: newText }); // Update store
+                
+                // Store එක update කරනවා අලුත් එකට
+                global.msgStore.set(msgId, { ...oldMsg, text: newText });
             }
         } catch (e) {
             console.log("Edit detect error:", e);
