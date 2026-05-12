@@ -1,43 +1,59 @@
 const fs = require('fs');
 const path = require('path');
+const { cmd } = require('../command');
+
+// JSON file එක තියෙන තැන
 const offChatsFile = path.join(__dirname, '../lib/off_voices.json');
 
-module.exports = {
+// .offvoice Command එක
+cmd({
     pattern: "offvoice",
-    alias: ["voiceoff"],
-    function: async (conn, mek, m, { from, q, isOwner, reply }) => {
+    alias: ["voff"],
+    desc: "Disable auto voice for this chat",
+    category: "main",
+    filename: __filename
+}, async (conn, mek, m, { from, q, isOwner, reply }) => {
+    try {
         if (!isOwner) return reply("❌ ඔබට මේ සඳහා අවසර නැත.");
-        
-        let target = q ? q.trim() : from; // JID එක දුන්නොත් ඒක, නැත්නම් ඒ වෙලාවේ ඉන්න චැට් එක
+
+        const libDir = path.dirname(offChatsFile);
+        if (!fs.existsSync(libDir)) fs.mkdirSync(libDir, { recursive: true });
         if (!fs.existsSync(offChatsFile)) fs.writeFileSync(offChatsFile, JSON.stringify([]));
-        
+
+        let target = q ? q.trim() : from;
         let offChats = JSON.parse(fs.readFileSync(offChatsFile));
-        
+
         if (offChats.includes(target)) return reply("⚠️ මේ චැට් එකේ දැනටමත් Auto Voice Off කරලා තියෙන්නේ.");
-        
+
         offChats.push(target);
         fs.writeFileSync(offChatsFile, JSON.stringify(offChats));
-        
-        reply(`✅ Auto Voice Off කළා: ${target}`);
+        return reply(`✅ Auto Voice Off කළා:\n${target}`);
+    } catch (e) {
+        reply("❌ Error: " + e.message);
     }
-};
+});
 
-// ආපහු On කරන්න ඕන වුණොත් මේකත් පාවිච්චි කරන්න පුළුවන්
-module.exports.onvoice = {
+// .onvoice Command එක
+cmd({
     pattern: "onvoice",
-    function: async (conn, mek, m, { from, q, isOwner, reply }) => {
+    alias: ["von"],
+    desc: "Enable auto voice for this chat",
+    category: "main",
+    filename: __filename
+}, async (conn, mek, m, { from, q, isOwner, reply }) => {
+    try {
         if (!isOwner) return reply("❌ ඔබට මේ සඳහා අවසර නැත.");
-        
-        let target = q ? q.trim() : from;
         if (!fs.existsSync(offChatsFile)) return reply("⚠️ කිසිම චැට් එකක් Off කරලා නැහැ.");
-        
+
+        let target = q ? q.trim() : from;
         let offChats = JSON.parse(fs.readFileSync(offChatsFile));
-        
+
         if (!offChats.includes(target)) return reply("⚠️ මේ චැට් එකේ Auto Voice දැනටමත් On කරලා තියෙන්නේ.");
-        
+
         offChats = offChats.filter(id => id !== target);
         fs.writeFileSync(offChatsFile, JSON.stringify(offChats));
-        
-        reply(`✅ Auto Voice On කළා: ${target}`);
+        return reply(`✅ Auto Voice On කළා:\n${target}`);
+    } catch (e) {
+        reply("❌ Error: " + e.message);
     }
-};
+});
