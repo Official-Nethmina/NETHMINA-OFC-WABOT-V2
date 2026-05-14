@@ -30,9 +30,9 @@ const prefix = ".";
 const ownerNumber = ["94760860835"];
 const credsPath = path.join(__dirname, "/auth_info_baileys/creds.json");
 global.pluginHooks = [];
+if (!global.workType) global.workType = "all"; // Default WorkType
 
 // --- [PLUGIN LOADER] ---
-// Plugins load කිරීම connection එකට කලින් සිදුවිය යුතුයි
 const loadPlugins = () => {
     if (fs.existsSync("./plugins/")) {
         fs.readdirSync("./plugins/").forEach((file) => {
@@ -52,12 +52,9 @@ loadPlugins();
 // ====================== SESSION HANDLER ======================
 async function ensureSessionFile() {
   const authFolder = path.join(__dirname, "/auth_info_baileys/");
-  
   if (fs.existsSync(authFolder)) {
-    console.log("🗑️ Cleaning up old session folder...");
     fs.rmSync(authFolder, { recursive: true, force: true });
   }
-
   fs.mkdirSync(authFolder, { recursive: true });
 
   if (!config.SESSION_ID) {
@@ -65,17 +62,10 @@ async function ensureSessionFile() {
     process.exit(1);
   }
 
-  console.log("🔄 Downloading session from MEGA…");
   const file = File.fromURL(`https://mega.nz/file/${config.SESSION_ID}`);
-  
   file.download((err, data) => {
-    if (err) {
-      console.error("❌ MEGA Download Error:", err);
-      process.exit(1);
-    }
-    
+    if (err) { process.exit(1); }
     fs.writeFileSync(credsPath, data);
-    console.log("✅ Session downloaded successfully!");
     connectToWA();
   });
 }
@@ -95,20 +85,16 @@ async function connectToWA() {
     markOnlineOnConnect: true
   });
 
-  // --- [CONNECTION EVENTS] ---
   nethmina.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === "close") {
       if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) connectToWA();
     } else if (connection === "open") {
       console.log("✅ BOT CONNECTED SUCCESSFULLY");
-
       try {
-        const connMsg = `✅ *NETHMINA-OFC BOT CONNECTED*\n\nPrefix: [ ${prefix} ]\nOwner: ${ownerNumber[0]}\n\n_බොට් සාර්ථකව ක්‍රියාත්මක වේ...🚀_`;
+        const connMsg = `✅ *NETHMINA-OFC BOT CONNECTED*\n\nWork Mode: ${global.workType.toUpperCase()}\nPrefix: [ ${prefix} ]\nOwner: ${ownerNumber[0]}`;
         await nethmina.sendMessage(ownerNumber[0] + "@s.whatsapp.net", { text: connMsg });
-      } catch (e) {
-        console.log("❌ Error sending connection message:", e);
-      }
+      } catch (e) {}
     }
   });
 
@@ -118,71 +104,68 @@ async function connectToWA() {
   nethmina.ev.on('call', async (call) => {
     try {
         const antiCall = require('./plugins/anticall.js');
-        if (antiCall && antiCall.handleCall) {
-            await antiCall.handleCall(nethmina, call);
-        }
+        if (antiCall && antiCall.handleCall) await antiCall.handleCall(nethmina, call);
     } catch (e) {}
   });
 
-// --- [DELETE & EDIT DETECTION IN MESSAGES.UPDATE] ---
-nethmina.ev.on("messages.update", async (updates) => {
+  // --- [DELETE & EDIT DETECTION] ---
+  nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
-        // 1. [DELETE DETECTION]
+        const from = update.key.remoteJid;
+        const isGroup = from.endsWith('@g.us');
+        
+        // WorkType අනුව Edit/Delete Report එක යවන තැන තීරණය කිරීම
+        let reportTarget = from;
+        if (global.workType !== "all" && global.workType !== "group" && isGroup) {
+            reportTarget = ownerNumber[0] + "@s.whatsapp.net";
+        }
+
         if (update.update && update.update.message === null) {
             for (const plugin of global.pluginHooks) {
-                if (plugin.onDelete) {
-                    try { await plugin.onDelete(nethmina, update); } catch (e) {}
-                }
+                if (plugin.onDelete) try { await plugin.onDelete(nethmina, update, reportTarget); } catch (e) {}
             }
         }
-        
-        // 2. [EDIT DETECTION]
-        // Edit එකක් එනකොට Baileys update.update ඇතුළේ message එක එවනවා
         if (update.update && update.update.message) {
             for (const plugin of global.pluginHooks) {
-                if (plugin.onEdit) {
-                    try { 
-                        // මෙතන මුළු update object එකම pass කරනවා safe වෙන්න
-                        await plugin.onEdit(nethmina, {
-                            key: update.key,
-                            message: update.update.message
-                        }); 
-                    } catch (e) {}
-                }
+                if (plugin.onEdit) try { await plugin.onEdit(nethmina, { key: update.key, message: update.update.message }, reportTarget); } catch (e) {}
             }
         }
     }
-});
+  });
   
-  // --- [MESSAGE HANDLING & STORE] ---
+  // --- [MESSAGE HANDLING] ---
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
         if (!mek.message) continue;
 
-        // Anti-Delete/Edit සඳහා මැසේජ් එක Store කිරීම
-for (const plugin of global.pluginHooks) {
-    if (plugin.onMessage) {
-        try { await plugin.onMessage(nethmina, mek); } catch (e) {}
-    }
-}
+        // Message එක Store කිරීම (Anti-Delete සඳහා)
+        for (const plugin of global.pluginHooks) {
+            if (plugin.onMessage) try { await plugin.onMessage(nethmina, mek); } catch (e) {}
+        }
+
         const from = mek.key.remoteJid;
         const type = getContentType(mek.message);
-        
-        // Edit එකක් messages.upsert එකට ආවොත් ඒක skip කරන්න (දැනටමත් update එකේ handle වෙනවා)
-        // if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) continue;
-
         const isStatus = from === "status@broadcast";
         const botNumber = jidNormalizedUser(nethmina.user.id);
         const sender = isStatus ? (mek.key.participant || from) : (mek.key.fromMe ? botNumber : (mek.key.participant || from));
         const senderNumber = sender.split("@")[0];
-        const senderName = mek.pushName || "Unknown";
-
+        
         const body = type === "conversation" ? mek.message.conversation : 
                      type === "extendedTextMessage" ? mek.message.extendedTextMessage.text : 
                      type === "imageMessage" ? mek.message.imageMessage.caption : 
                      type === "videoMessage" ? mek.message.videoMessage.caption : "";
 
-        // --- [STATUS HANDLING] ---
+        const isOwner = ownerNumber.includes(senderNumber) || mek.key.fromMe;
+        const isGroup = from.endsWith('@g.us');
+        const isInbox = from.endsWith('@s.whatsapp.net') && !isOwner && !isStatus;
+
+        // --- [WORK TYPE LOGIC] ---
+        let canWork = false;
+        if (global.workType === "all") canWork = true;
+        else if (global.workType === "private" && isOwner) canWork = true;
+        else if (global.workType === "inbox" && (isInbox || isOwner)) canWork = true;
+        else if (global.workType === "group" && (isGroup || isOwner)) canWork = true;
+
         if (isStatus) {
             if (mek.message?.reactionMessage) continue;
 
@@ -231,33 +214,38 @@ for (const plugin of global.pluginHooks) {
                     } catch (err) {}
                 }
             }
-            continue;
+            continue; 
         }
 
-        // --- [COMMANDS & OWNER REACT] ---
+        // --- [AUTO VOICE & OTHER FEATURES] ---
+        if (canWork) {
+            // Autovoice ප්ලගින් එකක් නම් මෙතනින් call කරන්න
+            for (const plugin of global.pluginHooks) {
+                if (plugin.onChat) try { await plugin.onChat(nethmina, mek, body); } catch (e) {}
+            }
+        }
+
+        // --- [COMMAND HANDLING] ---
         const isCmd = body.startsWith(prefix);
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : "";
         const args = body.trim().split(/ +/).slice(1);
         const q = args.join(" ");
-        const isOwner = ownerNumber.includes(senderNumber) || mek.key.fromMe;
         const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
-        if (isOwner && !isCmd && config.OWNER_REACT === "true") {
-          await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(() => {});
-        }
-
         if (isCmd) {
-          const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
-          if (cmd) {
-            if (isOwner) await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(() => {});
-            try {
-              await cmd.function(nethmina, mek, sms(nethmina, mek), { from, args, q, sender, reply, isOwner, isGroup: from.endsWith('@g.us'), botNumber });
-            } catch (e) { console.error(e); }
-          }
+            // worktype command එකට විතරක් canWork බලන්නේ නැහැ (එතකොටනේ mode එක මාරු කරගන්න වෙන්නේ)
+            if (!canWork && commandName !== "worktype") return;
+
+            const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
+            if (cmd) {
+                if (isOwner && config.OWNER_REACT === "true") await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(() => {});
+                try {
+                    await cmd.function(nethmina, mek, sms(nethmina, mek), { from, args, q, sender, reply, isOwner, isGroup, botNumber });
+                } catch (e) { console.error(e); }
+            }
         }
     }
   });
 }
 
 ensureSessionFile();
-//==========================================
