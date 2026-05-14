@@ -160,12 +160,11 @@ nethmina.ev.on("messages.update", async (updates) => {
         if (!mek.message) continue;
 
         // Anti-Delete/Edit සඳහා මැසේජ් එක Store කිරීම
-        for (const plugin of global.pluginHooks) {
-            if (plugin.onMessage) {
-                try { await plugin.onMessage(nethmina, mek); } catch (e) {}
-            }
-        }
-
+for (const plugin of global.pluginHooks) {
+    if (plugin.onMessage) {
+        try { await plugin.onMessage(nethmina, mek); } catch (e) {}
+    }
+}
         const from = mek.key.remoteJid;
         const type = getContentType(mek.message);
         
