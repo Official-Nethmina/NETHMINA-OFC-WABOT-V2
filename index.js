@@ -170,7 +170,7 @@ nethmina.ev.on("messages.update", async (updates) => {
         const type = getContentType(mek.message);
         
         // Edit එකක් messages.upsert එකට ආවොත් ඒක skip කරන්න (දැනටමත් update එකේ handle වෙනවා)
-        if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) continue;
+        // if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) continue;
 
         const isStatus = from === "status@broadcast";
         const botNumber = jidNormalizedUser(nethmina.user.id);
