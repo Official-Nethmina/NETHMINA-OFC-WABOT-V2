@@ -35,11 +35,13 @@ module.exports = {
     // Edit detect කරන කොටස
     onEdit: async (conn, mek) => {
         try {
-            // Edit එකකදී එන protocolMessage එක ගන්නවා
-            const protocolMsg = mek.message?.protocolMessage;
+            // මැසේජ් එකේ protocolMessage එක තියෙන්නේ කොහේද කියලා හරියටම බලනවා
+            const protocolMsg = mek.message?.protocolMessage || mek.message; 
             if (!protocolMsg || protocolMsg.type !== 14) return;
 
-            const msgId = protocolMsg.key.id;
+            const msgId = protocolMsg.key?.id;
+            if (!msgId) return;
+
             const from = mek.key.remoteJid;
             const editedMsg = protocolMsg.editedMessage;
             if (!editedMsg) return;
@@ -68,7 +70,7 @@ module.exports = {
                 global.msgStore.set(msgId, { ...oldMsg, text: newText });
             }
         } catch (e) {
-            console.log("Edit detect error:", e);
+            // console.log("Edit detect error:", e);
         }
     }
 };
