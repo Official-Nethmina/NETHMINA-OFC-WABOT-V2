@@ -6,10 +6,18 @@ module.exports = {
     // Message save කරන කොටස
     onMessage: async (conn, mek) => {
         try {
-            if (!mek.message || mek.message.protocolMessage) return;
-            const msgId = mek.key.id;
+            if (!mek.message) return;
+            
+            // Edit එකක් ආවොත් ඒක onEdit එකට යවනවා
             const type = getContentType(mek.message);
+            if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) {
+                if (module.exports.onEdit) {
+                    return await module.exports.onEdit(conn, mek);
+                }
+            }
 
+            // සාමාන්‍ය මැසේජ් Save කරගැනීම
+            const msgId = mek.key.id;
             let content = "";
             if (type === "conversation") content = mek.message.conversation;
             else if (type === "extendedTextMessage") content = mek.message.extendedTextMessage.text;
@@ -24,8 +32,7 @@ module.exports = {
                     sender: mek.key.participant || mek.key.remoteJid,
                     time: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour12: true })
                 });
-                // පැය 2කින් store එකෙන් අයින් කරනවා
-                setTimeout(() => global.msgStore.delete(msgId), 7200000); 
+                setTimeout(() => global.msgStore.delete(msgId), 7200000); // පැය 2ක්
             }
         } catch (e) {
             console.log("Error in antiedit onMessage:", e);
@@ -35,13 +42,8 @@ module.exports = {
     // Edit detect කරන කොටස
     onEdit: async (conn, mek) => {
         try {
-            // මැසේජ් එකේ protocolMessage එක තියෙන්නේ කොහේද කියලා හරියටම බලනවා
-            const protocolMsg = mek.message?.protocolMessage || mek.message; 
-            if (!protocolMsg || protocolMsg.type !== 14) return;
-
-            const msgId = protocolMsg.key?.id;
-            if (!msgId) return;
-
+            const protocolMsg = mek.message.protocolMessage;
+            const msgId = protocolMsg.key.id;
             const from = mek.key.remoteJid;
             const editedMsg = protocolMsg.editedMessage;
             if (!editedMsg) return;
@@ -53,7 +55,6 @@ module.exports = {
             else if (type === "imageMessage") newText = editedMsg.imageMessage.caption || "[Image]";
             else if (type === "videoMessage") newText = editedMsg.videoMessage.caption || "[Video]";
 
-            // කලින් save කරපු මැසේජ් එක ගන්නවා
             const oldMsg = global.msgStore.get(msgId);
 
             if (oldMsg && newText && oldMsg.text !== newText) {
@@ -65,8 +66,6 @@ module.exports = {
                              `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
 
                 await conn.sendMessage(from, { text: report, mentions: [oldMsg.sender] });
-                
-                // Store එක update කරනවා අලුත් එකට
                 global.msgStore.set(msgId, { ...oldMsg, text: newText });
             }
         } catch (e) {
