@@ -19,17 +19,20 @@ cmd({
             return reply("❌ *Command Restricted* - Only my creator can use this.");
         }
 
-        // 3. JID පිරිසිදු කිරීම (අර :10 වගේ කෑලි අයින් කිරීම)
+        // 3. JID පිරිසිදු කිරීම
         const cleanSender = sender.split(":")[0] + "@s.whatsapp.net";
-        const currentChatJid = from.split(":")[0]; // සමහර විට Group ID වලත් මෙහෙම වෙන්න පුළුවන්
+        const currentChatJid = from.split(":")[0] + (from.endsWith('@g.us') ? "@g.us" : "@s.whatsapp.net");
 
         if (from.endsWith('@g.us')) {
-            // Group එකක් නම්
-            return reply(`👥 *𝐆𝐑𝐎𝐔𝐏 𝐉𝐈𝐃:*\n\n\`\`\`${currentChatJid}\`\`\``);
-        } else {
-            // Personal Chat එකක් නම්
-            return reply(`👤 *𝐔𝐒𝐄𝐑 𝐉𝐈𝐃:*\n\n\`\`\`${cleanSender}\`\`\``);
-        }
+            // --- Group JID ---
+            const sentMsg = await conn.sendMessage(from, { text: "👥 *𝐆𝐑𝐎𝐔𝐏 𝐉𝐈𝐃*" }, { quoted: mek });
+            await conn.sendMessage(from, { text: currentChatJid }, { quoted: sentMsg });
+            } else {
+            
+            // --- User JID ---
+            const sentMsg = await conn.sendMessage(from, { text: "👤 *𝐔𝐒𝐄𝐑 𝐉𝐈𝐃*" }, { quoted: mek });
+            await conn.sendMessage(from, { text: cleanSender }, { quoted: sentMsg });
+            }
 
     } catch (e) {
         console.error("JID Error:", e);
