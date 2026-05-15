@@ -1,7 +1,7 @@
 const { cmd } = require("../command");
 
-// Default settings
-if (!global.workType) global.workType = "all"; 
+const config = require("../config");
+global.workType = global.workType || config.WORK_TYPE || "all";
 
 cmd({
     pattern: "worktype",
