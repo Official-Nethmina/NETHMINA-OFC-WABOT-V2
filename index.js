@@ -30,7 +30,8 @@ const prefix = ".";
 const ownerNumber = ["94760860835"];
 const credsPath = path.join(__dirname, "/auth_info_baileys/creds.json");
 global.pluginHooks = [];
-if (!global.workType) global.workType = "all"; // Default WorkType
+// config.WORK_TYPE එකේ අගය ගනියි, නැත්නම් පමණක් "all" ලෙස ගනියි
+global.workType = global.workType || config.WORK_TYPE || "all";
 
 // --- [PLUGIN LOADER] ---
 const loadPlugins = () => {
