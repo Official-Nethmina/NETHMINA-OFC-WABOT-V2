@@ -50,14 +50,21 @@ module.exports = {
         try {
             if (!mek.message) return;
             const from = mek.key.remoteJid;
+            const isGroup = from.endsWith('@g.us');
+            const isMe = mek.key.fromMe;
+            
+            // --- [MODE CHECK LOGIC] ---
+            const config = require("../config");
+            const currentWorkType = (global.workType || config.WORK_TYPE || "all").toLowerCase();
+
+            if (currentWorkType === "inbox" && isGroup && !isMe) return; // Inbox mode නම් ගෲප් වලට යැවීම නවත්වයි
+            if (currentWorkType === "private" && !isMe) return; // Private mode නම් ඔනර්ට විතරයි
 
             // --- [අලුතින් දැමූ OFF CHECK LOGIC] ---
             if (fs.existsSync(offChatsFile)) {
                 const offChats = JSON.parse(fs.readFileSync(offChatsFile));
-                if (offChats.includes(from)) return; // මේ චැට් එක ලිස්ට් එකේ ඇත්නම් මෙතනින් නතර වේ.
+                if (offChats.includes(from)) return;
             }
-
-            const isMe = mek.key.fromMe;
             const type = Object.keys(mek.message)[0];
             const body = (type === 'conversation') ? mek.message.conversation : 
                          (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : 
