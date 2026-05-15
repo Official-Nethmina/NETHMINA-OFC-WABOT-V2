@@ -138,11 +138,11 @@ async function connectToWA() {
     for (const mek of messages) {
         if (!mek.message) continue;
 
-       // Message එක Store කිරීම
+        // Message එක Store කිරීම
         for (const plugin of global.pluginHooks) {
             if (plugin.onMessage) try { await plugin.onMessage(nethmina, mek); } catch (e) {}
         }
-      
+
         const from = mek.key.remoteJid;
         const type = getContentType(mek.message);
         const isStatus = from === "status@broadcast";
@@ -157,24 +157,26 @@ async function connectToWA() {
 
         const isOwner = ownerNumber.includes(senderNumber) || mek.key.fromMe;
         const isGroup = from.endsWith('@g.us');
-        // මෙතන isInbox එක නිවැරදිව හදමු
-        const isInbox = from.endsWith('@s.whatsapp.net');
+        const isInbox = from.endsWith('@s.whatsapp.net') && !isGroup; // පැහැදිලිවම Inbox (Not Group)
 
         // --- [WORK TYPE LOGIC] ---
-        // Config එකෙන් හෝ global variable එකෙන් අගය ගන්නවා
-        const currentWorkType = (config.WORK_TYPE || global.workType || "all").toLowerCase();
+        // ප්‍රමුඛතාවය දෙන්නේ global.workType එකට, මොකද කමාන්ඩ් එකෙන් මාරු කරන්නේ ඒක නිසා
+        const currentWorkType = (global.workType || config.WORK_TYPE || "all").toLowerCase();
         
         let canWork = false;
         if (currentWorkType === "all") {
             canWork = true;
         } else if (currentWorkType === "private") {
-            if (isOwner) canWork = true;
+            // ප්‍රයිවට් මෝඩ් එකේදී ඔනර්ට විතරයි
+            canWork = isOwner;
         } else if (currentWorkType === "inbox") {
-            // Inbox වලදී ඕනෑම කෙනෙක්ට, Group වලදී Owner ට විතරයි
-            if ((isInbox && !isGroup) || isOwner) canWork = true;
+            // ඉන්බොක්ස් මෝඩ් එකේදී ඉන්බොක්ස් එකේ හැමෝටම වැඩ කරයි, ගෲප් වලදී ඔනර්ට විතරයි
+            if (isInbox || isOwner) canWork = true;
+            if (isGroup && !isOwner) canWork = false; // ආරක්ෂාවට: ගෲප් එකක් නම් ඔනර් නොවේ නම් වැඩ කරන්නේම නැත
         } else if (currentWorkType === "group") {
-            // Group වලදී ඕනෑම කෙනෙක්ට, Inbox වලදී Owner ට විතරයි
+            // ගෲප් මෝඩ් එකේදී ගෲප් වල හැමෝටම වැඩ කරයි, ඉන්බොක්ස් වලදී ඔනර්ට විතරයි
             if (isGroup || isOwner) canWork = true;
+            if (isInbox && !isOwner) canWork = false;
         }
       
         if (isStatus) {
@@ -237,7 +239,7 @@ async function connectToWA() {
         }
 
         // --- [AUTO VOICE & OTHER FEATURES] ---
-        // දැන් Inbox mode එකේදී isGroup && !isOwner නම් canWork false නිසා සින්දු යන්නේ නැහැ
+        // canWork true නම් පමණක් Autovoice වැඩ කරයි
         if (canWork) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onChat) try { await plugin.onChat(nethmina, mek, body); } catch (e) {}
@@ -252,9 +254,12 @@ async function connectToWA() {
         const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
         if (isCmd) {
-            // වැදගත්: Mode එක මොකක් වුණත් වැඩ කරන කමාන්ඩ්ස් (Owner ට විතරයි)
-            const basicCmds = ["worktype", "mode", "setting"];
-            if (!canWork && !basicCmds.includes(commandName)) return;
+            // මේ කමාන්ඩ් එක ගහලා ඕනෑම වෙලාවක මෝඩ් එක මාරු කරන්න ඔනර්ට පුළුවන්
+            if (commandName === "worktype" || commandName === "mode") {
+                // කමාන්ඩ් එක ලොජික් එකට පස්සේ රන් වෙන්න ඉඩ දෙමු
+            } else if (!canWork) {
+                return; // වැඩ කරන්න අවසර නැත්නම් මෙතනින් නවතියි
+            }
 
             const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
             if (cmd) {
