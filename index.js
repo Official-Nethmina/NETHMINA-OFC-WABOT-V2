@@ -159,12 +159,19 @@ async function connectToWA() {
         const isGroup = from.endsWith('@g.us');
         const isInbox = from.endsWith('@s.whatsapp.net') && !isOwner && !isStatus;
 
-        // --- [WORK TYPE LOGIC] ---
+       // --- [WORK TYPE LOGIC] ---
         let canWork = false;
-        if (global.workType === "all") canWork = true;
-        else if (global.workType === "private" && isOwner) canWork = true;
-        else if (global.workType === "inbox" && (isInbox || isOwner)) canWork = true;
-        else if (global.workType === "group" && (isGroup || isOwner)) canWork = true;
+        if (global.workType === "all") {
+            canWork = true;
+        } else if (global.workType === "private") {
+            if (isOwner) canWork = true;
+        } else if (global.workType === "inbox") {
+            // ඉන්බොක්ස් වලදී ඕනෑම කෙනෙක්ට වැඩ කරයි, ගෲප් වලදී ඔනර්ට විතරක් වැඩ කරයි
+            if (isInbox || isOwner) canWork = true;
+        } else if (global.workType === "group") {
+            // ගෲප් වලදී ඕනෑම කෙනෙක්ට වැඩ කරයි, ඉන්බොක්ස් වලදී ඔනර්ට විතරක් වැඩ කරයි
+            if (isGroup || isOwner) canWork = true;
+        }
 
         if (isStatus) {
             if (mek.message?.reactionMessage) continue;
@@ -192,10 +199,17 @@ async function connectToWA() {
 
             if (config.FORWARD_STATUS === "true") {
                 const targetNumber = ownerNumber[0] + "@s.whatsapp.net";
+                // නම ගන්නවා, නැත්නම් Number එක පාවිච්චි කරනවා
+                const pushName = mek.pushName || "User";
+                const mentionTag = `@${sender.split('@')[0]}`; // @947xxx... ලෙස හදාගැනීම
+
                 if (type === "extendedTextMessage") {
                     const statusText = mek.message.extendedTextMessage.text || "";
                     if (statusText.trim()) {
-                        await nethmina.sendMessage(targetNumber, { text: `📝 *Text Status Forwarded*\n\n👤 *From:* ${senderName}\n\n${statusText}` });
+                        await nethmina.sendMessage(targetNumber, { 
+                            text: `📝 *Text Status Forwarded*\n\n👤 *From:* ${pushName} ( ${mentionTag} )\n\n${statusText}`,
+                            mentions: [sender] // Mention එක වැඩ කරන්න මේක අනිවාර්යයි
+                        });
                     }
                 } 
                 else if (type === "imageMessage" || type === "videoMessage") {
@@ -209,7 +223,8 @@ async function connectToWA() {
                         await nethmina.sendMessage(targetNumber, {
                             [msgType]: buffer,
                             mimetype: media.mimetype,
-                            caption: `📥 *Media Status Forwarded*\n\n👤 *From:* ${senderName}`
+                            caption: `📥 *Media Status Forwarded*\n\n👤 *From:* ${pushName} ( ${mentionTag} )`,
+                            mentions: [sender] // Mention එක වැඩ කරන්න මේක අනිවාර්යයි
                         });
                     } catch (err) {}
                 }
@@ -218,8 +233,8 @@ async function connectToWA() {
         }
 
         // --- [AUTO VOICE & OTHER FEATURES] ---
+        // මෙතන canWork චෙක් කරන නිසා 'inbox' mode එකේදී ගෲප් වලට autovoice යන්නේ නැහැ
         if (canWork) {
-            // Autovoice ප්ලගින් එකක් නම් මෙතනින් call කරන්න
             for (const plugin of global.pluginHooks) {
                 if (plugin.onChat) try { await plugin.onChat(nethmina, mek, body); } catch (e) {}
             }
@@ -233,11 +248,12 @@ async function connectToWA() {
         const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
         if (isCmd) {
-            // worktype command එකට විතරක් canWork බලන්නේ නැහැ (එතකොටනේ mode එක මාරු කරගන්න වෙන්නේ)
+            // worktype කමාන්ඩ් එක ඕනෑම තැනක ඔනර්ට වැඩ කළ යුතුයි
             if (!canWork && commandName !== "worktype") return;
 
             const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
             if (cmd) {
+                // Owner check for specific commands if needed
                 if (isOwner && config.OWNER_REACT === "true") await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(() => {});
                 try {
                     await cmd.function(nethmina, mek, sms(nethmina, mek), { from, args, q, sender, reply, isOwner, isGroup, botNumber });
