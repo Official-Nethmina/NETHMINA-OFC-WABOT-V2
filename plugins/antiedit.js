@@ -33,26 +33,31 @@ module.exports = {
         }
     },
 
-    onEdit: async (conn, { key, message }, reportTarget) => { 
+    onEdit: async (conn, update, reportTarget) => { 
         try {
-            if (!message) return;
-            
-            // protocolMessage එක තියෙන තැන හරියටම හොයාගන්නවා
-            const protocolMsg = message.protocolMessage || (message.message && message.message.protocolMessage);
+            // update එක ඇතුළේ දත්ත තියෙනවද බලනවා
+            if (!update || !update.update) return;
+            const rawMsg = update.update.message;
+            if (!rawMsg) return;
+
+            // ඔයාගේ Baileys Version එකේ protocolMessage එක තියෙන්නේ මෙතනයි
+            const protocolMsg = rawMsg.protocolMessage;
             if (!protocolMsg) return;
             
-            // type 14 = WhatsApp Message Edit
-            if (protocolMsg.type !== 14) return;
+            // type 14 = WhatsApp Message Edit Protocol
+            if (protocolMsg.type !== 14 && protocolMsg.type !== 'EDIT') return;
 
-            const targetId = protocolMsg.key.id;
+            const targetId = protocolMsg.key ? protocolMsg.key.id : null;
+            if (!targetId) return;
+
             const editedMsg = protocolMsg.editedMessage;
             if (!editedMsg) return;
 
-            // පරණ මැසේජ් එක Store එකෙන් ගන්නවා
+            // පරණ මැසේජ් එක අපේ Store එකෙන් ගන්නවා
             const oldMsg = global.msgStore.get(targetId);
             if (!oldMsg) return;
 
-            // එඩිට් කරපු අලුත් Text එක ගන්නවා
+            // එඩිට් කරපු අලුත් Text එක වෙන් කරගන්නවා
             const type = getContentType(editedMsg);
             let newText = "";
             if (type === "conversation") newText = editedMsg.conversation;
@@ -61,9 +66,10 @@ module.exports = {
             else if (type === "videoMessage") newText = editedMsg.videoMessage.caption;
             else if (editedMsg[type]) newText = editedMsg[type].text || editedMsg[type].caption || "";
 
-            // බොට්ගේම පිං මැසේජ් එඩිට් එකක් නම් මෙතනින් ඉග්නෝර් කරනවා
+            // බොට්ගේම පිං මැසේජ් හෝ ස්වයංක්‍රීය මැසේජ් එඩිට් ඉග්නෝර් කරනවා
             if (oldMsg.text.includes("Pinging...") || oldMsg.text.startsWith("🚀")) return;
 
+            // ඇත්තටම අකුරක් හරි වෙනස් වෙලා නම් විතරක් Report කරනවා
             if (newText && oldMsg.text !== newText) {
                 let report = `✍️ *MESSAGE EDIT DETECTED*\n\n` +
                              `🕒 *Time:* ${oldMsg.time}\n` +
@@ -72,11 +78,12 @@ module.exports = {
                              `*✒️ Edited Message:*\n${newText}\n\n` +
                              `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
 
-                await conn.sendMessage(reportTarget || key.remoteJid, { 
+                await conn.sendMessage(reportTarget || update.key.remoteJid, { 
                     text: report, 
                     mentions: [oldMsg.sender] 
                 });
                 
+                // Store එක Update කරනවා
                 global.msgStore.set(targetId, { ...oldMsg, text: newText });
             }
         } catch (e) {
