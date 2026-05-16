@@ -5,6 +5,7 @@ global.workType = global.workType || config.WORK_TYPE || "all";
 
 cmd({
     pattern: "worktype",
+    alias: ["mode", "wtype"],
     desc: "Change bot work type (all/private/inbox/group)",
     category: "owner",
     use: ".worktype all",
