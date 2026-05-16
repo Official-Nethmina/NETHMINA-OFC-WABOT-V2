@@ -3,6 +3,7 @@ const { getContentType } = require("@whiskeysockets/baileys");
 if (!global.msgStore) global.msgStore = new Map();
 
 module.exports = {
+    // මැසේජ් එක ආපු ගමන් පරණ එක මතක තබා ගැනීම
     onMessage: async (conn, mek) => {
         try {
             if (!mek.message) return;
@@ -33,31 +34,33 @@ module.exports = {
         }
     },
 
+    // මැසේජ් එකක් එඩිට් වූ සැනින් ක්‍රියාත්මක වන කොටස
     onEdit: async (conn, update, reportTarget) => { 
         try {
-            // update එක ඇතුළේ දත්ත තියෙනවද බලනවා
             if (!update || !update.update) return;
-            const rawMsg = update.update.message;
-            if (!rawMsg) return;
 
-            // ඔයාගේ Baileys Version එකේ protocolMessage එක තියෙන්නේ මෙතනයි
-            const protocolMsg = rawMsg.protocolMessage;
+            // ඔයාගේ Baileys Version එකේ protocolMessage එක එන්න පුළුවන් ක්‍රම දෙකම චෙක් කරනවා
+            const protocolMsg = update.update.protocolMessage || 
+                                (update.update.message && update.update.message.protocolMessage);
+                                
             if (!protocolMsg) return;
             
-            // type 14 = WhatsApp Message Edit Protocol
-            if (protocolMsg.type !== 14 && protocolMsg.type !== 'EDIT') return;
+            // type 14 හෝ 'EDIT' කියන්නේ WhatsApp වල EDIT protocol එකටයි
+            const isEditType = protocolMsg.type === 14 || String(protocolMsg.type).toUpperCase() === 'EDIT';
+            if (!isEditType) return;
 
+            // එඩිට් කරපු පරණ මැසේජ් එකේ ID එක
             const targetId = protocolMsg.key ? protocolMsg.key.id : null;
             if (!targetId) return;
 
             const editedMsg = protocolMsg.editedMessage;
             if (!editedMsg) return;
 
-            // පරණ මැසේජ් එක අපේ Store එකෙන් ගන්නවා
+            // අපේ ලඟ තියෙන පරණ මැසේජ් එක Store එකෙන් ගන්නවා
             const oldMsg = global.msgStore.get(targetId);
             if (!oldMsg) return;
 
-            // එඩිට් කරපු අලුත් Text එක වෙන් කරගන්නවා
+            // එඩිට් කරපු අලුත් text එක ගන්නවා
             const type = getContentType(editedMsg);
             let newText = "";
             if (type === "conversation") newText = editedMsg.conversation;
@@ -66,10 +69,10 @@ module.exports = {
             else if (type === "videoMessage") newText = editedMsg.videoMessage.caption;
             else if (editedMsg[type]) newText = editedMsg[type].text || editedMsg[type].caption || "";
 
-            // බොට්ගේම පිං මැසේජ් හෝ ස්වයංක්‍රීය මැසේජ් එඩිට් ඉග්නෝර් කරනවා
+            // බොට්ගේම පිං හෝ වෙනත් ස්වයංක්‍රීය මැසේජ් එඩිට් ඉග්නෝර් කරනවා
             if (oldMsg.text.includes("Pinging...") || oldMsg.text.startsWith("🚀")) return;
 
-            // ඇත්තටම අකුරක් හරි වෙනස් වෙලා නම් විතරක් Report කරනවා
+            // ඇත්තටම text එක වෙනස් වෙලා නම් විතරක් Report කරනවා
             if (newText && oldMsg.text !== newText) {
                 let report = `✍️ *MESSAGE EDIT DETECTED*\n\n` +
                              `🕒 *Time:* ${oldMsg.time}\n` +
@@ -83,7 +86,7 @@ module.exports = {
                     mentions: [oldMsg.sender] 
                 });
                 
-                // Store එක Update කරනවා
+                // Store එක Update කරනවා ඊළඟ වතාවේ ආයෙත් එඩිට් කලොත් අල්ලගන්න
                 global.msgStore.set(targetId, { ...oldMsg, text: newText });
             }
         } catch (e) {
