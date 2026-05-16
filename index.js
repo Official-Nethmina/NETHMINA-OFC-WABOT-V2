@@ -118,22 +118,22 @@ async function connectToWA() {
         
         const isGroup = from.endsWith('@g.us');
         
-        // WorkType අනුව Edit/Delete Report එක යවන තැන තීරණය කිරීම
+        // WorkType අනුව Report එක යවන ස්ථානය තීරණය කිරීම
         let reportTarget = from;
         if (global.workType !== "all" && global.workType !== "group" && isGroup) {
             reportTarget = ownerNumber[0] + "@s.whatsapp.net";
         }
 
-        // 1. Delete REPORT LOGIC
+        // 1. Delete Detection ලොජික් එක
         if (update.update && update.update.message === null) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onDelete) try { await plugin.onDelete(nethmina, update, reportTarget); } catch (e) {}
             }
         }
         
-        // 2. Edit REPORT LOGIC (සාමාන්‍ය WhatsApp Edit හඳුනාගැනීම)
-        if (update.update && (update.update.message || update.update.messageStubType)) {
-            const msgToPass = update.update.message || update.update; 
+        // 2. Edit Detection ලොජික් එක (Baileys වල නිවැරදිම ක්‍රමය)
+        if (update.message || (update.update && update.update.message)) {
+            const msgToPass = update.message || update.update.message;
             
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
