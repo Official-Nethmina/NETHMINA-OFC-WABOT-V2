@@ -109,6 +109,7 @@ async function connectToWA() {
   });
 
   // --- [DELETE & EDIT DETECTION] ---
+  // --- [DELETE & EDIT DETECTION] ---
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
         if (!update.key) continue;
@@ -131,12 +132,12 @@ async function connectToWA() {
             }
         }
         
-        // 2. Edit Detection ලොජික් එක (ඔයාගේ Baileys Version එකට ගැලපෙනම ක්‍රමය)
+        // 2. Edit Detection ලොජික් එක
         if (update.update) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
                     try { 
-                        // මෙතනදී මුළු update object එකම antiedit එකට පාස් කරනවා, එතකොට එයාට ලේසියි අල්ලගන්න
+                        // මුළු update object එකම antiedit එකට පාස් කරනවා
                         await plugin.onEdit(nethmina, update, reportTarget); 
                     } catch (e) {}
                 }
