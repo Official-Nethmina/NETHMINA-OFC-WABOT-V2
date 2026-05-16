@@ -3,6 +3,7 @@ const { getContentType } = require("@whiskeysockets/baileys");
 if (!global.msgStore) global.msgStore = new Map();
 
 module.exports = {
+    // මැසේජ් එක ආපු ගමන් පරණ text එක මතක තබා ගැනීම (index.js එකෙන් call වේ)
     onMessage: async (conn, mek) => {
         try {
             if (!mek.message) return;
@@ -10,15 +11,7 @@ module.exports = {
             const type = getContentType(mek.message);
             const msgId = mek.key.id;
 
-            // 1. Edit එකක්ද කියලා බලනවා
-            if (type === 'protocolMessage' && mek.message.protocolMessage.type === 14) {
-                if (module.exports.onEdit) {
-                    // මෙතන mek එකේ key සහ message වෙන වෙනම යවන්න ඕනේ
-                    return await module.exports.onEdit(conn, { key: mek.key, message: mek.message }, null);
-                }
-            }
-
-            // 2. මැසේජ් එකේ තියෙන්නේ මොනවද කියලා Store කරගන්නවා
+            // සැබෑ මැසේජ් එකේ අන්තර්ගතය වෙන් කර ගැනීම
             let content = "";
             if (type === "conversation") content = mek.message.conversation;
             else if (type === "extendedTextMessage") content = mek.message.extendedTextMessage.text;
@@ -33,28 +26,35 @@ module.exports = {
                     time: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour12: true })
                 });
 
+                // පැයක් ගිය පසු memory එකෙන් අයින් කිරීම
                 setTimeout(() => {
                     if (global.msgStore.has(msgId)) global.msgStore.delete(msgId);
                 }, 3600000); 
             }
-
         } catch (e) {
             console.log("Antiedit Storage Error:", e);
         }
     },
 
+    // මැසේජ් එකක් Edit වූ සැනින් ක්‍රියාත්මක වන කොටස (index.js එකෙන් call වේ)
     onEdit: async (conn, { key, message }, reportTarget) => { 
         try {
+            if (!message || !message.protocolMessage) return;
+            
             const protocolMsg = message.protocolMessage;
+            
+            // type 14 කියන්නේ WhatsApp වල EDIT protocol එකටයි
+            if (protocolMsg.type !== 14) return;
+
             const targetId = protocolMsg.key.id;
             const editedMsg = protocolMsg.editedMessage;
             if (!editedMsg) return;
 
-            // පරණ මැසේජ් එක Store එකෙන් ගන්නවා
+            // අපේ ලඟ තියෙන පරණ මැසේජ් එක Store එකෙන් ගන්නවා
             const oldMsg = global.msgStore.get(targetId);
             if (!oldMsg) return;
 
-            // අලුත් text එක ගන්නවා
+            // Edit කරපු අලුත් text එක ගන්නවා
             const type = getContentType(editedMsg);
             let newText = "";
             if (type === "conversation") newText = editedMsg.conversation;
@@ -63,9 +63,10 @@ module.exports = {
             else if (type === "videoMessage") newText = editedMsg.videoMessage.caption;
             else if (editedMsg[type]) newText = editedMsg[type].text || editedMsg[type].caption || "";
 
-            // Ping Edit Ignore කරනවා
+            // බොට්ගේම Ping හෝ වෙනත් ස්වයංක්‍රීය මැසේජ් Edit Ignore කරනවා
             if (oldMsg.text.includes("Pinging...") || oldMsg.text.startsWith("🚀")) return;
 
+            // ඇත්තටම text එක වෙනස් වෙලා නම් විතරක් Report කරනවා
             if (newText && oldMsg.text !== newText) {
                 let report = `✍️ *MESSAGE EDIT DETECTED*\n\n` +
                              `🕒 *Time:* ${oldMsg.time}\n` +
@@ -79,7 +80,7 @@ module.exports = {
                     mentions: [oldMsg.sender] 
                 });
                 
-                // Store එක Update කරනවා අලුත් එකට
+                // ඊළඟ වතාවේ ආයෙත් edit කලොත් අහුවෙන්න Store එක Update කරනවා
                 global.msgStore.set(targetId, { ...oldMsg, text: newText });
             }
         } catch (e) {
