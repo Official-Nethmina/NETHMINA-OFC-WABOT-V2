@@ -131,14 +131,13 @@ async function connectToWA() {
             }
         }
         
-        // 2. Edit Detection ලොජික් එක (Baileys වල නිවැරදිම ක්‍රමය)
-        if (update.message || (update.update && update.update.message)) {
-            const msgToPass = update.message || update.update.message;
-            
+        // 2. Edit Detection ලොජික් එක (ඔයාගේ Baileys Version එකට ගැලපෙනම ක්‍රමය)
+        if (update.update) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
                     try { 
-                        await plugin.onEdit(nethmina, { key: update.key, message: msgToPass }, reportTarget); 
+                        // මෙතනදී මුළු update object එකම antiedit එකට පාස් කරනවා, එතකොට එයාට ලේසියි අල්ලගන්න
+                        await plugin.onEdit(nethmina, update, reportTarget); 
                     } catch (e) {}
                 }
             }
