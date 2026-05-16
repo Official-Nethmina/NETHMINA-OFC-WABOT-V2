@@ -161,23 +161,27 @@ async function connectToWA() {
         const isInbox = from.endsWith('@s.whatsapp.net') && !isGroup; // පැහැදිලිවම Inbox (Not Group)
 
         // --- [WORK TYPE LOGIC] ---
-        // ප්‍රමුඛතාවය දෙන්නේ global.workType එකට, මොකද කමාන්ඩ් එකෙන් මාරු කරන්නේ ඒක නිසා
         const currentWorkType = (global.workType || config.WORK_TYPE || "all").toLowerCase();
         
         let canWork = false;
-        if (currentWorkType === "all") {
+
+        if (isOwner) {
+            // ඔනර් දාන ඕනෑම මැසේජ් එකක්/කමාන්ඩ් එකක් ඕනෑම මෝඩ් එකකදී වැඩ කරයි
             canWork = true;
-        } else if (currentWorkType === "private") {
-            // ප්‍රයිවට් මෝඩ් එකේදී ඔනර්ට විතරයි
-            canWork = isOwner;
-        } else if (currentWorkType === "inbox") {
-            // ඉන්බොක්ස් මෝඩ් එකේදී ඉන්බොක්ස් එකේ හැමෝටම වැඩ කරයි, ගෲප් වලදී ඔනර්ට විතරයි
-            if (isInbox || isOwner) canWork = true;
-            if (isGroup && !isOwner) canWork = false; // ආරක්ෂාවට: ගෲප් එකක් නම් ඔනර් නොවේ නම් වැඩ කරන්නේම නැත
-        } else if (currentWorkType === "group") {
-            // ගෲප් මෝඩ් එකේදී ගෲප් වල හැමෝටම වැඩ කරයි, ඉන්බොක්ස් වලදී ඔනර්ට විතරයි
-            if (isGroup || isOwner) canWork = true;
-            if (isInbox && !isOwner) canWork = false;
+        } else {
+            // ඔනර් නොවන සාමාන්‍ය පරිශීලකයන් සඳහා:
+            if (currentWorkType === "all") {
+                canWork = true;
+            } else if (currentWorkType === "inbox") {
+                // ඉන්බොක්ස් මෝඩ් එකේදී වැඩ කරන්නේ ගෲප් නොවී ඉන්බොක්ස් මැසේජ් විතරයි
+                if (!isGroup) canWork = true;
+            } else if (currentWorkType === "group") {
+                // ගෲප් මෝඩ් එකේදී වැඩ කරන්නේ ගෲප් මැසේජ් විතරයි
+                if (isGroup) canWork = true;
+            } else if (currentWorkType === "private") {
+                // പ്രයිවට් මෝඩ් එකේදී ඔනර් නොවන කාටවත් වැඩ කරන්නේ නැත
+                canWork = false;
+            }
         }
       
         if (isStatus) {
