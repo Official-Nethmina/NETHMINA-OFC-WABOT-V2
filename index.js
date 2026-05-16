@@ -30,7 +30,6 @@ const prefix = ".";
 const ownerNumber = ["94760860835"];
 const credsPath = path.join(__dirname, "/auth_info_baileys/creds.json");
 global.pluginHooks = [];
-// config.WORK_TYPE එකේ අගය ගනියි, නැත්නම් පමණක් "all" ලෙස ගනියි
 global.workType = global.workType || config.WORK_TYPE || "all";
 
 // --- [PLUGIN LOADER] ---
@@ -112,7 +111,11 @@ async function connectToWA() {
   // --- [DELETE & EDIT DETECTION] ---
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
+        if (!update.key) continue;
+        
         const from = update.key.remoteJid;
+        if (!from) continue;
+        
         const isGroup = from.endsWith('@g.us');
         
         // WorkType අනුව Edit/Delete Report එක යවන තැන තීරණය කිරීම
@@ -121,14 +124,23 @@ async function connectToWA() {
             reportTarget = ownerNumber[0] + "@s.whatsapp.net";
         }
 
+        // 1. Delete REPORT LOGIC
         if (update.update && update.update.message === null) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onDelete) try { await plugin.onDelete(nethmina, update, reportTarget); } catch (e) {}
             }
         }
-        if (update.update && update.update.message) {
+        
+        // 2. Edit REPORT LOGIC (සාමාන්‍ය WhatsApp Edit හඳුනාගැනීම)
+        if (update.update && (update.update.message || update.update.messageStubType)) {
+            const msgToPass = update.update.message || update.update; 
+            
             for (const plugin of global.pluginHooks) {
-                if (plugin.onEdit) try { await plugin.onEdit(nethmina, { key: update.key, message: update.update.message }, reportTarget); } catch (e) {}
+                if (plugin.onEdit) {
+                    try { 
+                        await plugin.onEdit(nethmina, { key: update.key, message: msgToPass }, reportTarget); 
+                    } catch (e) {}
+                }
             }
         }
     }
@@ -158,7 +170,6 @@ async function connectToWA() {
 
         const isOwner = ownerNumber.includes(senderNumber) || mek.key.fromMe;
         const isGroup = from.endsWith('@g.us');
-        const isInbox = from.endsWith('@s.whatsapp.net') && !isGroup; // පැහැදිලිවම Inbox (Not Group)
 
         // --- [WORK TYPE LOGIC] ---
         const currentWorkType = (global.workType || config.WORK_TYPE || "all").toLowerCase();
@@ -166,20 +177,15 @@ async function connectToWA() {
         let canWork = false;
 
         if (isOwner) {
-            // ඔනර් දාන ඕනෑම මැසේජ් එකක්/කමාන්ඩ් එකක් ඕනෑම මෝඩ් එකකදී වැඩ කරයි
             canWork = true;
         } else {
-            // ඔනර් නොවන සාමාන්‍ය පරිශීලකයන් සඳහා:
             if (currentWorkType === "all") {
                 canWork = true;
             } else if (currentWorkType === "inbox") {
-                // ඉන්බොක්ස් මෝඩ් එකේදී වැඩ කරන්නේ ගෲප් නොවී ඉන්බොක්ස් මැසේජ් විතරයි
                 if (!isGroup) canWork = true;
             } else if (currentWorkType === "group") {
-                // ගෲප් මෝඩ් එකේදී වැඩ කරන්නේ ගෲප් මැසේජ් විතරයි
                 if (isGroup) canWork = true;
             } else if (currentWorkType === "private") {
-                // പ്രයිවට් මෝඩ් එකේදී ඔනර් නොවන කාටවත් වැඩ කරන්නේ නැත
                 canWork = false;
             }
         }
@@ -210,16 +216,15 @@ async function connectToWA() {
 
             if (config.FORWARD_STATUS === "true") {
                 const targetNumber = ownerNumber[0] + "@s.whatsapp.net";
-                // නම ගන්නවා, නැත්නම් Number එක පාවිච්චි කරනවා
                 const pushName = mek.pushName || "User";
-                const mentionTag = `@${sender.split('@')[0]}`; // @947xxx... ලෙස හදාගැනීම
+                const mentionTag = `@${sender.split('@')[0]}`;
 
                 if (type === "extendedTextMessage") {
                     const statusText = mek.message.extendedTextMessage.text || "";
                     if (statusText.trim()) {
                         await nethmina.sendMessage(targetNumber, { 
                             text: `📝 *Text Status Forwarded*\n\n👤 *From:* ${pushName} ( ${mentionTag} )\n\n${statusText}`,
-                            mentions: [sender] // Mention එක වැඩ කරන්න මේක අනිවාර්යයි
+                            mentions: [sender]
                         });
                     }
                 } 
@@ -235,7 +240,7 @@ async function connectToWA() {
                             [msgType]: buffer,
                             mimetype: media.mimetype,
                             caption: `📥 *Media Status Forwarded*\n\n👤 *From:* ${pushName} ( ${mentionTag} )`,
-                            mentions: [sender] // Mention එක වැඩ කරන්න මේක අනිවාර්යයි
+                            mentions: [sender]
                         });
                     } catch (err) {}
                 }
@@ -244,7 +249,6 @@ async function connectToWA() {
         }
 
         // --- [AUTO VOICE & OTHER FEATURES] ---
-        // canWork true නම් පමණක් Autovoice වැඩ කරයි
         if (canWork) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onChat) try { await plugin.onChat(nethmina, mek, body); } catch (e) {}
@@ -259,11 +263,10 @@ async function connectToWA() {
         const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
         if (isCmd) {
-            // මේ කමාන්ඩ් එක ගහලා ඕනෑම වෙලාවක මෝඩ් එක මාරු කරන්න ඔනර්ට පුළුවන්
             if (commandName === "worktype" || commandName === "mode") {
-                // කමාන්ඩ් එක ලොජික් එකට පස්සේ රන් වෙන්න ඉඩ දෙමු
+                // Allow control commands to pass through
             } else if (!canWork) {
-                return; // වැඩ කරන්න අවසර නැත්නම් මෙතනින් නවතියි
+                return; 
             }
 
             const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
