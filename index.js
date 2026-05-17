@@ -262,6 +262,17 @@ async function connectToWA() {
         const q = args.join(" ");
         const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
+        // මෙනු එකේ අංක රිප්ලයි කරන ඒවා අල්ලන්න (on: "text" hooks රන් කිරීම)
+        if (!isCmd && canWork) {
+            for (const plugin of global.pluginHooks) {
+                if (plugin.on === "text") {
+                    try {
+                        await plugin.function(nethmina, mek, sms(nethmina, mek), { from, body, sender, reply, isOwner, isGroup, botNumber });
+                    } catch (e) { console.error(e); }
+                }
+            }
+        }
+
         if (isCmd) {
             if (commandName === "worktype" || commandName === "mode") {
                 // Allow control commands to pass through
