@@ -118,12 +118,12 @@ cmd({
 
       const categories = Object.keys(commandMap);
 
-      let mainCaption = `👋 𝐇𝐄𝐋𝐋𝐎, ${userPushname} 𝐈❜𝐀𝐌 𝐀𝐋𝐈𝐕𝐄 𝐍𝐎𝐖 👾\n\n`;
+      let mainCaption = `👋 𝐇𝐄𝐋𝐋𝐎, ${userPushname} 𝐁𝐎𝐓 𝐌𝐀𝐈𝐍 𝐌𝐄𝐍𝐔 👾\n\n`;
       mainCaption += `╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」\n`;
       mainCaption += `│📅 \`Date\` : ${date}\n`;
       mainCaption += `│⏰ \`Time\` : ${time}\n`;
       mainCaption += `╰──────────●●►\n\n`;
-      mainCaption += `╭─「 ꜱᴛᴀᴛ𝐮ส์ ᴅᴇᴛᴀɪʟส์ 」\n`;
+      mainCaption += `╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」\n`;
       mainCaption += `│👤 \`User\`: ${userPushname}\n`;
       mainCaption += `│✒️ \`Prefix\` : ${config.PREFIX || '.'}\n`;
       mainCaption += `│🧬 \`Version\` : v2.0.0\n`;
@@ -133,7 +133,7 @@ cmd({
       mainCaption += `│📂 \`Memory\` : ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB / ${Math.round(os.totalmem() / 1024 / 1024)}MB\n`;
       mainCaption += `╰──────────●●►\n\n`;
       
-      mainCaption += `*MAIN MENU CATEGORIES*\n`;
+      mainCaption += `*📑 MAIN MENU CATEGORIES*\n`;
       mainCaption += `╭──────────●●►\n`;
       categories.forEach((cat, i) => {
           const emojiIndex = (i + 1).toString().split("").map(n => numberEmojis[n]).join("");
@@ -158,40 +158,44 @@ cmd({
   }
 });
 
-// හැම මැසේජ් එකක්ම කියවන නිවැරදිම හැන්ඩ්ලර් ලොජික් එක
+// index.js එකෙන් එවන Text එක අල්ලන කොටස
 cmd({
   on: "text"
 }, async (test, m, msg, { from, body, sender, reply }) => {
-  // එවපු මැසේජ් එක අංකයක්ද සහ මෙනු එක ඕපන් කරලා තියෙන්නේ කියලා චෙක් කරනවා
-  if (!pendingMenu[sender] || pendingMenu[sender].step !== "category" || !/^[1-9][0-9]*$/.test(body.trim())) return;
+  try {
+      if (!body) return;
+      if (!pendingMenu[sender] || pendingMenu[sender].step !== "category" || !/^[1-9][0-9]*$/.test(body.trim())) return;
 
-  await test.sendMessage(from, { react: { text: "✅", key: m.key } });
+      await test.sendMessage(from, { react: { text: "📑", key: m.key } });
 
-  const { commandMap, categories } = pendingMenu[sender];
-  const index = parseInt(body.trim()) - 1;
-  if (index < 0 || index >= categories.length) return reply("❌ Invalid selection.");
+      const { commandMap, categories } = pendingMenu[sender];
+      const index = parseInt(body.trim()) - 1;
+      if (index < 0 || index >= categories.length) return reply("❌ Invalid selection.");
 
-  const selectedCategory = categories[index];
-  const cmdsInCategory = commandMap[selectedCategory];
-  const userPushname = m.pushName || 'User';
+      const selectedCategory = categories[index];
+      const cmdsInCategory = commandMap[selectedCategory];
+      const userPushname = m.pushName || 'User';
 
-  let cmdText = `*${selectedCategory} COMMANDS*\n`;
-  cmdsInCategory.forEach(c => {
-      const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
-      cmdText += `${patterns.join(", ")} - ${c.desc || "No description"}\n`;
-  });
-  cmdText += `╭──────────●●►\n`;
-  cmdText += `Total Commands: ${cmdsInCategory.length}\n`;
-  cmdText += `╰──────────●●►\n\n`;
-  cmdText += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
+      let cmdText = `*${selectedCategory} COMMANDS*\n`;
+      cmdsInCategory.forEach(c => {
+          const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
+          cmdText += `${patterns.join(", ")} - ${c.desc || "No description"}\n`;
+      });
+      cmdText += `╭──────────●●►\n`;
+      cmdText += `🔢 Total Commands: ${cmdsInCategory.length}\n`;
+      cmdText += `╰──────────●●►\n\n`;
+      cmdText += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
-  const design = getMenuDesign(userPushname);
+      const design = getMenuDesign(userPushname);
 
-  await test.sendMessage(from, {
-      image: { url: headerImage },
-      caption: cmdText,
-      contextInfo: design.contextInfo
-  }, design.options);
+      await test.sendMessage(from, {
+          image: { url: headerImage },
+          caption: cmdText,
+          contextInfo: design.contextInfo
+      }, design.options);
 
-  delete pendingMenu[sender];
+      delete pendingMenu[sender];
+  } catch (e) {
+      console.error(e);
+  }
 });
