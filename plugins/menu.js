@@ -123,7 +123,7 @@ cmd({
       mainCaption += `│📅 \`Date\` : ${date}\n`;
       mainCaption += `│⏰ \`Time\` : ${time}\n`;
       mainCaption += `╰──────────●●►\n\n`;
-      mainCaption += `╭─「 ꜱᴛᴀᴛᴜส์ ᴅᴇᴛᴀɪʟส์ 」\n`;
+      mainCaption += `╭─「 ꜱᴛᴀᴛ𝐮ส์ ᴅᴇᴛᴀɪʟส์ 」\n`;
       mainCaption += `│👤 \`User\`: ${userPushname}\n`;
       mainCaption += `│✒️ \`Prefix\` : ${config.PREFIX || '.'}\n`;
       mainCaption += `│🧬 \`Version\` : v2.0.0\n`;
@@ -134,12 +134,12 @@ cmd({
       mainCaption += `╰──────────●●►\n\n`;
       
       mainCaption += `*MAIN MENU CATEGORIES*\n`;
-      mainCaption += `───────────────────────\n`;
+      mainCaption += `╭──────────●●►\n`;
       categories.forEach((cat, i) => {
           const emojiIndex = (i + 1).toString().split("").map(n => numberEmojis[n]).join("");
           mainCaption += `┃ ${emojiIndex} *${cat}* (${commandMap[cat].length})\n`;
       });
-      mainCaption += `───────────────────────\n\n`;
+      mainCaption += `╰──────────●●►\n\n`;
       mainCaption += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
       const design = getMenuDesign(userPushname);
@@ -158,9 +158,13 @@ cmd({
   }
 });
 
+// හැම මැසේජ් එකක්ම කියවන නිවැරදිම හැන්ඩ්ලර් ලොජික් එක
 cmd({
-  filter: (text, { sender }) => pendingMenu[sender] && pendingMenu[sender].step === "category" && /^[1-9][0-9]*$/.test(text.trim())
+  on: "text"
 }, async (test, m, msg, { from, body, sender, reply }) => {
+  // එවපු මැසේජ් එක අංකයක්ද සහ මෙනු එක ඕපන් කරලා තියෙන්නේ කියලා චෙක් කරනවා
+  if (!pendingMenu[sender] || pendingMenu[sender].step !== "category" || !/^[1-9][0-9]*$/.test(body.trim())) return;
+
   await test.sendMessage(from, { react: { text: "✅", key: m.key } });
 
   const { commandMap, categories } = pendingMenu[sender];
@@ -176,9 +180,9 @@ cmd({
       const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
       cmdText += `${patterns.join(", ")} - ${c.desc || "No description"}\n`;
   });
-  cmdText += `───────────────────────\n`;
+  cmdText += `╭──────────●●►\n`;
   cmdText += `Total Commands: ${cmdsInCategory.length}\n`;
-  cmdText += `───────────────────────\n\n`;
+  cmdText += `╰──────────●●►\n\n`;
   cmdText += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
   const design = getMenuDesign(userPushname);
