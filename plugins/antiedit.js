@@ -2,95 +2,122 @@ const { getContentType } = require("@whiskeysockets/baileys");
 
 if (!global.msgStore) global.msgStore = new Map();
 
+// =====================================================
+// Helper: ඕනෑම message object එකෙන් text ගන්නවා
+// =====================================================
+function extractText(msg) {
+    if (!msg) return "";
+    const type = getContentType(msg);
+    if (!type) return "";
+    if (type === "conversation") return msg.conversation || "";
+    if (type === "extendedTextMessage") return msg.extendedTextMessage?.text || "";
+    if (type === "imageMessage") return msg.imageMessage?.caption || "";
+    if (type === "videoMessage") return msg.videoMessage?.caption || "";
+    if (msg[type]) return msg[type].text || msg[type].caption || "";
+    return "";
+}
+
 module.exports = {
-    // මැසේජ් එක ආපු ගමන් පරණ එක මතක තබා ගැනීම
+
+    // =====================================================
+    // Messages.upsert: නව message ආවම store කරනවා
+    // =====================================================
     onMessage: async (conn, mek) => {
         try {
-            if (!mek.message) return;
+            if (!mek?.message) return;
 
-            const type = getContentType(mek.message);
             const msgId = mek.key.id;
+            const content = extractText(mek.message);
 
-            let content = "";
-            if (type === "conversation") content = mek.message.conversation;
-            else if (type === "extendedTextMessage") content = mek.message.extendedTextMessage.text;
-            else if (type === "imageMessage") content = mek.message.imageMessage.caption;
-            else if (type === "videoMessage") content = mek.message.videoMessage.caption;
-            else if (mek.message[type]) content = mek.message[type].text || mek.message[type].caption || "";
-
-            if (content) {
+            if (content && content.trim()) {
                 global.msgStore.set(msgId, {
                     text: content,
                     sender: mek.key.participant || mek.key.remoteJid,
-                    time: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Colombo', hour12: true })
+                    jid: mek.key.remoteJid,
+                    time: new Date().toLocaleString("en-GB", {
+                        timeZone: "Asia/Colombo",
+                        hour12: true
+                    })
                 });
 
-                setTimeout(() => {
-                    if (global.msgStore.has(msgId)) global.msgStore.delete(msgId);
-                }, 3600000); 
+                // 1 පැය පසු auto-delete
+                setTimeout(() => global.msgStore.delete(msgId), 3_600_000);
             }
         } catch (e) {
-            console.log("Antiedit Storage Error:", e);
+            console.log("[antiedit] onMessage error:", e.message);
         }
     },
 
-    // මැසේජ් එකක් එඩිට් වූ සැනින් ක්‍රියාත්මක වන කොටස
-    onEdit: async (conn, update, reportTarget) => { 
+    // =====================================================
+    // Messages.update: Edit detect කිරීම
+    // Baileys custom fork (AmilaPrabathKumara) edit events
+    // protocolMessage.type === 14  →  EDIT
+    // =====================================================
+    onEdit: async (conn, update, reportTarget) => {
         try {
-            if (!update || !update.update) return;
+            if (!update?.update) return;
 
-            // ඔයාගේ Baileys Version එකේ protocolMessage එක එන්න පුළුවන් ක්‍රම දෙකම චෙක් කරනවා
-            const protocolMsg = update.update.protocolMessage || 
-                                (update.update.message && update.update.message.protocolMessage);
-                                
-            if (!protocolMsg) return;
-            
-            // type 14 හෝ 'EDIT' කියන්නේ WhatsApp වල EDIT protocol එකටයි
-            const isEditType = protocolMsg.type === 14 || String(protocolMsg.type).toUpperCase() === 'EDIT';
-            if (!isEditType) return;
+            const upd = update.update;
 
-            // එඩිට් කරපු පරණ මැසේජ් එකේ ID එක
-            const targetId = protocolMsg.key ? protocolMsg.key.id : null;
-            if (!targetId) return;
+            // protocolMessage දෙකෙන් එකක් check කිරීම
+            const proto = upd.protocolMessage
+                       || upd.message?.protocolMessage
+                       || null;
 
-            const editedMsg = protocolMsg.editedMessage;
+            if (!proto) return;
+
+            // Type 14 = MESSAGE_EDIT  (Baileys enum EDIT)
+            const isEdit = proto.type === 14 ||
+                           proto.type === "MESSAGE_EDIT" ||
+                           String(proto.type).toUpperCase() === "EDIT";
+
+            if (!isEdit) return;
+
+            // Edit කරන ලද original message ID
+            const originalId = proto.key?.id;
+            if (!originalId) return;
+
+            // Edited content
+            const editedMsg = proto.editedMessage;
             if (!editedMsg) return;
 
-            // අපේ ලඟ තියෙන පරණ මැසේජ් එක Store එකෙන් ගන්නවා
-            const oldMsg = global.msgStore.get(targetId);
-            if (!oldMsg) return;
+            const newText = extractText(editedMsg);
+            if (!newText?.trim()) return;
 
-            // එඩිට් කරපු අලුත් text එක ගන්නවා
-            const type = getContentType(editedMsg);
-            let newText = "";
-            if (type === "conversation") newText = editedMsg.conversation;
-            else if (type === "extendedTextMessage") newText = editedMsg.extendedTextMessage.text;
-            else if (type === "imageMessage") newText = editedMsg.imageMessage.caption;
-            else if (type === "videoMessage") newText = editedMsg.videoMessage.caption;
-            else if (editedMsg[type]) newText = editedMsg[type].text || editedMsg[type].caption || "";
+            // Store එකෙන් original message ගන්නවා
+            const stored = global.msgStore.get(originalId);
+            if (!stored) return; // Store නැත්නම් (bot restart etc.) skip
 
-            // බොට්ගේම පිං හෝ වෙනත් ස්වයංක්‍රීය මැසේජ් එඩිට් ඉග්නෝර් කරනවා
-            if (oldMsg.text.includes("Pinging...") || oldMsg.text.startsWith("🚀")) return;
+            // Bot ගේ own automated messages ignore
+            const skipPatterns = ["Pinging...", "🚀", "✅ *NETHMINA"];
+            if (skipPatterns.some(p => stored.text.includes(p))) return;
 
-            // ඇත්තටම text එක වෙනස් වෙලා නම් විතරක් Report කරනවා
-            if (newText && oldMsg.text !== newText) {
-                let report = `✍️ *MESSAGE EDIT DETECTED*\n\n` +
-                             `🕒 *Time:* ${oldMsg.time}\n` +
-                             `👤 *User:* @${oldMsg.sender.split('@')[0]}\n\n` +
-                             `*📑 Original Message:*\n${oldMsg.text}\n\n` +
-                             `*✒️ Edited Message:*\n${newText}\n\n` +
-                             `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
+            // Text ඇත්තටම change වෙලා නම් විතරක් report
+            if (stored.text === newText) return;
 
-                await conn.sendMessage(reportTarget || update.key.remoteJid, { 
-                    text: report, 
-                    mentions: [oldMsg.sender] 
-                });
-                
-                // Store එක Update කරනවා ඊළඟ වතාවේ ආයෙත් එඩිට් කලොත් අල්ලගන්න
-                global.msgStore.set(targetId, { ...oldMsg, text: newText });
-            }
+            // Report යවන target: index.js pass කරන reportTarget use කරනවා
+            // fallback: stored JID  (update.key දැන් reliable නෑ fork එකේ)
+            const target = reportTarget || stored.jid;
+            if (!target) return;
+
+            const report =
+                `✍️ *MESSAGE EDIT DETECTED*\n\n` +
+                `🕒 *Time:* ${stored.time}\n` +
+                `👤 *User:* @${stored.sender.split("@")[0]}\n\n` +
+                `📑 *Original Message:*\n${stored.text}\n\n` +
+                `✒️ *Edited Message:*\n${newText}\n\n` +
+                `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
+
+            await conn.sendMessage(target, {
+                text: report,
+                mentions: [stored.sender]
+            });
+
+            // Store update — ආයෙත් edit කළොත් නව text compare කරන්න
+            global.msgStore.set(originalId, { ...stored, text: newText });
+
         } catch (e) {
-            console.log("Antiedit Detection Error:", e);
+            console.log("[antiedit] onEdit error:", e.message);
         }
     }
 };
