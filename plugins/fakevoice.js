@@ -11,11 +11,12 @@ cmd({
 },
 async (nethmina, mek, msg, { from, q, reply }) => {
     try {
-        // රිප්ලයි කර ඇති මැසේජ් එකේ contextInfo ලබාගැනීම
-        const contextInfo = mek.message?.extendedTextMessage?.contextInfo;
+        // 🔥 [FIXED LOGIC] Voice Note සහ Audio දෙකේම contextInfo අහුවෙන විදිහට හැදුවා
+        const messageType = Object.keys(mek.message || {})[0];
+        const contextInfo = mek.message?.[messageType]?.contextInfo || mek.message?.extendedTextMessage?.contextInfo;
         const quotedMessage = contextInfo?.quotedMessage;
 
-        // රිප්ලයි කරලා තියෙන්නේ ඕඩියෝ එකකටද කියා පරික්ෂා කිරීම
+        // රිප්ලයි කරලා තියෙන්නේ ඕඩියෝ එකකටද කියා 100% නිවැරදිව පරික්ෂා කිරීම
         if (!contextInfo?.hasQuotedMessage || !quotedMessage?.audioMessage) {
             return await reply("❌ Please reply to an *Audio* or *Voice Message* to use this command.");
         }
@@ -27,10 +28,10 @@ async (nethmina, mek, msg, { from, q, reply }) => {
         // පැය ගණන තත්පර වලට හැරවීම (1 hour = 3600 seconds)
         const fakeSeconds = hours * 3600;
 
-        // ඔරිජිනල් ඕඩියෝ මැසේජ් එක කොපි කර ගැනීම
+        // ඔරිජිනල් ඕඩියෝ මැසේජ් එකේ දත්ත පිටපත් කර ගැනීම
         let audioMsg = JSON.parse(JSON.stringify(quotedMessage.audioMessage));
 
-        // 🔥 [CHEAT] සැබෑ තත්පර ගණන වෙනුවට අපේ ව්‍යාජ තත්පර ගණන Inject කිරීම
+        // 🔥 [CHEAT INJECT] සැබෑ තත්පර ගණන වෙනුවට අපේ ව්‍යාජ තත්පර ගණන Inject කිරීම
         audioMsg.seconds = fakeSeconds;
         
         // හැමතිස්සෙම මේක නිල් පාට Voice Cut එකක් (PTT) විදිහටම යැවීමට True කිරීම
