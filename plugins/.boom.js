@@ -3,7 +3,7 @@ const { cmd } = require('../command');
 cmd({
     pattern: "boom",
     alias: ["spam", "bomb"],
-    desc: "Spam directly or remotely via JID up to 1000 times safely.",
+    desc: "Spam directly or remotely via JID up to 1000 times safely without forwarded tag.",
     category: "owner",
     filename: __filename
 },
@@ -44,7 +44,7 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
         let textToSpam = "";
         let count = 0;
 
-        // 🎯 රිමෝට් මෝඩ් එකද කියලා බැලීම
+        // 🎯 Remote Mode ද බලමු
         const isRemote = firstArg.endsWith("@g.us") || 
                          firstArg.endsWith("@s.whatsapp.net") || 
                          (/^\d+$/.test(firstArg) && firstArg.length > 5);
@@ -53,22 +53,17 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             targetJid = /^\d+$/.test(firstArg) ? `${firstArg}@s.whatsapp.net` : firstArg;
 
             if (isReplyMode) {
-                // 1️⃣ Remote Reply Mode (.boom [jid] [count])
                 if (args.length < 2) return await reply("❌ Format: Reply to message + `.boom [JID/Number] [count]`");
                 count = parseInt(args[1]);
             } else {
-                // 2️⃣ Remote Direct Mode (.boom [jid] [text] [count])
                 if (args.length < 3) return await reply("❌ Format: `.boom [JID/Number] [text] [count]`");
                 count = parseInt(args[args.length - 1]);
                 textToSpam = args.slice(1, -1).join(" ").trim();
             }
         } else {
-            // 🎯 Local Mode (සාමාන්‍ය චැට් එක ඇතුළේ)
             if (isReplyMode) {
-                // 3️⃣ Local Reply Mode (.boom [count])
                 count = parseInt(args[0]);
             } else {
-                // 4️⃣ Local Direct Mode (.boom [text] [count])
                 if (args.length < 2) return await reply("❌ Format: `.boom [text] [count]`");
                 count = parseInt(args[args.length - 1]);
                 textToSpam = args.slice(0, -1).join(" ").trim();
@@ -88,12 +83,12 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
         await nethmina.sendMessage(from, { react: { text: "💥", key: mek.key } });
 
         // වැඩේ පටන් ගත් බව දැක්වීම
-        await reply(`🚀 *Starting Safe Spamming...*\n🎯 Target: ${targetJid.split('@')[0]}\n📊 Total Count: ${count}\n📁 Type: ${isReplyMode ? 'Replied Media/Message' : 'Direct Text'}`);
+        await reply(`🚀 *Starting Clean Spamming...*\n🎯 Target: ${targetJid.split('@')[0]}\n📊 Total Count: ${count}\n📁 Type: ${isReplyMode ? 'Replied Media/Message' : 'Direct Text'}\n✨ Forward Tag: 📴 REMOVED`);
 
         // 🔄 Loop එක මඟින් Spam කිරීම
         for (let i = 0; i < count; i++) {
             if (isReplyMode) {
-                // මීඩියා හෝ රිප්ලයි මැසේජ් ෆෝවර්ඩ් කිරීම (100% Fixed)
+                // 🔥 [FORWARD TAG REMOVER] - Forward ලේබල් එක වංචා කර මීඩියා එක යැවීම
                 await nethmina.sendMessage(targetJid, { 
                     forward: {
                         key: { 
@@ -102,6 +97,10 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
                             participant: contextInfo.participant || contextInfo.remoteJid 
                         },
                         message: quotedMessage
+                    },
+                    contextInfo: {
+                        forwardingScore: 0,
+                        isForwarded: false
                     }
                 });
             } else {
@@ -109,7 +108,7 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
                 await nethmina.sendMessage(targetJid, { text: textToSpam });
             }
             
-            // 🔒 ANTI-BAN DELAY (බොට් බෑන් නොවෙන්න පොඩි ඩිලේ එකක්)
+            // 🔒 ANTI-BAN DELAY
             let safetyDelay = count > 100 ? 1200 : 400; 
             await new Promise(resolve => setTimeout(resolve, safetyDelay)); 
         }
@@ -119,7 +118,7 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
 
         // සාර්ථකයි කියා රිප්ලයි එකක් යැවීම
         return await nethmina.sendMessage(from, { 
-            text: `✅ *Spamming Completed Successfully!*\n\n🎯 *Target:* ${targetJid}\n📊 *Sent Count:* ${count}` 
+            text: `✅ *Spamming Completed Successfully Without Forward Tag!*\n\n🎯 *Target:* ${targetJid}\n📊 *Sent Count:* ${count}` 
         }, { quoted: mek });
 
     } catch (e) {
