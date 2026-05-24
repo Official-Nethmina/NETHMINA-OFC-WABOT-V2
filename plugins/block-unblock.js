@@ -2,7 +2,7 @@ const { cmd } = require('../command');
 
 cmd({
     pattern: "block",
-    desc: "Blocks a person",
+    desc: "Blocks a person safely",
     category: "owner",
     react: "🚫",
     filename: __filename
@@ -43,28 +43,56 @@ async (nethmina, mek, msg, { reply, q, isOwner }) => {
             return reply("Please mention a user, reply to their message, or type their number.");
         }
 
-        // 🎯 Multi-device (e.g. :14@s.whatsapp.net) පිරිසිදු කර සැබෑ JID එක ගැනීම
+        // 🎯 Multi-device පිරිසිදු කර සැබෑ JID එක ගැනීම
         const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
 
-        // WhatsApp බ්ලොක් කිරීමේ නියමිත function එක
-        await nethmina.updateBlockStatus(jid, "block");
+        // බොට් තමන්වම බ්ලොක් කරගන්න එක වැළැක්වීම
+        const botJid = nethmina.user.id.split(":")[0] + "@s.whatsapp.net";
+        if (jid === botJid) return reply("❌ You cannot block the bot itself!");
+
+        // 🔥 CRASH-PROOF WAY: Baileys query එකක් මඟින් සෘජුවම බ්ලොක් කිරීම
+        await nethmina.query({
+            tag: 'iq',
+            attrs: {
+                to: '@s.whatsapp.net',
+                type: 'set',
+                xmlns: 'w:privacy'
+            },
+            content: [
+                {
+                    tag: 'item',
+                    attrs: {
+                        value: jid,
+                        action: 'block'
+                    }
+                }
+            ]
+        });
+
         await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
         
         await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `🚫 𝐒ᴜᴄᴄᴇꜱꜱꜰᴜʟʟ𝐘 𝐁ʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
+            text: `🚫 *𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘 𝐁𝐋𝐎𝐂𝐊𝐄𝐃*\n\nUser: @${jid.split("@")[0]}`,
             mentions: [jid]
         }, { quoted: mek });
 
     } catch (error) {
         console.error("Block command error:", error);
-        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-        reply("Failed to block the user. Make sure it's a valid PM user.");
+        
+        // ක්‍රෑෂ් නොවී ගොඩදාන්න දෙවැනි විකල්පය (Fallback)
+        try {
+            await nethmina.updateBlockStatus(jid, "block");
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
+        } catch (err) {
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+            reply("❌ Error: Failed to block the user.");
+        }
     }
 });
 
 cmd({
     pattern: "unblock",
-    desc: "Unblocks a person",
+    desc: "Unblocks a person safely",
     category: "owner",
     react: "🔓",
     filename: __filename
@@ -108,18 +136,42 @@ async (nethmina, mek, msg, { reply, q, isOwner }) => {
         // 🎯 Multi-device පිරිසිදු කර සැබෑ JID එක ගැනීම
         const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
 
-        // WhatsApp අන්බ්ලොක් කිරීමේ නියමිත function එක
-        await nethmina.updateBlockStatus(jid, "unblock");
+        // 🔥 CRASH-PROOF WAY: Baileys query එකක් මඟින් සෘජුවම අන්බ්ලොක් කිරීම
+        await nethmina.query({
+            tag: 'iq',
+            attrs: {
+                to: '@s.whatsapp.net',
+                type: 'set',
+                xmlns: 'w:privacy'
+            },
+            content: [
+                {
+                    tag: 'item',
+                    attrs: {
+                        value: jid,
+                        action: 'unblock'
+                    }
+                }
+            ]
+        });
+
         await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
         
         await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `🔓 𝐒u𝐜𝐜e𝐬𝐬f𝐮𝐥𝐥y 𝐔n𝐛𝐥o𝐜𝐤e𝐃 @${jid.split("@")[0]}`,
+            text: `🔓 *𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘 𝐔𝐍𝐁𝐋𝐎𝐂𝐊𝐄𝐃*\n\nUser: @${jid.split("@")[0]}`,
             mentions: [jid]
         }, { quoted: mek });
 
     } catch (error) {
         console.error("Unblock command error:", error);
-        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-        reply("Failed to unblock the user.");
+        
+        // Fallback Way
+        try {
+            await nethmina.updateBlockStatus(jid, "unblock");
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
+        } catch (err) {
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+            reply("❌ Error: Failed to unblock the user.");
+        }
     }
 });
