@@ -262,12 +262,12 @@ async function connectToWA() {
         const q = args.join(" ");
         const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
-        // 🎯 මෙනු කැටගරි අංක රිප්ලයි කරන ඒවා අල්ලන කොටස (cmd.async ලෙස නිවැරදි කරන ලදී)
+        // 🎯 මෙනු කැටගරි අංක ලිස්නර් එක (cmd.function ලෙස නිවැරදි කරන ලදී)
         if (!isCmd && canWork) {
             for (const cmd of commands) {
                 if (cmd.on === "text") {
                     try {
-                        await cmd.async(nethmina, mek, sms(nethmina, mek), { from, body, sender, reply, isOwner, isGroup, botNumber });
+                        await cmd.function(nethmina, mek, sms(nethmina, mek), { from, body, sender, reply, isOwner, isGroup, botNumber });
                     } catch (e) { console.error(e); }
                 }
             }
@@ -284,8 +284,8 @@ async function connectToWA() {
             if (cmd) {
                 if (isOwner && config.OWNER_REACT === "true") await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(() => {});
                 try {
-                    // 🎯 සාමාන්‍ය කමාන්ඩ් රන් කරන කොටස (cmd.async ලෙස නිවැරදි කරන ලදී)
-                    await cmd.async(nethmina, mek, sms(nethmina, mek), { from, args, q, sender, reply, isOwner, isGroup, botNumber });
+                    // 🎯 සාමාන්‍ය කමාන්ඩ් රන් කරන කොටස (cmd.function ලෙස නිවැරදි කරන ලදී)
+                    await cmd.function(nethmina, mek, sms(nethmina, mek), { from, args, q, sender, reply, isOwner, isGroup, botNumber });
                 } catch (e) { console.error(e); }
             }
         }
