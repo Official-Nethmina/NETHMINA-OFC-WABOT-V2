@@ -12,7 +12,7 @@ const SAFETY = {
 cmd({
   pattern: "forward",
   alias: ["fwd"],
-  desc: "Bulk forward media to groups",
+  desc: "Bulk forward media to groups and numbers",
   category: "owner",
   filename: __filename
 }, async (nethmina, mek, msg, { q, isOwner, reply }) => {
@@ -20,7 +20,7 @@ cmd({
     // Owner check
     if (!isOwner) return await reply("*📛 Owner Only Command*");
     
-    // Quoted message check - ඔයාගේ bot එකේ structure එකට අනුව check කිරීම
+    // Quoted message check
     const quotedMessage = mek.message?.extendedTextMessage?.contextInfo?.quotedMessage || 
                           mek.message?.imageMessage?.contextInfo?.quotedMessage || 
                           mek.message?.videoMessage?.contextInfo?.quotedMessage || 
@@ -36,30 +36,49 @@ cmd({
                       
     const mtype = Object.keys(quotedMessage)[0];
 
-    // ===== [BULLETPROOF JID PROCESSING] ===== //
+    // ===== [BULLETPROOF JID & NUMBER PROCESSING] ===== //
     if (!q || q.trim().length === 0) {
       return await reply(
-        "❌ Please provide group JIDs\n" +
-        "Examples:\n" +
-        ".fwd 120363411055156472@g.us,120363333939099948@g.us\n" +
-        ".fwd 120363411055156472 120363333939099948"
+        "❌ Please provide Group JIDs or WhatsApp Numbers\n\n" +
+        "*Examples:*\n" +
+        "🔹 .fwd 120363411055156472@g.us 94760860835\n" +
+        "🔹 .fwd 94760860835,94712345678,120363411055156472"
       );
     }
     
-    // Extract JIDs (supports comma or space separated)
-    const rawJids = q.trim().split(/[\s,]+/).filter(jid => jid.trim().length > 0);
+    // Extract targets (supports comma or space separated)
+    const rawInputs = q.trim().split(/[\s,]+/).filter(input => input.trim().length > 0);
     
-    // Process JIDs (accepts with or without @g.us)
-    const validJids = rawJids
-      .map(jid => {
-        const cleanJid = jid.replace(/@g\.us$/i, "");
-        return /^\d+$/.test(cleanJid) ? `${cleanJid}@g.us` : null;
+    // Process Group JIDs and Private Numbers intelligently
+    const validJids = rawInputs
+      .map(input => {
+        let clean = input.trim();
+        
+        // 1. දැනටමත් නිවැරදිම format එකෙන් තියෙනවා නම් ඒ විදිහටම ගන්නවා
+        if (clean.endsWith("@g.us") || clean.endsWith("@s.whatsapp.net")) {
+          return clean;
+        }
+        
+        // 2. අග තියෙන අනවශ්‍ය කෑලි අයින් කරනවා
+        clean = clean.replace(/@g\.us$/i, "").replace(/@s\.whatsapp\.net$/i, "");
+        
+        // ඉතිරි වෙන්නේ ඉලක්කම් විතරක් නම් චෙක් කරනවා
+        if (/^\d+$/.test(clean)) {
+          // දිග 15කට වඩා වැඩි නම් ඒක Group JID එකක් (e.g. 120363xxxxxxxxx)
+          if (clean.length > 15) {
+            return `${clean}@g.us`;
+          } else {
+            // නැත්නම් ඒක සාමාන්‍ය පෞද්ගලික දුරකථන අංකයක් (Inbox)
+            return `${clean}@s.whatsapp.net`;
+          }
+        }
+        return null;
       })
       .filter(jid => jid !== null)
       .slice(0, SAFETY.MAX_JIDS);
 
     if (validJids.length === 0) {
-      return await reply("❌ No valid group JIDs found.");
+      return await reply("❌ No valid Group JIDs or Numbers found.");
     }
 
     // ===== [ENHANCED MEDIA HANDLING] ===== //
@@ -119,18 +138,16 @@ cmd({
       };
     } 
     else {
-      // වෙනත් ඕනෑම මැසේජ් ටයිප් එකක් කෙලින්ම forward කිරීම
       messageContent = { forward: { key: { remoteJid: mek.key.remoteJid, id: quotedKey }, message: quotedMessage } };
     }
 
     // ===== [OPTIMIZED SENDING WITH PROGRESS] ===== //
-    await reply(`🔄 *Starting forward to ${validJids.length} groups...*`);
+    await reply(`🔄 *Starting forward to ${validJids.length} targets (Groups/Inbox)...*`);
     let successCount = 0;
     const failedJids = [];
     
     for (const [index, jid] of validJids.entries()) {
       try {
-        // Forward content or structure
         if (messageContent.forward) {
             await nethmina.sendMessage(jid, quotedMessage, { quoted: { key: { id: quotedKey, remoteJid: jid }, message: quotedMessage } });
         } else {
@@ -138,16 +155,17 @@ cmd({
         }
         successCount++;
         
-        // Progress update (every 10 groups)
+        // Progress update (every 10 targets)
         if ((index + 1) % 10 === 0) {
-          await reply(`🔄 𝐒ᴇɴ𝐃 𝐓𝐎 ${index + 1}/${validJids.length} 𝐆ʀᴏᴜᴘ𝐒...`);
+          await reply(`🔄 𝐒ᴇɴ𝐃 𝐓𝐎 ${index + 1}/${validJids.length} 𝐓ᴀʀɢᴇᴛ𝐒...`);
         }
         
         const delayTime = (index + 1) % 10 === 0 ? SAFETY.EXTRA_DELAY : SAFETY.BASE_DELAY;
         await new Promise(resolve => setTimeout(resolve, delayTime));
         
       } catch (error) {
-        failedJids.push(jid.replace('@g.us', ''));
+        // Report එක ලස්සනට පේන්න clean කරලා දානවා
+        failedJids.push(jid.split('@')[0]);
         await new Promise(resolve => setTimeout(resolve, SAFETY.BASE_DELAY));
       }
     }
@@ -162,8 +180,8 @@ cmd({
       if (failedJids.length > 5) report += ` +${failedJids.length - 5} more`;
     }
     
-    if (rawJids.length > SAFETY.MAX_JIDS) {
-      report += `\n⚠️ Note: Limited to first ${SAFETY.MAX_JIDS} JIDs`;
+    if (rawInputs.length > SAFETY.MAX_JIDS) {
+      report += `\n⚠️ Note: Limited to first ${SAFETY.MAX_JIDS} targets`;
     }
 
     await reply(report);
