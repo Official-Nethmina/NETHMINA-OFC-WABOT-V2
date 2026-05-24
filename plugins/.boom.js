@@ -22,38 +22,32 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             );
         }
 
-        // 🔥 [MANUAL INITIAL REACT]
-        await nethmina.sendMessage(from, { react: { text: "💥", key: mek.key } });
-
-        let targetJid = from;
-        let textToSpam = "";
-        let count = 0;
-        let isReplyMode = false;
-
-        // 🔄 සියලුම මීඩියා සහ ටෙක්ස්ට් රිප්ලයි වර්ග නිවැරදිව හඳුනාගැනීම
-        const messageType = Object.keys(mek.message || {})[0];
-        const contextInfo = mek.message?.[messageType]?.contextInfo || mek.message?.extendedTextMessage?.contextInfo;
-
-        if (contextInfo && contextInfo.hasQuotedMessage) {
-            isReplyMode = true;
-        }
+        // 🔄 [UNIVERSAL CONTEXT EXTRACTOR] - ඕනෑම මැසේජ් ටයිප් එකක රිප්ලයි දත්ත නිවැරදිව ඇදගැනීම
+        const msgType = mek.message ? Object.keys(mek.message)[0] : null;
+        const contextInfo = mek.message?.[msgType]?.contextInfo || mek.message?.extendedTextMessage?.contextInfo;
+        const isReplyMode = !!(contextInfo && contextInfo.hasQuotedMessage);
 
         const args = q.trim().split(" ");
         const firstArg = args[0];
 
-        // 🎯 [CHECK] පළමු ආගියුමන්ට් එක JID එකක් හෝ නම්බර් එකක්ද (Remote Mode)
-        const isRemote = firstArg.endsWith("@g.us") || firstArg.endsWith("@s.whatsapp.net") || /^\d+$/.test(firstArg);
+        let targetJid = from;
+        let textToSpam = "";
+        let count = 0;
+
+        // 🎯 [SMART CHECK] රිමෝට් මෝඩ් එකද කියලා හරියටම පරික්ෂා කිරීම
+        // පිරිසිදු ලංකා නම්බර් (947x) හෝ වෙනත් දිගු නම්බර්/JID පමණක් රිමෝට් ලෙස ගනී (කවුන්ට් එකේ කෙටි ඉලක්කම් පටලවා නොගනී)
+        const isRemote = firstArg.endsWith("@g.us") || firstArg.endsWith("@s.whatsapp.net") || (/^\d+$/.test(firstArg) && firstArg.length > 5);
 
         if (isRemote) {
             // JID එක සකසා ගැනීම
             targetJid = /^\d+$/.test(firstArg) ? `${firstArg}@s.whatsapp.net` : firstArg;
 
             if (isReplyMode) {
-                // Format: .boom [jid] [count] (With Reply)
+                // Format: .boom [jid/number] [count] (With Reply)
                 if (args.length < 2) return await reply("❌ Format: Reply to message + `.boom [JID/Number] [count]`");
                 count = parseInt(args[1]);
             } else {
-                // Format: .boom [jid] [text] [count] (Direct Remote)
+                // Format: .boom [jid/number] [text] [count] (Direct Remote)
                 if (args.length < 3) return await reply("❌ Format: `.boom [JID/Number] [text] [count]`");
                 count = parseInt(args[args.length - 1]);
                 textToSpam = args.slice(1, -1).join(" ").trim();
@@ -80,12 +74,16 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             return await reply("⚠️ Max limit is 1000 messages to keep the bot stable!");
         }
 
+        // 🔥 [MANUAL INITIAL REACT] - හැමදේම හරියි නම් විතරක් රියැක්ට් කරයි
+        await nethmina.sendMessage(from, { react: { text: "💥", key: mek.key } });
+
         // වැඩේ පටන් ගත් බව දැක්වීම
         await reply(`🚀 *Starting Safe Spamming...*\n🎯 Target: ${targetJid.split('@')[0]}\n📊 Total Count: ${count}\n🛡️ Mode: Anti-Ban Delay (${count > 100 ? '1.5s' : '0.5s'})\n📁 Type: ${isReplyMode ? 'Replied Content' : 'Text Message'}`);
 
         // 🔄 Loop එක මඟින් Spam කිරීම
         for (let i = 0; i < count; i++) {
             if (isReplyMode) {
+                // ඕනෑම ස්ටිකර්, ඉමේජ්, වීඩියෝ 100% ක්‍රෑෂ් නොවී ෆෝවර්ඩ් කිරීම
                 await nethmina.sendMessage(targetJid, { 
                     forward: {
                         key: { remoteJid: from, id: contextInfo.stanzaId, participant: contextInfo.participant },
