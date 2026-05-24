@@ -158,7 +158,7 @@ cmd({
   }
 });
 
-// index.js එකෙන් එවන Text එක අල්ලන කොටස
+// ====================== 🎯 [UPDATED STYLE BY GEMINI] ======================
 cmd({
   on: "text"
 }, async (test, m, msg, { from, body, sender, reply }) => {
@@ -176,14 +176,20 @@ cmd({
       const cmdsInCategory = commandMap[selectedCategory];
       const userPushname = m.pushName || 'User';
 
-      let cmdText = `*${selectedCategory} COMMANDS*\n`;
+      // 🛠️ ඔයා ඉල්ලපු අලුත් බෝඩර් ඩිසයින් එක
+      let cmdText = `*╭───〔 ${selectedCategory} COMMANDS 〕──●●►*\n`;
+      cmdText += `*┃*\n`;
+      cmdText += `*┃* 🔢 Total Commands: ${cmdsInCategory.length}\n`;
+      cmdText += `*┃*\n`;
+
       cmdsInCategory.forEach(c => {
           const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
-          cmdText += `${patterns.join(", ")} - ${c.desc || "No description"}\n`;
+          cmdText += `*┃*  Commands - ${patterns.join(", ")}\n`;
+          cmdText += `*┃*  Usage - ${c.desc || "No description"}\n`;
+          cmdText += `*┃*\n`;
       });
-      cmdText += `╭──────────●●►\n`;
-      cmdText += `🔢 Total Commands: ${cmdsInCategory.length}\n`;
-      cmdText += `╰──────────●●►\n\n`;
+
+      cmdText += `*╰──────────●●►*\n`;
       cmdText += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
       const design = getMenuDesign(userPushname);
