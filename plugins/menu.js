@@ -118,12 +118,12 @@ cmd({
 
       const categories = Object.keys(commandMap);
 
-      let mainCaption = `👋 𝐇𝐄𝐋𝐋𝐎, ${userPushname} 𝐁𝐎𝐓 𝐌𝐀𝐈𝐍 𝐌𝐄𝐍𝐔 👾\n\n`;
+      let mainCaption = `👋 𝐇𝐄𝐋𝐋Ｏ, ${userPushname} 𝐁𝐎𝐓 𝐌𝐀𝐈𝐍 𝐌𝐄𝐍𝐔 👾\n\n`;
       mainCaption += `╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」\n`;
       mainCaption += `│📅 \`Date\` : ${date}\n`;
       mainCaption += `│⏰ \`Time\` : ${time}\n`;
       mainCaption += `╰──────────●●►\n\n`;
-      mainCaption += `╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」\n`;
+      mainCaption += `╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟส์ 」\n`;
       mainCaption += `│👤 \`User\`: ${userPushname}\n`;
       mainCaption += `│✒️ \`Prefix\` : ${config.PREFIX || '.'}\n`;
       mainCaption += `│🧬 \`Version\` : v2.0.0\n`;
@@ -150,7 +150,7 @@ cmd({
           contextInfo: design.contextInfo
       }, design.options);
 
-      pendingMenu[sender] = { step: "category", commandMap, categories };
+      pendingMenu[sender] = { step: "category", active: true };
 
   } catch (e) {
       console.error(e);
@@ -158,25 +158,33 @@ cmd({
   }
 });
 
-// ====================== 🎯 [UPDATED STYLE BY GEMINI] ======================
+// ====================== 🎯 [UPDATED TEXT HANDLING LOGIC] ======================
 cmd({
   on: "text"
 }, async (test, m, msg, { from, body, sender, reply }) => {
   try {
       if (!body) return;
-      if (!pendingMenu[sender] || pendingMenu[sender].step !== "category" || !/^[1-9][0-9]*$/.test(body.trim())) return;
+      if (!pendingMenu[sender] || !pendingMenu[sender].active || !/^[1-9][0-9]*$/.test(body.trim())) return;
 
-      await test.sendMessage(from, { react: { text: "📑", key: m.key } });
+      // නවතම කමාන්ඩ් ලිස්ට් එක හැමවෙලේම රී-මැප් කරගැනීම (Crashes මඟහරවා ගැනීමට)
+      const commandMap = {};
+      for (const command of commands) {
+          if (command.dontAddCommandList) continue;
+          const category = (command.category || "MISC").toUpperCase();
+          if (!commandMap[category]) commandMap[category] = [];
+          commandMap[category].push(command);
+      }
+      const categories = Object.keys(commandMap);
 
-      const { commandMap, categories } = pendingMenu[sender];
       const index = parseInt(body.trim()) - 1;
       if (index < 0 || index >= categories.length) return reply("❌ Invalid selection.");
+
+      await test.sendMessage(from, { react: { text: "📑", key: m.key } });
 
       const selectedCategory = categories[index];
       const cmdsInCategory = commandMap[selectedCategory];
       const userPushname = m.pushName || 'User';
 
-      // 🛠️ ඔයා ඉල්ලපු අලුත් බෝඩර් ඩිසයින් එක
       let cmdText = `*╭───〔 ${selectedCategory} COMMANDS 〕──●●►*\n`;
       cmdText += `*┃*\n`;
       cmdText += `*┃* 🔢 Total Commands: ${cmdsInCategory.length}\n`;
@@ -184,8 +192,8 @@ cmd({
 
       cmdsInCategory.forEach(c => {
           const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
-          cmdText += `*┃*  Commands - ${patterns.join(", ")}\n`;
-          cmdText += `*┃*  Usage - ${c.desc || "No description"}\n`;
+          cmdText += `*┃* Commands - ${patterns.join(", ")}\n`;
+          cmdText += `*┃* Usage - ${c.desc || "No description"}\n`;
           cmdText += `*┃*\n`;
       });
 
@@ -200,7 +208,7 @@ cmd({
           contextInfo: design.contextInfo
       }, design.options);
 
-      delete pendingMenu[sender];
+      // 💡 delete pendingMenu[sender]; කෑල්ල ඉවත් කර ඇති නිසා, නැවත නැවත අංක එවා වෙනත් කැටගරි ලබාගත හැක.
   } catch (e) {
       console.error(e);
   }
