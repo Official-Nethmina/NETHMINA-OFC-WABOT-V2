@@ -7,7 +7,7 @@ cmd({
     react: "🚫",
     filename: __filename
 },
-async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
+async (nethmina, mek, msg, { reply, q, isOwner }) => {
     try {
         // Owner Check
         if (!isOwner) {
@@ -15,7 +15,7 @@ async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
             return reply("Only the bot owner can use this command.");
         }
 
-        let jid;
+        let rawJid;
         
         // 1. Reply කරපු මැසේජ් එකකින් sender ව අල්ලගැනීම
         const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
@@ -28,34 +28,37 @@ async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
         const mentionedJid = mek.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
         if (quotedSender) {
-            jid = quotedSender;
+            rawJid = quotedSender;
         } else if (mentionedJid.length > 0) {
-            jid = mentionedJid[0];
+            rawJid = mentionedJid[0];
         } else if (q && q.trim().length > 0) {
             let cleanNumber = q.replace(/[@\s+-]/g, '');
             if (/^\d+$/.test(cleanNumber)) {
-                jid = `${cleanNumber}@s.whatsapp.net`;
+                rawJid = `${cleanNumber}@s.whatsapp.net`;
             }
         }
 
-        if (!jid) {
+        if (!rawJid) {
             await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
             return reply("Please mention a user, reply to their message, or type their number.");
         }
 
-        // ⚠️ අලුත් Baileys වර්ෂන් වල Block කිරීමට "remove" පාවිච්චි කළ යුතුය
-        await nethmina.updateBlockStatus(jid, "remove");
+        // 🎯 Multi-device (e.g. :14@s.whatsapp.net) පිරිසිදු කර සැබෑ JID එක ගැනීම
+        const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
+
+        // WhatsApp බ්ලොක් කිරීමේ නියමිත function එක
+        await nethmina.updateBlockStatus(jid, "block");
         await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
         
         await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐁ʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
+            text: `🚫 𝐒ᴜᴄᴄᴇꜱꜱꜰᴜʟʟ𝐘 𝐁ʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
             mentions: [jid]
         }, { quoted: mek });
 
     } catch (error) {
         console.error("Block command error:", error);
         await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-        reply("Failed to block the user.");
+        reply("Failed to block the user. Make sure it's a valid PM user.");
     }
 });
 
@@ -66,7 +69,7 @@ cmd({
     react: "🔓",
     filename: __filename
 },
-async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
+async (nethmina, mek, msg, { reply, q, isOwner }) => {
     try {
         // Owner Check
         if (!isOwner) {
@@ -74,7 +77,7 @@ async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
             return reply("Only the bot owner can use this command.");
         }
 
-        let jid;
+        let rawJid;
         
         // Reply කරපු මැසේජ් එකකින් sender ව අල්ලගැනීම
         const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
@@ -87,27 +90,30 @@ async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
         const mentionedJid = mek.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
         if (quotedSender) {
-            jid = quotedSender;
+            rawJid = quotedSender;
         } else if (mentionedJid.length > 0) {
-            jid = mentionedJid[0];
+            rawJid = mentionedJid[0];
         } else if (q && q.trim().length > 0) {
             let cleanNumber = q.replace(/[@\s+-]/g, '');
             if (/^\d+$/.test(cleanNumber)) {
-                jid = `${cleanNumber}@s.whatsapp.net`;
+                rawJid = `${cleanNumber}@s.whatsapp.net`;
             }
         }
 
-        if (!jid) {
+        if (!rawJid) {
             await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
             return reply("Please mention a user, reply to their message, or type their number.");
         }
 
-        // ⚠️ අලුත් Baileys වර්ෂන් වල Unblock කිරීමට "add" පාවිච්චි කළ යුතුය
-        await nethmina.updateBlockStatus(jid, "add");
+        // 🎯 Multi-device පිරිසිදු කර සැබෑ JID එක ගැනීම
+        const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
+
+        // WhatsApp අන්බ්ලොක් කිරීමේ නියමිත function එක
+        await nethmina.updateBlockStatus(jid, "unblock");
         await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
         
         await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐔ɴʙʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
+            text: `🔓 𝐒u𝐜𝐜e𝐬𝐬f𝐮𝐥𝐥y 𝐔n𝐛𝐥o𝐜𝐤e𝐃 @${jid.split("@")[0]}`,
             mentions: [jid]
         }, { quoted: mek });
 
