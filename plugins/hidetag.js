@@ -9,7 +9,7 @@ cmd({
     use: '.hidetag Hello',
     filename: __filename
 },
-async (nethmina, mek, msg, { from, q, isGroup, isOwner, isAdmins, participants, reply }) => {
+async (nethmina, mek, msg, { from, q, isGroup, isOwner, isAdmins, reply }) => {
     try {
         // ගෲප් එකක්ද කියා පරික්ෂා කිරීම
         if (!isGroup) return reply("❌ This command can only be used in groups.");
@@ -17,45 +17,42 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, isAdmins, participants, 
         // ඇඩ්මින් හෝ බොට් අයිතිකරුද කියා පරික්ෂා කිරීම
         if (!isAdmins && !isOwner) return reply("❌ Only group admins or bot owner can use this command.");
 
-        // ගෲප් එකේ ඉන්න සියලුම සාමාජිකයන්ගේ JID ලබාගැනීම
-        const mentionAll = { mentions: participants.map(u => u.id) };
+        // 🎯 [FIX] index.js එකෙන් participants ආවේ නැතත් කෙලින්ම Group Metadata වලින් සාමාජිකයන් ලබාගැනීම
+        const groupMetadata = await nethmina.groupMetadata(from);
+        const groupParticipants = groupMetadata.participants || [];
+        
+        if (groupParticipants.length === 0) return reply("❌ Failed to fetch group members.");
 
-        // රිප්ලයි කර ඇති මැසේජ් එකේ වර්ගය හඳුනාගැනීම
-        const quotedMessage = mek.message?.extendedTextMessage?.contextInfo?.quotedMessage || 
-                              mek.message?.imageMessage?.contextInfo?.quotedMessage || 
-                              mek.message?.videoMessage?.contextInfo?.quotedMessage;
+        // සියලුම සාමාජිකයන්ගේ JID ලැයිස්තුව සකසා ගැනීම
+        const memberJids = groupParticipants.map(u => u.id);
+        const mentionAll = { mentions: memberJids };
 
-        // 1. රිප්ලයි කර ඇති මැසේජ් එකක් තිබේ නම් (Media හෝ Text)
-        if (mek.message?.extendedTextMessage?.contextInfo?.hasQuotedMessage) {
-            const contextInfo = mek.message.extendedTextMessage.contextInfo;
-            
-            // රිප්ලයි කර ඇති මැසේජ් එකේ content එක ගැනීම
+        // රිප්ලයි කර ඇති මැසේජ් එකේ contextInfo එක ලබාගැනීම
+        const contextInfo = mek.message?.extendedTextMessage?.contextInfo || 
+                            mek.message?.imageMessage?.contextInfo || 
+                            mek.message?.videoMessage?.contextInfo || 
+                            mek.message?.audioMessage?.contextInfo || 
+                            mek.message?.documentMessage?.contextInfo;
+
+        // 1. ਰිප්ලයි කර ඇති මැසේජ් එකක් තිබේ නම් (Media හෝ Text)
+        if (contextInfo && contextInfo.hasQuotedMessage) {
             const quotedType = Object.keys(contextInfo.quotedMessage)[0];
             const quotedContent = contextInfo.quotedMessage[quotedType];
 
-            let messageContent = {};
-
+            // Text මැසේජ් එකක් නම්
             if (quotedType === 'conversation' || quotedType === 'extendedTextMessage') {
-                // Text මැසේජ් එකක් නම්
                 const txt = quotedContent.text || quotedContent;
-                messageContent = { text: txt, ...mentionAll };
-            } else if (quotedType === 'imageMessage') {
-                // Image එකක් නම්
-                messageContent = { image: { url: 'https://images.xyz' }, caption: quotedContent.caption || "", ...mentionAll };
-                // සැබෑ මීඩියා එක ෆෝවර්ඩ් කිරීම වඩාත් ස්ථාවර නිසා කෙලින්ම message content එක වෙනස් කිරීම
-                return await nethmina.sendMessage(from, { forward: contextInfo.stanzaId, contextInfo: { mentionedJid: participants.map(u => u.id) } });
-            } else {
-                // වෙනත් ඕනෑම මීඩියා එකක් නම් එය සියලු දෙනාව මෙන්ෂන් කරමින් Forward කිරීම (Crash-proof ක්‍රමය)
-                return await nethmina.sendMessage(from, { 
-                    forward: {
-                        key: { remoteJid: from, id: contextInfo.stanzaId, participant: contextInfo.participant },
-                        message: contextInfo.quotedMessage
-                    },
-                    contextInfo: { mentionedJid: participants.map(u => u.id) }
-                });
-            }
-
-            return await nethmina.sendMessage(from, messageContent, { quoted: mek });
+                return await nethmina.sendMessage(from, { text: txt, ...mentionAll }, { quoted: mek });
+            } 
+            
+            // වෙනත් ඕනෑම මීඩියා එකක් නම් (Crash-proof Forward Method)
+            return await nethmina.sendMessage(from, { 
+                forward: {
+                    key: { remoteJid: from, id: contextInfo.stanzaId, participant: contextInfo.participant },
+                    message: contextInfo.quotedMessage
+                },
+                contextInfo: { mentionedJid: memberJids }
+            });
         }
 
         // 2. කෙලින්ම ටෙක්ස්ට් එකක් ටයිප් කර තිබේ නම් (.hidetag අයිබෝවන්)
