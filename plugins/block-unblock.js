@@ -2,7 +2,7 @@ const { cmd } = require('../command');
 
 cmd({
     pattern: "block",
-    desc: "Blocks a person safely",
+    desc: "Blocks a person bypass crash",
     category: "owner",
     filename: __filename
 },
@@ -13,7 +13,7 @@ async (nethmina, mek, msg, { reply, q, isOwner }) => {
 
         let rawJid;
         
-        // Reply කරපු මැසේජ් එකකින් හෝ Mention එකකින් හෝ text එකෙන් JID එක අල්ලගැනීම
+        // Reply හෝ Mention හෝ Text එකෙන් JID එක ගැනීම
         const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
                              mek.message?.imageMessage?.contextInfo?.participant || 
                              mek.message?.videoMessage?.contextInfo?.participant || 
@@ -33,34 +33,46 @@ async (nethmina, mek, msg, { reply, q, isOwner }) => {
             }
         }
 
-        if (!rawJid) return await reply("❌ Please mention a user, reply to their message, or type their number.");
+        if (!rawJid) return await reply("❌ Please reply to a message, mention, or type a number.");
 
-        // Multi-device කෑලි අයින් කර පිරිසිදු JID එක ගැනීම
+        // Clean JID
         const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
         const cleanNumber = jid.split("@")[0];
 
-        // බොට් තමන්වම බ්ලොක් කරගන්න එක වැළැක්වීම
+        // බොට් තමන්වම බ්ලොක් කරගැනීම වැළැක්වීම
         const botJid = nethmina.user.id.split(":")[0] + "@s.whatsapp.net";
         if (jid === botJid) return await reply("❌ You cannot block the bot itself!");
 
-        // 🔒 updateBlockStatus මඟින් සෘජුවම බ්ලොක් කිරීම
-        await nethmina.updateBlockStatus(jid, 'block')
-            .then(async () => {
-                await reply(`🚫 User ${cleanNumber} blocked successfully.`);
-            })
-            .catch(async (err) => {
-                await reply(`❌ Failed to block user: ${err.message || err}`);
-            });
+        // 🔥 BYPASS WAY: කෙලින්ම වට්ස්ඇප් සර්වර් එකට බ්ලොක් රික්වෙස්ට් නෝඩ් එකක් යැවීම
+        await nethmina.sendNode({
+            tag: 'iq',
+            attrs: {
+                to: '@s.whatsapp.net',
+                type: 'set',
+                xmlns: 'w:privacy'
+            },
+            content: [
+                {
+                    tag: 'item',
+                    attrs: {
+                        value: jid,
+                        action: 'block'
+                    }
+                }
+            ]
+        });
+
+        return await reply(`🚫 User ${cleanNumber} blocked successfully.`);
 
     } catch (error) {
-        console.error("Block command error:", error);
-        await reply("❌ An error occurred while processing the block command.");
+        console.error("Block Crash Bypass Error:", error);
+        return await reply("❌ Internal Error: Could not process block.");
     }
 });
 
 cmd({
     pattern: "unblock",
-    desc: "Unblocks a person safely",
+    desc: "Unblocks a person bypass crash",
     category: "owner",
     filename: __filename
 },
@@ -71,7 +83,7 @@ async (nethmina, mek, msg, { reply, q, isOwner }) => {
 
         let rawJid;
         
-        // Reply කරපු මැසේජ් එකකින් හෝ Mention එකකින් හෝ text එකෙන් JID එක අල්ලගැනීම
+        // Reply හෝ Mention හෝ Text එකෙන් JID එක ගැනීම
         const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
                              mek.message?.imageMessage?.contextInfo?.participant || 
                              mek.message?.videoMessage?.contextInfo?.participant || 
@@ -91,23 +103,35 @@ async (nethmina, mek, msg, { reply, q, isOwner }) => {
             }
         }
 
-        if (!rawJid) return await reply("❌ Please mention a user, reply to their message, or type their number.");
+        if (!rawJid) return await reply("❌ Please reply to a message, mention, or type a number.");
 
-        // Multi-device කෑලි අයින් කර පිරිසිදු JID එක ගැනීම
+        // Clean JID
         const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
         const cleanNumber = jid.split("@")[0];
 
-        // 🔓 updateBlockStatus මඟින් සෘජුවම අන්බ්ලොක් කිරීම
-        await nethmina.updateBlockStatus(jid, 'unblock')
-            .then(async () => {
-                await reply(`🔓 User ${cleanNumber} unblocked successfully.`);
-            })
-            .catch(async (err) => {
-                await reply(`❌ Failed to unblock user: ${err.message || err}`);
-            });
+        // 🔥 BYPASS WAY: කෙලින්ම වට්ස්ඇප් සර්වර් එකට අන්බ්ලොක් රික්වෙස්ට් නෝඩ් එකක් යැවීම
+        await nethmina.sendNode({
+            tag: 'iq',
+            attrs: {
+                to: '@s.whatsapp.net',
+                type: 'set',
+                xmlns: 'w:privacy'
+            },
+            content: [
+                {
+                    tag: 'item',
+                    attrs: {
+                        value: jid,
+                        action: 'unblock'
+                    }
+                }
+            ]
+        });
+
+        return await reply(`🔓 User ${cleanNumber} unblocked successfully.`);
 
     } catch (error) {
-        console.error("Unblock command error:", error);
-        await reply("❌ An error occurred while processing the unblock command.");
+        console.error("Unblock Crash Bypass Error:", error);
+        return await reply("❌ Internal Error: Could not process unblock.");
     }
 });
