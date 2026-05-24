@@ -3,7 +3,6 @@ const { cmd } = require('../command');
 cmd({
     pattern: "boom",
     alias: ["spam", "bomb"],
-    react: "💥",
     desc: "Spam directly or remotely via JID up to 1000 times safely.",
     category: "owner",
     filename: __filename
