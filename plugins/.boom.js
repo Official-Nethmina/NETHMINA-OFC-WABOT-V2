@@ -22,7 +22,7 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             );
         }
 
-        // 🔄 [100% FIXED UNIVERSAL EXTRACTOR] - බොට්ගේ ඕනෑම වර්ෂන් එකක රිප්ලයි දත්ත වරදින්නේ නැතිව ඇදගැනීම
+        // 🔄 [UNIVERSAL CONTEXT EXTRACTOR] - රිප්ලයි දත්ත ලබා ගැනීම
         const msgType = mek.message ? Object.keys(mek.message)[0] : null;
         const contextInfo = mek.message?.[msgType]?.contextInfo || 
                             mek.message?.extendedTextMessage?.contextInfo || 
@@ -38,22 +38,20 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
         let textToSpam = "";
         let count = 0;
 
-        // 🎯 [SMART REMOTE CHECK] පළමු කොටස JID එකක්ද නැත්නම් ෆෝන් නම්බර් එකක්ද කියා බැලීම
-        // දිග 5ට වඩා වැඩි නම්බර් පමණක් JID ලෙස ගනී (කෙටි කවුන්ට් ඉලක්කම් මඟ හැරීමට)
+        // 🎯 [SMART REMOTE CHECK] රිමෝට් මෝඩ් එකද කියලා බැලීම
         const isRemote = firstArg.endsWith("@g.us") || 
                          firstArg.endsWith("@s.whatsapp.net") || 
                          (/^\d+$/.test(firstArg) && firstArg.length > 5);
 
         if (isRemote) {
-            // JID එක සකසා ගැනීම
             targetJid = /^\d+$/.test(firstArg) ? `${firstArg}@s.whatsapp.net` : firstArg;
 
             if (isReplyMode) {
-                // Format: .boom [jid/number] [count] (Remote with Reply)
+                // 1️⃣ Remote Reply Mode (.boom [jid] [count])
                 if (args.length < 2) return await reply("❌ Format: Reply to message + `.boom [JID/Number] [count]`");
                 count = parseInt(args[1]);
             } else {
-                // Format: .boom [jid/number] [text] [count] (Remote Direct Text)
+                // 2️⃣ Remote Direct Mode (.boom [jid] [text] [count])
                 if (args.length < 3) return await reply("❌ Format: `.boom [JID/Number] [text] [count]`");
                 count = parseInt(args[args.length - 1]);
                 textToSpam = args.slice(1, -1).join(" ").trim();
@@ -61,10 +59,10 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
         } else {
             // 🎯 සාමාන්‍ය චැට් එක ඇතුළේ වැඩ කරන මෝඩ් එක (Local Mode)
             if (isReplyMode) {
-                // Format: .boom [count] (Local with Reply)
-                count = parseInt(q.trim());
+                // 3️⃣ Local Reply Mode (.boom [count])
+                count = parseInt(args[0]); // q එකේ තියෙන පලවෙනි අගය කවුන්ට් එක ලෙස ගනී
             } else {
-                // Format: .boom [text] [count] (Local Direct Text)
+                // 4️⃣ Local Direct Mode (.boom [text] [count])
                 if (args.length < 2) return await reply("❌ Format: `.boom [text] [count]`");
                 count = parseInt(args[args.length - 1]);
                 textToSpam = args.slice(0, -1).join(" ").trim();
@@ -80,16 +78,15 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             return await reply("⚠️ Max limit is 1000 messages to keep the bot stable!");
         }
 
-        // 🔥 [MANUAL INITIAL REACT] - හැමදේම සාර්ථක නම් මුලින්ම 💥 රියැක්ට් කරයි
+        // 🔥 [MANUAL INITIAL REACT]
         await nethmina.sendMessage(from, { react: { text: "💥", key: mek.key } });
 
         // වැඩේ පටන් ගත් බව දැක්වීම
-        await reply(`🚀 *Starting Safe Spamming...*\n🎯 Target: ${targetJid.split('@')[0]}\n📊 Total Count: ${count}\n🛡️ Mode: Anti-Ban Delay (${count > 100 ? '1.5s' : '0.5s'})\n📁 Type: ${isReplyMode ? 'Replied Content (Sticker/Media/Text)' : 'Direct Text Message'}`);
+        await reply(`🚀 *Starting Safe Spamming...*\n🎯 Target: ${targetJid.split('@')[0]}\n📊 Total Count: ${count}\n🛡️ Mode: Anti-Ban Delay (${count > 100 ? '1.5s' : '0.5s'})\n📁 Type: ${isReplyMode ? 'Replied Content' : 'Direct Text Message'}`);
 
         // 🔄 Loop එක මඟින් Spam කිරීම
         for (let i = 0; i < count; i++) {
             if (isReplyMode) {
-                // ඕනෑම ස්ටිකර්, ඉමේජ්, වීඩියෝ හෝ ටෙක්ස්ට් එකක් ක්‍රෑෂ් නොවී ෆෝවර්ඩ් කිරීම
                 await nethmina.sendMessage(targetJid, { 
                     forward: {
                         key: { 
@@ -109,7 +106,7 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             await new Promise(resolve => setTimeout(resolve, safetyDelay)); 
         }
 
-        // 🔥 [SUCCESS REACT UPDATE] වැඩේ ඉවර වූ පසු 💥 එක ✅ එකට මාරු කිරීම
+        // 🔥 [SUCCESS REACT UPDATE] 💥 එක ✅ එකට මාරු කිරීම
         await nethmina.sendMessage(from, { react: { text: "✅", key: mek.key } });
 
         // 📝 සාර්ථකයි කියා රිප්ලයි මැසේජ් එකක් යැවීම
