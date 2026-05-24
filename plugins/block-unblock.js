@@ -9,7 +9,7 @@ cmd({
 },
 async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
     try {
-        // Owner Check (ඔයාගේ config එකෙන් එන isOwner variable එක කෙලින්ම පාවිච්චි කිරීම)
+        // Owner Check
         if (!isOwner) {
             await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
             return reply("Only the bot owner can use this command.");
@@ -32,7 +32,6 @@ async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
         } else if (mentionedJid.length > 0) {
             jid = mentionedJid[0];
         } else if (q && q.trim().length > 0) {
-            // මැසේජ් එකේ නම්බර් එකක් විතරක් හෝ @ සමඟ ටයිප් කර තිබේ නම්
             let cleanNumber = q.replace(/[@\s+-]/g, '');
             if (/^\d+$/.test(cleanNumber)) {
                 jid = `${cleanNumber}@s.whatsapp.net`;
@@ -44,13 +43,12 @@ async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
             return reply("Please mention a user, reply to their message, or type their number.");
         }
 
-        // WhatsApp Block කිරීමේ නිවැරදිම Baileys function එක
-        await nethmina.updateBlockStatus(jid, "block");
+        // ⚠️ අලුත් Baileys වර්ෂන් වල Block කිරීමට "remove" පාවිච්චි කළ යුතුය
+        await nethmina.updateBlockStatus(jid, "remove");
         await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
         
-        // Tag එකත් එක්ක මැසේජ් එක යැවීම
         await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `𝐒ᴜᴄᴄᴇꜱ|ꜱꜰᴜʟʟ𝐘 𝐁ʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
+            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐁ʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
             mentions: [jid]
         }, { quoted: mek });
 
@@ -104,13 +102,12 @@ async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
             return reply("Please mention a user, reply to their message, or type their number.");
         }
 
-        // WhatsApp Unblock කිරීමේ නිවැරදිම Baileys function එක
-        await nethmina.updateBlockStatus(jid, "unblock");
+        // ⚠️ අලුත් Baileys වර්ෂන් වල Unblock කිරීමට "add" පාවිච්චි කළ යුතුය
+        await nethmina.updateBlockStatus(jid, "add");
         await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
         
-        // Tag එකත් එක්ක මැසේජ් එක යැවීම
         await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `𝐒ᴜᴄᴄᴇꜱ|ꜱꜰᴜʟʟ𝐘 𝐔ɴʙʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
+            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐔ɴʙʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
             mentions: [jid]
         }, { quoted: mek });
 
