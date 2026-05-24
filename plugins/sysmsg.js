@@ -1,9 +1,9 @@
 const { cmd } = require('../command');
+const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 
 cmd({
     pattern: "sysmsg",
     alias: ["systemmsg", "spoofsys", "sm"],
-    react: "🦹‍♂️",
     desc: "Create a fake WhatsApp system/stub notification message.",
     category: "cheat",
     use: '.sysmsg [Your Text]',
@@ -12,26 +12,34 @@ cmd({
 async (nethmina, mek, msg, { from, q, isGroup, reply }) => {
     try {
         if (!isGroup) return await reply("❌ This command can only be used in groups.");
-        if (!q) return await reply("❌ *Format:* `.sysmsg [බොරුවට දාන්න ඕන නිවේදනය]`\n\n*Example:* `.sysmsg WhatsApp Security update: Please send 1000 LKR to Bot Owner to avoid account ban!`");
+        if (!q) return await reply("❌ *Format:* `.sysmsg [බොරුවට දාන්න ඕන නිවේදනය]`\n\n*Example:* `.sysmsg WhatsApp Security update: Active successfully!`");
 
         const targetText = q.trim();
 
-        // 🔥 [CHEAT SYSTEM] වට්ස්ඇප් එක රැවටීමට Fake System Message එකක් සැකසීම
-        // මෙහි stubType 21 (Group Subject Change) වැනි එකක් දමා, stubParameters වලට අපේ Text එක දෙනවා
-        const fakeSystemNotification = {
-            key: {
-                remoteJid: from,
-                fromMe: false, // බොට්ගෙන් ආපු එකක් නොවන බව පෙන්වීමට
-                id: "SYS" + Math.random().toString(36).substring(2, 10).toUpperCase(),
-                participant: "0@s.whatsapp.net" // WhatsApp Official System ID එක
-            },
-            messageStubType: 21, // Protocol stub type for group action
-            messageStubParameters: [targetText], // අපේ Text එක මෙතනට දානවා
-            participant: "0@s.whatsapp.net"
-        };
+        await nethmina.sendMessage(from, { 
+            react: { text: "🦹‍♂️", key: mek.key } 
+        });
 
-        // 📤 ව්‍යාජ සිස්ටම් නිවේදනය ගෲප් එකට එවීම
-        return await nethmina.sendMessage(from, fakeSystemNotification);
+        // 🔥 [FIXED] Baileys වල අලුත්ම generateWAMessageFromContent ක්‍රමය මඟින් මැසේජ් එක නිර්මාණය කිරීම
+        const protoMessage = generateWAMessageFromContent(from, {
+            templateMessage: {
+                hydratedTemplate: {
+                    hydratedContentText: targetText // සමහර වර්ෂන් වලට මේක ප්‍රධාන පෙළ විදිහට ගන්නවා
+                }
+            }
+        }, { 
+            userJid: nethmina.user.id 
+        });
+
+        // 🔄 සිස්ටම් ස්ටබ් (Stub) දත්ත බලෙන් Inject කිරීම
+        protoMessage.messageStubType = 21; // Group Subject Change Protocol ID
+        protoMessage.messageStubParameters = [targetText]; // මැද නිල් පාටින් පෙනෙන Text එක
+        protoMessage.key.participant = "0@s.whatsapp.net"; // Official WhatsApp System Sender
+
+        // 📤 relayMessage මඟින් සර්වර් එකට කෙලින්ම මැසේජ් එක තල්ලු කිරීම (Mekedi check වෙන්නේ නැහැ)
+        await nethmina.relayMessage(from, protoMessage.message, { 
+            messageId: protoMessage.key.id 
+        });
 
     } catch (e) {
         console.error("System Message Spoof Error:", e);
