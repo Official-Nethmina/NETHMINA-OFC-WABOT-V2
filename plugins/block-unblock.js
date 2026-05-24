@@ -2,136 +2,118 @@ const { cmd } = require('../command');
 
 cmd({
     pattern: "block",
-    desc: "Blocks a person bypass crash",
+    desc: "Blocks a person",
     category: "owner",
+    react: "🚫",
     filename: __filename
 },
-async (nethmina, mek, msg, { reply, q, isOwner }) => {
+async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
     try {
         // Owner Check
-        if (!isOwner) return await reply("❌ You are not the owner!");
+        if (!isOwner) {
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+            return reply("Only the bot owner can use this command.");
+        }
 
-        let rawJid;
+        let jid;
         
-        // Reply හෝ Mention හෝ Text එකෙන් JID එක ගැනීම
+        // 1. Reply කරපු මැසේජ් එකකින් sender ව අල්ලගැනීම
         const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
                              mek.message?.imageMessage?.contextInfo?.participant || 
                              mek.message?.videoMessage?.contextInfo?.participant || 
                              mek.message?.documentMessage?.contextInfo?.participant || 
                              mek.message?.audioMessage?.contextInfo?.participant;
 
+        // 2. Mention කරපු අයගෙන් පළමු කෙනාව අල්ලගැනීම
         const mentionedJid = mek.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
         if (quotedSender) {
-            rawJid = quotedSender;
+            jid = quotedSender;
         } else if (mentionedJid.length > 0) {
-            rawJid = mentionedJid[0];
+            jid = mentionedJid[0];
         } else if (q && q.trim().length > 0) {
-            let cleanNumber = q.replace(/[^0-9]/g, '');
-            if (cleanNumber.length > 0) {
-                rawJid = `${cleanNumber}@s.whatsapp.net`;
+            let cleanNumber = q.replace(/[@\s+-]/g, '');
+            if (/^\d+$/.test(cleanNumber)) {
+                jid = `${cleanNumber}@s.whatsapp.net`;
             }
         }
 
-        if (!rawJid) return await reply("❌ Please reply to a message, mention, or type a number.");
+        if (!jid) {
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+            return reply("Please mention a user, reply to their message, or type their number.");
+        }
 
-        // Clean JID
-        const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
-        const cleanNumber = jid.split("@")[0];
-
-        // බොට් තමන්වම බ්ලොක් කරගැනීම වැළැක්වීම
-        const botJid = nethmina.user.id.split(":")[0] + "@s.whatsapp.net";
-        if (jid === botJid) return await reply("❌ You cannot block the bot itself!");
-
-        // 🔥 BYPASS WAY: කෙලින්ම වට්ස්ඇප් සර්වර් එකට බ්ලොක් රික්වෙස්ට් නෝඩ් එකක් යැවීම
-        await nethmina.sendNode({
-            tag: 'iq',
-            attrs: {
-                to: '@s.whatsapp.net',
-                type: 'set',
-                xmlns: 'w:privacy'
-            },
-            content: [
-                {
-                    tag: 'item',
-                    attrs: {
-                        value: jid,
-                        action: 'block'
-                    }
-                }
-            ]
-        });
-
-        return await reply(`🚫 User ${cleanNumber} blocked successfully.`);
+        // ⚠️ අලුත් Baileys වර්ෂන් වල Block කිරීමට "remove" පාවිච්චි කළ යුතුය
+        await nethmina.updateBlockStatus(jid, "remove");
+        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
+        
+        await nethmina.sendMessage(mek.key.remoteJid, {
+            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐁ʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
+            mentions: [jid]
+        }, { quoted: mek });
 
     } catch (error) {
-        console.error("Block Crash Bypass Error:", error);
-        return await reply("❌ Internal Error: Could not process block.");
+        console.error("Block command error:", error);
+        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+        reply("Failed to block the user.");
     }
 });
 
 cmd({
     pattern: "unblock",
-    desc: "Unblocks a person bypass crash",
+    desc: "Unblocks a person",
     category: "owner",
+    react: "🔓",
     filename: __filename
 },
-async (nethmina, mek, msg, { reply, q, isOwner }) => {
+async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
     try {
         // Owner Check
-        if (!isOwner) return await reply("❌ You are not the owner!");
+        if (!isOwner) {
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+            return reply("Only the bot owner can use this command.");
+        }
 
-        let rawJid;
+        let jid;
         
-        // Reply හෝ Mention හෝ Text එකෙන් JID එක ගැනීම
+        // Reply කරපු මැසේජ් එකකින් sender ව අල්ලගැනීම
         const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
                              mek.message?.imageMessage?.contextInfo?.participant || 
                              mek.message?.videoMessage?.contextInfo?.participant || 
                              mek.message?.documentMessage?.contextInfo?.participant || 
                              mek.message?.audioMessage?.contextInfo?.participant;
 
+        // Mention කරපු අයගෙන් පළමු කෙනාව අල්ලගැනීම
         const mentionedJid = mek.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
         if (quotedSender) {
-            rawJid = quotedSender;
+            jid = quotedSender;
         } else if (mentionedJid.length > 0) {
-            rawJid = mentionedJid[0];
+            jid = mentionedJid[0];
         } else if (q && q.trim().length > 0) {
-            let cleanNumber = q.replace(/[^0-9]/g, '');
-            if (cleanNumber.length > 0) {
-                rawJid = `${cleanNumber}@s.whatsapp.net`;
+            let cleanNumber = q.replace(/[@\s+-]/g, '');
+            if (/^\d+$/.test(cleanNumber)) {
+                jid = `${cleanNumber}@s.whatsapp.net`;
             }
         }
 
-        if (!rawJid) return await reply("❌ Please reply to a message, mention, or type a number.");
+        if (!jid) {
+            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+            return reply("Please mention a user, reply to their message, or type their number.");
+        }
 
-        // Clean JID
-        const jid = rawJid.split(":")[0] + "@s.whatsapp.net";
-        const cleanNumber = jid.split("@")[0];
-
-        // 🔥 BYPASS WAY: කෙලින්ම වට්ස්ඇප් සර්වර් එකට අන්බ්ලොක් රික්වෙස්ට් නෝඩ් එකක් යැවීම
-        await nethmina.sendNode({
-            tag: 'iq',
-            attrs: {
-                to: '@s.whatsapp.net',
-                type: 'set',
-                xmlns: 'w:privacy'
-            },
-            content: [
-                {
-                    tag: 'item',
-                    attrs: {
-                        value: jid,
-                        action: 'unblock'
-                    }
-                }
-            ]
-        });
-
-        return await reply(`🔓 User ${cleanNumber} unblocked successfully.`);
+        // ⚠️ අලුත් Baileys වර්ෂන් වල Unblock කිරීමට "add" පාවිච්චි කළ යුතුය
+        await nethmina.updateBlockStatus(jid, "add");
+        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
+        
+        await nethmina.sendMessage(mek.key.remoteJid, {
+            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐔ɴʙʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
+            mentions: [jid]
+        }, { quoted: mek });
 
     } catch (error) {
-        console.error("Unblock Crash Bypass Error:", error);
-        return await reply("❌ Internal Error: Could not process unblock.");
+        console.error("Unblock command error:", error);
+        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
+        reply("Failed to unblock the user.");
     }
 });
