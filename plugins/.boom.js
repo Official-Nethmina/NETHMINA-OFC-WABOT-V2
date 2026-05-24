@@ -22,14 +22,20 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             );
         }
 
-        // 🔄 [UNIVERSAL CONTEXT EXTRACTOR] - රිප්ලයි දත්ත ලබා ගැනීම
-        const msgType = mek.message ? Object.keys(mek.message)[0] : null;
-        const contextInfo = mek.message?.[msgType]?.contextInfo || 
-                            mek.message?.extendedTextMessage?.contextInfo || 
-                            mek.contextInfo || 
-                            msg?.contextInfo;
+        // 🔄 රිප්ලයි දත්ත නිවැරදිව ලබා ගැනීම
+        const quotedMessage = mek.message?.extendedTextMessage?.contextInfo?.quotedMessage || 
+                              mek.message?.imageMessage?.contextInfo?.quotedMessage || 
+                              mek.message?.videoMessage?.contextInfo?.quotedMessage ||
+                              mek.message?.audioMessage?.contextInfo?.quotedMessage ||
+                              mek.message?.documentMessage?.contextInfo?.quotedMessage;
 
-        const isReplyMode = !!(contextInfo && contextInfo.hasQuotedMessage);
+        const contextInfo = mek.message?.extendedTextMessage?.contextInfo || 
+                            mek.message?.imageMessage?.contextInfo || 
+                            mek.message?.videoMessage?.contextInfo ||
+                            mek.message?.audioMessage?.contextInfo ||
+                            mek.message?.documentMessage?.contextInfo;
+
+        const isReplyMode = !!quotedMessage;
 
         const args = q.trim().split(" ");
         const firstArg = args[0];
@@ -38,7 +44,7 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
         let textToSpam = "";
         let count = 0;
 
-        // 🎯 [SMART REMOTE CHECK] රිමෝට් මෝඩ් එකද කියලා බැලීම
+        // 🎯 රිමෝට් මෝඩ් එකද කියලා බැලීම
         const isRemote = firstArg.endsWith("@g.us") || 
                          firstArg.endsWith("@s.whatsapp.net") || 
                          (/^\d+$/.test(firstArg) && firstArg.length > 5);
@@ -57,10 +63,10 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
                 textToSpam = args.slice(1, -1).join(" ").trim();
             }
         } else {
-            // 🎯 සාමාන්‍ය චැට් එක ඇතුළේ වැඩ කරන මෝඩ් එක (Local Mode)
+            // 🎯 Local Mode (සාමාන්‍ය චැට් එක ඇතුළේ)
             if (isReplyMode) {
                 // 3️⃣ Local Reply Mode (.boom [count])
-                count = parseInt(args[0]); // q එකේ තියෙන පලවෙනි අගය කවුන්ට් එක ලෙස ගනී
+                count = parseInt(args[0]);
             } else {
                 // 4️⃣ Local Direct Mode (.boom [text] [count])
                 if (args.length < 2) return await reply("❌ Format: `.boom [text] [count]`");
@@ -78,15 +84,16 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
             return await reply("⚠️ Max limit is 1000 messages to keep the bot stable!");
         }
 
-        // 🔥 [MANUAL INITIAL REACT]
+        // 🔥 [INITIAL REACT]
         await nethmina.sendMessage(from, { react: { text: "💥", key: mek.key } });
 
         // වැඩේ පටන් ගත් බව දැක්වීම
-        await reply(`🚀 *Starting Safe Spamming...*\n🎯 Target: ${targetJid.split('@')[0]}\n📊 Total Count: ${count}\n🛡️ Mode: Anti-Ban Delay (${count > 100 ? '1.5s' : '0.5s'})\n📁 Type: ${isReplyMode ? 'Replied Content' : 'Direct Text Message'}`);
+        await reply(`🚀 *Starting Safe Spamming...*\n🎯 Target: ${targetJid.split('@')[0]}\n📊 Total Count: ${count}\n📁 Type: ${isReplyMode ? 'Replied Media/Message' : 'Direct Text'}`);
 
         // 🔄 Loop එක මඟින් Spam කිරීම
         for (let i = 0; i < count; i++) {
             if (isReplyMode) {
+                // මීඩියා හෝ රිප්ලයි මැසේජ් ෆෝවර්ඩ් කිරීම (100% Fixed)
                 await nethmina.sendMessage(targetJid, { 
                     forward: {
                         key: { 
@@ -94,28 +101,29 @@ async (nethmina, mek, msg, { from, q, isGroup, isOwner, reply }) => {
                             id: contextInfo.stanzaId, 
                             participant: contextInfo.participant || contextInfo.remoteJid 
                         },
-                        message: contextInfo.quotedMessage
+                        message: quotedMessage
                     }
                 });
             } else {
+                // සාමාන්‍ය Text එකක් සෙන්ඩ් කිරීම
                 await nethmina.sendMessage(targetJid, { text: textToSpam });
             }
             
-            // 🔒 ANTI-BAN DELAY
-            let safetyDelay = count > 100 ? 1500 : 500; 
+            // 🔒 ANTI-BAN DELAY (බොට් බෑන් නොවෙන්න පොඩි ඩිලේ එකක්)
+            let safetyDelay = count > 100 ? 1200 : 400; 
             await new Promise(resolve => setTimeout(resolve, safetyDelay)); 
         }
 
-        // 🔥 [SUCCESS REACT UPDATE] 💥 එක ✅ එකට මාරු කිරීම
+        // 🔥 [SUCCESS REACT UPDATE]
         await nethmina.sendMessage(from, { react: { text: "✅", key: mek.key } });
 
-        // 📝 සාර්ථකයි කියා රිප්ලයි මැසේජ් එකක් යැවීම
+        // සාර්ථකයි කියා රිප්ලයි එකක් යැවීම
         return await nethmina.sendMessage(from, { 
-            text: `✅ *Spamming Completed Successfully!*\n\n🎯 *Target:* ${targetJid}\n📊 *Sent Count:* ${count}\n✨ *Status:* Done` 
+            text: `✅ *Spamming Completed Successfully!*\n\n🎯 *Target:* ${targetJid}\n📊 *Sent Count:* ${count}` 
         }, { quoted: mek });
 
     } catch (e) {
-        console.error("Boom Remote Error:", e);
+        console.error("Boom Command Error:", e);
         reply(`❌ *Error Occurred !!*\n\n${e.message || e}`);
     }
 });
