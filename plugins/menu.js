@@ -8,11 +8,9 @@ const axios = require('axios');
 const os = require('os');
 const ffmpegPath = require('ffmpeg-static');
 
-const pendingMenu = {};
 const numberEmojis = ["0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣"];
 const headerImage = "https://github.com/Nethmina-dev/BOT-DATA/blob/main/Logo/ChatGPT%20Image%20Mar%2018,%202026,%2005_47_58%20PM.png?raw=true";
 
-// Voice Note එක Opus වලට කන්වර්ට් කරන ෆන්ක්ෂන් එක
 const convertToOpus = (input, output) => {
     return new Promise((resolve, reject) => {
         exec(`"${ffmpegPath}" -i "${input}" -c:a libopus -b:a 64k -vbr on -f ogg "${output}"`, (error) => {
@@ -22,7 +20,6 @@ const convertToOpus = (input, output) => {
     });
 };
 
-// පොදු contextInfo සහ quoted ස්ටයිල් එක (Forwarding & Status Style)
 const getMenuDesign = (userPushname) => {
     return {
         options: {
@@ -118,19 +115,19 @@ cmd({
 
       const categories = Object.keys(commandMap);
 
-      let mainCaption = `👋 𝐇𝐄𝐋𝐋Ｏ, ${userPushname} 𝐁𝐎𝐓 𝐌𝐀𝐈𝐍 𝐌𝐄𝐍𝐔 👾\n\n`;
+      let mainCaption = `👋 𝐇𝐄𝐋𝐋𝐎, ${userPushname} 𝐁𝐎𝐓 𝐌𝐀𝐈𝐍 𝐌𝐄𝐍𝐔 👾\n\n`;
       mainCaption += `╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」\n`;
-      mainCaption += `│📅 \`Date\` : ${date}\n`;
-      mainCaption += `│⏰ \`Time\` : ${time}\n`;
+      mainCaption += `│📅 \"Date\" : ${date}\n`;
+      mainCaption += `│⏰ \"Time\" : ${time}\n`;
       mainCaption += `╰──────────●●►\n\n`;
-      mainCaption += `╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟส์ 」\n`;
-      mainCaption += `│👤 \`User\`: ${userPushname}\n`;
-      mainCaption += `│✒️ \`Prefix\` : ${config.PREFIX || '.'}\n`;
-      mainCaption += `│🧬 \`Version\` : v2.0.0\n`;
-      mainCaption += `│🎈 \`Platform\` : Linux\n`;
-      mainCaption += `│📡 \`Host\` : ${os.hostname()}\n`;
-      mainCaption += `│📟 \`Uptime\` : ${uptime}\n`;
-      mainCaption += `│📂 \`Memory\` : ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB / ${Math.round(os.totalmem() / 1024 / 1024)}MB\n`;
+      mainCaption += `╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」\n`;
+      mainCaption += `│👤 \"User\": ${userPushname}\n`;
+      mainCaption += `│✒️ \"Prefix\" : ${config.PREFIX || '.'}\n`;
+      mainCaption += `│🧬 \"Version\" : v2.0.0\n`;
+      mainCaption += `│🎈 \"Platform\" : Linux\n`;
+      mainCaption += `│📡 \"Host\" : ${os.hostname()}\n`;
+      mainCaption += `│📟 \"Uptime\" : ${uptime}\n`;
+      mainCaption += `│📂 \"Memory\" : ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB / ${Math.round(os.totalmem() / 1024 / 1024)}MB\n`;
       mainCaption += `╰──────────●●►\n\n`;
       
       mainCaption += `*📑 MAIN MENU CATEGORIES*\n`;
@@ -140,76 +137,59 @@ cmd({
           mainCaption += `┃ ${emojiIndex} *${cat}* (${commandMap[cat].length})\n`;
       });
       mainCaption += `╰──────────●●►\n\n`;
+      mainCaption += `> 💡 *Reply to this message with a number to view commands.*\n\n`;
       mainCaption += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
       const design = getMenuDesign(userPushname);
 
-      await test.sendMessage(from, {
+      const sentMenu = await test.sendMessage(from, {
           image: { url: headerImage },
           caption: mainCaption,
           contextInfo: design.contextInfo
       }, design.options);
 
-      pendingMenu[sender] = { step: "category", active: true };
+      // 🎯 [REPLY HANDLER FOR MENU]
+      const menuId = sentMenu.key.id;
+      if (!global.replyHandlers) global.replyHandlers = {};
+
+      global.replyHandlers[menuId] = async (userReply) => {
+          const body = userReply.body.trim();
+          if (!/^[1-9][0-9]*$/.test(body)) return;
+
+          const index = parseInt(body) - 1;
+          if (index < 0 || index >= categories.length) return;
+
+          await test.sendMessage(from, { react: { text: "📑", key: userReply.key } });
+
+          const selectedCategory = categories[index];
+          const cmdsInCategory = commandMap[selectedCategory];
+
+          let cmdText = `*╭───〔 ${selectedCategory} COMMANDS 〕──●●►*\n`;
+          cmdText += `*┃*\n`;
+          cmdText += `*┃* 🔢 Total Commands: ${cmdsInCategory.length}\n`;
+          cmdText += `*┃*\n`;
+
+          cmdsInCategory.forEach(c => {
+              const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
+              cmdText += `*┃* Commands - ${patterns.join(", ")}\n`;
+              cmdText += `*┃* Usage - ${c.desc || "No description"}\n`;
+              cmdText += `*┃*\n`;
+          });
+
+          cmdText += `*╰──────────●●►*\n`;
+          cmdText += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
+
+          await test.sendMessage(from, {
+              image: { url: headerImage },
+              caption: cmdText,
+              contextInfo: design.contextInfo
+          }, design.options);
+          
+          // 💡 පරිශීලකයාට නැවත මෙනු එකට රිප්ලයි කර වෙනත් අංකයක් තෝරන්න ඉඩ දීමට handler එක මකන්නේ නැත.
+      };
 
   } catch (e) {
       console.error(e);
       reply(`*Error:* ${e.message}`);
-  }
-});
-
-// ====================== 🎯 [UPDATED TEXT HANDLING LOGIC] ======================
-cmd({
-  on: "text"
-}, async (test, m, msg, { from, body, sender, reply }) => {
-  try {
-      if (!body) return;
-      if (!pendingMenu[sender] || !pendingMenu[sender].active || !/^[1-9][0-9]*$/.test(body.trim())) return;
-
-      // නවතම කමාන්ඩ් ලිස්ට් එක හැමවෙලේම රී-මැප් කරගැනීම (Crashes මඟහරවා ගැනීමට)
-      const commandMap = {};
-      for (const command of commands) {
-          if (command.dontAddCommandList) continue;
-          const category = (command.category || "MISC").toUpperCase();
-          if (!commandMap[category]) commandMap[category] = [];
-          commandMap[category].push(command);
-      }
-      const categories = Object.keys(commandMap);
-
-      const index = parseInt(body.trim()) - 1;
-      if (index < 0 || index >= categories.length) return reply("❌ Invalid selection.");
-
-      await test.sendMessage(from, { react: { text: "📑", key: m.key } });
-
-      const selectedCategory = categories[index];
-      const cmdsInCategory = commandMap[selectedCategory];
-      const userPushname = m.pushName || 'User';
-
-      let cmdText = `*╭───〔 ${selectedCategory} COMMANDS 〕──●●►*\n`;
-      cmdText += `*┃*\n`;
-      cmdText += `*┃* 🔢 Total Commands: ${cmdsInCategory.length}\n`;
-      cmdText += `*┃*\n`;
-
-      cmdsInCategory.forEach(c => {
-          const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
-          cmdText += `*┃* Commands - ${patterns.join(", ")}\n`;
-          cmdText += `*┃* Usage - ${c.desc || "No description"}\n`;
-          cmdText += `*┃*\n`;
-      });
-
-      cmdText += `*╰──────────●●►*\n`;
-      cmdText += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
-
-      const design = getMenuDesign(userPushname);
-
-      await test.sendMessage(from, {
-          image: { url: headerImage },
-          caption: cmdText,
-          contextInfo: design.contextInfo
-      }, design.options);
-
-      // 💡 delete pendingMenu[sender]; කෑල්ල ඉවත් කර ඇති නිසා, නැවත නැවත අංක එවා වෙනත් කැටගරි ලබාගත හැක.
-  } catch (e) {
-      console.error(e);
   }
 });
