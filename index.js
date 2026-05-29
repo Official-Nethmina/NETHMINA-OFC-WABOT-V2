@@ -109,7 +109,6 @@ async function connectToWA() {
   });
 
   // --- [DELETE & EDIT DETECTION] ---
-  // --- [DELETE & EDIT DETECTION] ---
   nethmina.ev.on("messages.update", async (updates) => {
     for (const update of updates) {
         if (!update.key) continue;
@@ -151,9 +150,11 @@ async function connectToWA() {
     for (const mek of messages) {
         if (!mek.message) continue;
 
-        // Message එක Store කිරීම
+        // 🎯 AntiEdit වෙනුවෙන් පැමිණි මැසේජ් එක ප්ලගින් එක හරහා ස්ටෝර් (Store) කිරීම
         for (const plugin of global.pluginHooks) {
-            if (plugin.onMessage) try { await plugin.onMessage(nethmina, mek); } catch (e) {}
+            if (plugin.onMessage) {
+                try { await plugin.onMessage(nethmina, mek); } catch (e) {}
+            }
         }
 
         const from = mek.key.remoteJid;
