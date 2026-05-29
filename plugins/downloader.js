@@ -1,5 +1,5 @@
 const { cmd } = require("../command");
-const { ytmp3, ytmp4, tiktok } = require("sadaslk-dlcore"); // 🎯 ytmp4 සහ tiktok functions මෙතනට එකතු කළා
+const { ytmp3, ytmp4, tiktok } = require("sadaslk-dlcore"); 
 const yts = require("yt-search");
 const axios = require("axios");
 const fs = require("fs");
@@ -7,7 +7,7 @@ const path = require("path");
 const ffmpegPath = require('ffmpeg-static');
 const { exec } = require('child_process');
 
-// 🎧 [VOICE NOTE CONVERTER] - MP3 එක OPUS (Voice Note) කරන්න කෙලින්ම මෙතනම හැදූ ෆන්ක්ෂන් එක
+// 🎧 [VOICE NOTE CONVERTER]
 function convertToOpus(input, output) {
   return new Promise((resolve, reject) => {
     exec(`"${ffmpegPath}" -i "${input}" -vn -c:a libopus -b:a 64k -vbr on "${output}" -y`, (err) => {
@@ -37,7 +37,6 @@ cmd(
   {
     pattern: "song",
     alias: ["mp3", "ytmp3", "music"],
-    react: "🎶",
     desc: "Download Song",
     category: "download",
     filename: __filename,
@@ -46,14 +45,15 @@ cmd(
     try {
       if (!q) return reply("🎵 Send song name or YouTube link");
 
+      // 🎯 Auto React for command execution
+      await bot.sendMessage(from, { react: { text: "🎶", key: mek.key } });
+
       const video = await getYoutube(q);
       if (!video) return reply("❌ No results found");
 
-      // MP3 download first (to get URL)
       const mp3 = await ytmp3(video.url);
       if (!mp3?.url) return reply("❌ Failed to download MP3");
 
-      // 🔄 [REAL FILE SIZE DETECTOR]
       let fileSize = "Unknown";
       try {
         const sizeRes = await axios.head(mp3.url);
@@ -67,17 +67,17 @@ cmd(
         if (mp3.size) fileSize = mp3.size;
       }
 
-      const caption = `*🎧 𝐍𝐄𝐓𝐇𝐌𝐈𝐍𝐀 𝐎𝐅𝐂 𝐒𝐎𝐍𝐆 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄Ｒ 🎧*
+      const caption = `*🎧 𝐍𝐄𝐓𝐇𝐌𝐈𝐍𝐀 𝐎𝐅𝐂 𝐒𝐎𝐍𝐆 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 🎧*
 
 ┌───────────────●●►
-├ *📀 Title:* ${video.title}
-├ *⏱️ Duration:* ${video.timestamp}
-├ *📆 Uploaded:* ${video.ago}
-├ *👁️ Views:* ${video.views.toLocaleString()}
-├ *👍 Likes:* ${video.likes || "N/A"}
-├ *📡 Channel:* ${video.author?.name || "Unknown"}
-├ *🔗 Watch/Download:* ${video.url}
-├ *📥 Size:* ${fileSize}
+├ *\`📀 Title\`* : ${video.title}
+├ *\`⏱️ Duration\`* : ${video.timestamp}
+├ *\`📆 Uploaded\`* : ${video.ago}
+├ *\`👁️ Views:\`* : ${video.views.toLocaleString()}
+├ *\`👍 Likes\`* :  ${video.likes || "N/A"}
+├ *\`📡 Channel\`* :  ${video.author?.name || "Unknown"}
+├ *\`🔗 Watch/Download\`* : ${video.url}
+├ *\`📥 Size\`* : ${fileSize}
 └───────────────●●►
 
 ╭─〔 *🔢 SELECT FORMAT* 〕─●●►
@@ -85,7 +85,7 @@ cmd(
 ├ 1️⃣ *AUDIO TYPE*
 ├ 2️⃣ *DOCUMENT TYPE*
 ├ 3️⃣ *VOICE NOTE*
-╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈➤ˎˊ˗
+╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈➤ˎˊ˗
 
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
@@ -160,8 +160,7 @@ cmd(
             if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
           }
         }
-        
-        delete global.replyHandlers[messageId];
+        // 💡 [FIX] පරිශීලකයාට නැවතත් වෙනත් අංකයක් තෝරා ගැනීමට ඉඩ දීම සඳහා delete පේළිය ඉවත් කරන ලදී.
       };
 
     } catch (e) {
@@ -172,13 +171,12 @@ cmd(
 );
 
 // ==========================================
-// 🎥 YOUTUBE VIDEO DOWNLOADER (WITH REPLY MENU)
+// 🎥 YOUTUBE VIDEO DOWNLOADER
 // ==========================================
 cmd(
   {
     pattern: "video",
     alias: ["ytv", "mp4", "ytmp4"],
-    react: "🎥",
     desc: "Download YouTube MP4 by name or link",
     category: "download",
     filename: __filename,
@@ -187,17 +185,18 @@ cmd(
     try {
       if (!q) return reply("🎬 Send video name or YouTube link");
 
+      // 🎯 Auto React for command execution
+      await bot.sendMessage(from, { react: { text: "🎥", key: mek.key } });
+
       const video = await getYoutube(q);
       if (!video) return reply("❌ No results found");
 
-      // YTMP4 download first (to get URL)
       const data = await ytmp4(video.url, {
         format: "mp4",
         videoQuality: "360",
       });
       if (!data?.url) return reply("❌ Failed to download video");
 
-      // 🔄 [REAL FILE SIZE DETECTOR]
       let fileSize = "Unknown";
       try {
         const sizeRes = await axios.head(data.url);
@@ -273,8 +272,7 @@ cmd(
             { quoted: userReply }
           );
         }
-        
-        delete global.replyHandlers[messageId];
+        // 💡 [FIX] පරිශීලකයාට නැවතත් වෙනත් අංකයක් තෝරා ගැනීමට ඉඩ දීම සඳහා delete පේළිය ඉවත් කරන ලදී.
       };
 
     } catch (e) {
@@ -291,7 +289,6 @@ cmd(
   {
     pattern: "tiktok",
     alias: ["tt"],
-    react: "📹",
     desc: "Download TikTok video",
     category: "download",
     filename: __filename,
@@ -300,10 +297,12 @@ cmd(
     try {
       if (!q) return reply("📱 Send TikTok link");
 
+      // 🎯 Auto React for command execution
+      await bot.sendMessage(from, { react: { text: "📹", key: mek.key } });
+
       const data = await tiktok(q);
       if (!data?.no_watermark) return reply("❌ Failed to download TikTok video");
 
-      // 🔄 [REAL FILE SIZE DETECTOR]
       let fileSize = "Unknown";
       try {
         const sizeRes = await axios.head(data.no_watermark);
@@ -322,7 +321,7 @@ cmd(
 ├ *📥 Size:* ${fileSize}
 └───────────────●●►
 
-> © ᴘᴏᴡᴇʀᴇʙ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
+> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
       await bot.sendMessage(
         from,
