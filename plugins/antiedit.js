@@ -1,10 +1,8 @@
 const { getContentType } = require("@whiskeysockets/baileys");
+const config = require('../config');
 
 if (!global.msgStore) global.msgStore = new Map();
 
-// =====================================================
-// Helper: ඕනෑම message object එකෙන් text ගන්නවා
-// =====================================================
 function extractText(msg) {
     if (!msg) return "";
     const type = getContentType(msg);
@@ -18,13 +16,13 @@ function extractText(msg) {
 }
 
 module.exports = {
-
-    // =====================================================
-    // Messages.upsert: නව message ආවම store කරනවා
-    // =====================================================
+    // Messages.upsert: නව මැසේජ් ආවම ස්ටෝර් කිරීම
     onMessage: async (conn, mek) => {
         try {
             if (!mek?.message) return;
+            
+            // බොට් විසින්ම යවන ඒවා ස්ටෝර් කරන්නේ නැහැ
+            if (mek.key.fromMe) return;
 
             const msgId = mek.key.id;
             const content = extractText(mek.message);
@@ -40,80 +38,74 @@ module.exports = {
                     })
                 });
 
-                // 1 පැය පසු auto-delete
-                setTimeout(() => global.msgStore.delete(msgId), 3_600_000);
+                // පැය 1කින් මෙමරියෙන් අයින් කරනවා
+                setTimeout(() => global.msgStore.delete(msgId), 3600000);
             }
         } catch (e) {
             console.log("[antiedit] onMessage error:", e.message);
         }
     },
 
-    // =====================================================
-    // Messages.update: Edit detect කිරීම
-    // Baileys custom fork (AmilaPrabathKumara) edit events
-    // protocolMessage.type === 14  →  EDIT
-    // =====================================================
+    // Messages.update: එඩිට් හඳුනාගැනීම
     onEdit: async (conn, update, reportTarget) => {
         try {
+            // Config එකෙන් ANTI_EDIT ඔෆ් කරලා නම් රන් කරන්නේ නැහැ
+            if (config.ANTI_EDIT === "false") return;
             if (!update?.update) return;
 
             const upd = update.update;
-
-            // protocolMessage දෙකෙන් එකක් check කිරීම
-            const proto = upd.protocolMessage
-                       || upd.message?.protocolMessage
-                       || null;
-
+            const proto = upd.protocolMessage || upd.message?.protocolMessage || null;
             if (!proto) return;
 
-            // Type 14 = MESSAGE_EDIT  (Baileys enum EDIT)
             const isEdit = proto.type === 14 ||
                            proto.type === "MESSAGE_EDIT" ||
                            String(proto.type).toUpperCase() === "EDIT";
 
             if (!isEdit) return;
 
-            // Edit කරන ලද original message ID
             const originalId = proto.key?.id;
             if (!originalId) return;
 
-            // Edited content
             const editedMsg = proto.editedMessage;
             if (!editedMsg) return;
 
             const newText = extractText(editedMsg);
             if (!newText?.trim()) return;
 
-            // Store එකෙන් original message ගන්නවා
             const stored = global.msgStore.get(originalId);
-            if (!stored) return; // Store නැත්නම් (bot restart etc.) skip
+            if (!stored) return; 
 
-            // Bot ගේ own automated messages ignore
-            const skipPatterns = ["Pinging...", "🚀", "✅ *NETHMINA"];
+            // බොට්ගේම කමාන්ඩ්ස් හෝ මැසේජ් ස්කිප් කිරීම
+            const skipPatterns = ["Pinging...", "🚀", "✅ *NETHMINA", "📊 [STATUS SYNC]"];
             if (skipPatterns.some(p => stored.text.includes(p))) return;
 
-            // Text ඇත්තටම change වෙලා නම් විතරක් report
+            // මැසේජ් එක ඇත්තටම වෙනස් වෙලා නැත්නම් ස්කිප් කරනවා
             if (stored.text === newText) return;
 
-            // Report යවන target: index.js pass කරන reportTarget use කරනවා
-            // fallback: stored JID  (update.key දැන් reliable නෑ fork එකේ)
             const target = reportTarget || stored.jid;
             if (!target) return;
 
-            const report =
-                `✍️ *MESSAGE EDIT DETECTED*\n\n` +
-                `🕒 *Time:* ${stored.time}\n` +
-                `👤 *User:* @${stored.sender.split("@")[0]}\n\n` +
-                `📑 *Original Message:*\n${stored.text}\n\n` +
-                `✒️ *Edited Message:*\n${newText}\n\n` +
-                `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
+            // ✍️ ලස්සන බොක්ස් බෝඩර් ඩිසයින් එකක්
+            let report = `*╭───〔 ✍️ MESSAGE EDIT DETECTED 〕──●●►*\n`;
+            report += `*┃*\n`;
+            report += `*┃* 🕒 *Time:* ${stored.time}\n`;
+            report += `*┃* 👤 *User:* @${stored.sender.split("@")[0]}\n`;
+            report += `*┃*\n`;
+            report += `*┃* 📑 *Original Message:*\n`;
+            report += `*┃* \`\`\`${stored.text}\`\`\`\n`;
+            report += `*┃*\n`;
+            report += `*┃* ✒️ *Edited Message:*\n`;
+            report += `*┃* \`\`\`${newText}\`\`\`\n`;
+            report += `*┃*\n`;
+            report += `*╰──────────●●►*\n`;
+            report += `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ`;
 
             await conn.sendMessage(target, {
                 text: report,
                 mentions: [stored.sender]
-            });
+            }, { quoted: update });
 
-            // Store update — ආයෙත් edit කළොත් නව text compare කරන්න
+            // ස්ටෝර් එක අප්ඩේට් කිරීම (ආයෙත් එඩිට් කලොත් අල්ලගන්න)
             global.msgStore.set(originalId, { ...stored, text: newText });
 
         } catch (e) {
