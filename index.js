@@ -156,9 +156,20 @@ async function connectToWA() {
             const quotedId = mek.message.extendedTextMessage.contextInfo.stanzaId;
             if (global.replyHandlers && global.replyHandlers[quotedId]) {
                 try {
-                    await global.replyHandlers[quotedId](mek);
+                    const currentHandler = global.replyHandlers[quotedId];
+                    
+                    // User එවපු මැසේජ් එක ආරක්ෂිතව ලබා ගැනීම (Text හෝ Emoji)
+                    const userReplyText = mek.message.extendedTextMessage.text || "";
+                    mek.body = userReplyText; // Handler එක ඇතුලෙදි පාවිච්චි කරන්න ලේසි වෙන්න
+                    
+                    await currentHandler(mek);
+                    
+                    // මෙනු එකේදී දිගටම රිප්ලයි කරන්න ඕන නිසා, හැන්ඩ්ලර් එක දිගටම තියාගන්නවා
+                    if (global.replyHandlers[quotedId] === currentHandler) {
+                        // සින්දු ඩවුන්ලෝඩර් එක වගේ choice එකෙන් පස්සේ හැන්ඩ්ලර් එක අයින් වෙන ඒවාට මේක බලපාන්නේ නැත.
+                    }
                     continue; 
-                } catch (e) { console.error(e); }
+                } catch (e) { console.error("Reply Handler Error:", e); }
             }
         }
 
