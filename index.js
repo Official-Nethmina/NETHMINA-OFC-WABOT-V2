@@ -16,7 +16,7 @@ const P = require("pino");
 const express = require("express");
 const config = require("./config");
 const { sms } = require("./lib/msg");
-const { commands, replyHandlers } = require("./command");
+const { commands } = require("./command"); // 🎯 replyHandlers මෙතනින් අයින් කළා (global එක පාවිච්චි කරන නිසා)
 const { File } = require("megajs");
 
 // ====================== SERVER ======================
@@ -131,12 +131,11 @@ async function connectToWA() {
             }
         }
         
-        // 2. Edit Detection ලොජික් එක (නිවැරදි කරන ලදී)
+        // 2. Edit Detection ලොජික් එක
         if (update.update && update.update.message) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
                     try { 
-                        // මුළු update object එකම antiedit එකට පාස් කරනවා
                         await plugin.onEdit(nethmina, update, reportTarget); 
                     } catch (e) {}
                 }
@@ -145,10 +144,23 @@ async function connectToWA() {
     }
   });
   
-  // --- [MESSAGE HANDLING] ---
+  // --- [MESSAGE HANDLING] --- // 🎯 මෙතන තිබ්බ Syntax error එක හැදුවා
   nethmina.ev.on("messages.upsert", async ({ messages }) => {
     for (const mek of messages) {
         if (!mek.message) continue;
+
+        const from = mek.key.remoteJid;
+
+        // 🎯 [REPLY HANDLER LOGIC] - සින්දු/මෙනු වල 1,2,3 අංක රිප්ලයි අල්ලන කොටස
+        if (mek.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+            const quotedId = mek.message.extendedTextMessage.contextInfo.stanzaId;
+            if (global.replyHandlers && global.replyHandlers[quotedId]) {
+                try {
+                    await global.replyHandlers[quotedId](mek);
+                    continue; 
+                } catch (e) { console.error(e); }
+            }
+        }
 
         // 🎯 AntiEdit වෙනුවෙන් පැමිණි මැසේජ් එක ප්ලගින් එක හරහා ස්ටෝර් (Store) කිරීම
         for (const plugin of global.pluginHooks) {
@@ -157,7 +169,7 @@ async function connectToWA() {
             }
         }
 
-        const from = mek.key.remoteJid;
+        // 🎯 මෙතන තිබ්බ ඩබල් "const from" එක අයින් කළා (උඩින් දැනටමත් දාලා තියෙන නිසා)
         const type = getContentType(mek.message);
         const isStatus = from === "status@broadcast";
         const botNumber = jidNormalizedUser(nethmina.user.id);
@@ -265,7 +277,6 @@ async function connectToWA() {
         const q = args.join(" ");
         const reply = (txt) => nethmina.sendMessage(from, { text: txt }, { quoted: mek });
 
-        // 🎯 මෙනු කැටගරි අංක ලිස්නර් එක (cmd.function ලෙස නිවැරදි කරන ලදී)
         if (!isCmd && canWork) {
             for (const cmd of commands) {
                 if (cmd.on === "text") {
@@ -287,7 +298,6 @@ async function connectToWA() {
             if (cmd) {
                 if (isOwner && config.OWNER_REACT === "true") await nethmina.sendMessage(from, { react: { text: "🧑🏻‍💻", key: mek.key } }).catch(() => {});
                 try {
-                    // 🎯 සාමාන්‍ය කමාන්ඩ් රන් කරන කොටස (cmd.function ලෙස නිවැරදි කරන ලදී)
                     await cmd.function(nethmina, mek, sms(nethmina, mek), { from, args, q, sender, reply, isOwner, isGroup, botNumber });
                 } catch (e) { console.error(e); }
             }
