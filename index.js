@@ -131,8 +131,8 @@ async function connectToWA() {
             }
         }
         
-        // 2. Edit Detection ලොජික් එක
-        if (update.update) {
+        // 2. Edit Detection ලොජික් එක (නිවැරදි කරන ලදී)
+        if (update.update && update.update.message) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onEdit) {
                     try { 
