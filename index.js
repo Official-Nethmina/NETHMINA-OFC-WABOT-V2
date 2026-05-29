@@ -190,21 +190,6 @@ async function connectToWA() {
             }
         }
 
-      // --- මෙම කොටස එකතු කරන්න (Status Save ප්ලගින් එක වෙනුවෙන් මෙමරිය තබා ගැනීම) ---
-        if (isStatus) {
-            global.latestStatuses = global.latestStatuses || {};
-            if (!global.latestStatuses[sender]) {
-                global.latestStatuses[sender] = [];
-            }
-            // එකම ස්ටේටස් එක දෙපාරක් ඇඩ් නොවෙන්න ඩුප්ලිකේට් චෙක් කරනවා
-            const exists = global.latestStatuses[sender].some(m => m.key.id === mek.key.id);
-            if (!exists) {
-                global.latestStatuses[sender].push(mek);
-            }
-            // පරණ වැඩි ස්ටේටස් මෙමරියෙන් අයින් කරන්න (ලිමිට් එක මැසේජ් 20ක් වගේ)
-            if (global.latestStatuses[sender].length > 20) global.latestStatuses[sender].shift();
-        }
-      
         // --------------------------------------------------------
       
         if (isStatus) {
