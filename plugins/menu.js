@@ -117,17 +117,17 @@ cmd({
 
       let mainCaption = `👋 𝐇𝐄𝐋𝐋𝐎, ${userPushname} 𝐁𝐎𝐓 𝐌𝐀𝐈𝐍 𝐌𝐄𝐍𝐔 👾\n\n`;
       mainCaption += `╭─「 ᴅᴀᴛᴇ ɪɴꜰᴏʀᴍᴀᴛɪᴏɴ 」\n`;
-      mainCaption += `│📅 \"Date\" : ${date}\n`;
-      mainCaption += `│⏰ \"Time\" : ${time}\n`;
+      mainCaption += `│📅 \`Date\` : ${date}\n`;
+      mainCaption += `│⏰ \`Time\` : ${time}\n`;
       mainCaption += `╰──────────●●►\n\n`;
       mainCaption += `╭─「 ꜱᴛᴀᴛᴜꜱ ᴅᴇᴛᴀɪʟꜱ 」\n`;
-      mainCaption += `│👤 \"User\": ${userPushname}\n`;
-      mainCaption += `│✒️ \"Prefix\" : ${config.PREFIX || '.'}\n`;
-      mainCaption += `│🧬 \"Version\" : v2.0.0\n`;
-      mainCaption += `│🎈 \"Platform\" : Linux\n`;
-      mainCaption += `│📡 \"Host\" : ${os.hostname()}\n`;
-      mainCaption += `│📟 \"Uptime\" : ${uptime}\n`;
-      mainCaption += `│📂 \"Memory\" : ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB / ${Math.round(os.totalmem() / 1024 / 1024)}MB\n`;
+      mainCaption += `│👤 \`User\` : ${userPushname}\n`;
+      mainCaption += `│✒️ \`Prefix\` : ${config.PREFIX || '.'}\n`;
+      mainCaption += `│🧬 \`Version\` : v2.0.0\n`;
+      mainCaption += `│🎈 \`Platform\` : Linux\n`;
+      mainCaption += `│📡 \`Host\` : ${os.hostname()}\n`;
+      mainCaption += `│📟 \`Uptime\` : ${uptime}\n`;
+      mainCaption += `│📂 \`Memory\` : ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB / ${Math.round(os.totalmem() / 1024 / 1024)}MB\n`;
       mainCaption += `╰──────────●●►\n\n`;
       
       mainCaption += `*📑 MAIN MENU CATEGORIES*\n`;
