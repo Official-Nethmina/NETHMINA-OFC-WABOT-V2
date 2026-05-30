@@ -33,7 +33,7 @@ const voiceData = {
     "nethmina,bro,brh,mchn,hey there": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3"
 };
 
-const ownerExceptionWords = ["puh", "yno", "ynna", "yannm"]; 
+const ownerExceptionWords = ["puh", "ynoo", "ynnm"]; 
 const exactMatchOnlyWords = ["patiyo", "mcho", "nethmina", "bro", "brh", "mchn"]; 
 
 const convertToOpus = (input, output) => {
