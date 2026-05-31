@@ -67,25 +67,25 @@ cmd(
         if (mp3.size) fileSize = mp3.size;
       }
 
-      const caption = `*🎧 𝐍𝐄𝐓𝐇𝐌𝐈𝐍𝐀 𝐎𝐅𝐂 𝐒𝐎𝐍𝐆 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 🎧*
+      const caption = `*🎧 𝐒𝐎𝐍𝐆 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 🎧*
 
-┌───────────────●●►
-├ *\`📀 Title\`* : ${video.title}
-├ *\`⏱️ Duration\`* : ${video.timestamp}
-├ *\`📆 Uploaded\`* : ${video.ago}
-├ *\`👁️ Views:\`* : ${video.views.toLocaleString()}
-├ *\`👍 Likes\`* :  ${video.likes || "N/A"}
-├ *\`📡 Channel\`* :  ${video.author?.name || "Unknown"}
-├ *\`🔗 Watch/Download\`* : ${video.url}
-├ *\`📥 Size\`* : ${fileSize}
-└───────────────●●►
+┌─────────────●●►
+├ *📀 \`Title\`* : ${video.title}
+├ *⏱️ \`Duration\`* : ${video.timestamp}
+├ *📆 \`Uploaded\`* : ${video.ago}
+├ *👁️ \`Views:\`* : ${video.views.toLocaleString()}
+├ *\`👍 \`Likes\`* :  ${video.likes || "N/A"}
+├ *📡 \`Channel\`* :  ${video.author?.name || "Unknown"}
+├ *🔗 \`Watch/Download\`* : ${video.url}
+├ *📥 \`Size\`* : ${fileSize}
+└─────────────●●►
 
 ╭─〔 *🔢 SELECT FORMAT* 〕─●●►
-|
+│
 ├ 1️⃣ *AUDIO TYPE*
 ├ 2️⃣ *DOCUMENT TYPE*
 ├ 3️⃣ *VOICE NOTE*
-╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈➤ˎˊ˗
+╰┈┈┈┈┈┈┈┈┈┈┈┈➤ˎˊ˗
 
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
@@ -177,7 +177,7 @@ cmd(
   {
     pattern: "video",
     alias: ["ytv", "mp4", "ytmp4"],
-    desc: "Download YouTube MP4 by name or link",
+    desc: "Download YouTube MP4 by name or link with Quality Selection",
     category: "download",
     filename: __filename,
   },
@@ -191,39 +191,21 @@ cmd(
       const video = await getYoutube(q);
       if (!video) return reply("❌ No results found");
 
-      const data = await ytmp4(video.url, {
-        format: "mp4",
-        videoQuality: "360",
-      });
-      if (!data?.url) return reply("❌ Failed to download video");
+      // මුල් මෙනු එක (Format Menu)
+      const caption = `*🎬 𝐕𝐈𝐃𝐄𝐎 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 🎬*
 
-      let fileSize = "Unknown";
-      try {
-        const sizeRes = await axios.head(data.url);
-        const bytes = sizeRes.headers['content-length'];
-        if (bytes) {
-          fileSize = (bytes / (1024 * 1024)).toFixed(2) + " MB";
-        }
-      } catch (err) {}
-
-      const caption = `*🎬 𝐍𝐄𝐓𝐇𝐌𝐈𝐍𝐀 𝐎𝐅𝐂 𝐕𝐈𝐃𝐄𝐎 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 🎬*
-
-┌───────────────●●►
-├ *📀 Title:* ${video.title}
-├ *⏱️ Duration:* ${video.timestamp}
-├ *📆 Uploaded:* ${video.ago}
-├ *👁️ Views:* ${video.views.toLocaleString()}
-├ *👍 Likes:* ${video.likes || "N/A"}
-├ *📡 Channel:* ${video.author?.name || "Unknown"}
-├ *🔗 Watch/Download:* ${video.url}
-├ *📥 Size:* ${fileSize}
-└───────────────●●►
+┌─────────────●●►
+├ *📀 \`Title:\`* ${video.title}
+├ *⏱️ \`Duration:\`* ${video.timestamp}
+├ *📡 \`Channel:\`* ${video.author?.name || "Unknown"}
+├ *🔗 \`Watch:\`* ${video.url}
+└─────────────●●►
 
 ╭─〔 *🔢 SELECT FORMAT* 〕─●●►
-|
-├ 1️⃣ *VIDEO TYPE*
-├ 2️⃣ *DOCUMENT TYPE*
-╰┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈➤ˎˊ˗
+│
+├ 1️⃣ *VIDEO TYPE (Normal)*
+├ 2️⃣ *DOCUMENT TYPE (HD File)*
+╰┈┈┈┈┈┈┈┈┈┈┈┈➤ˎˊ˗
 
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
@@ -237,42 +219,96 @@ cmd(
       );
 
       const messageId = sentMsg.key.id;
-
       if (!global.replyHandlers) global.replyHandlers = {};
       
+      // 🔄 FIRST REPLY HANDLER: FORMAT SELECTION
       global.replyHandlers[messageId] = async (userReply) => {
-        const choice = userReply.body.trim();
-        const videoUrl = data.url;
-        const vFilename = data.filename || `${video.title}.mp4`;
+        const formatChoice = userReply.body.trim();
         
-        if (choice === "1") {
-          await bot.sendMessage(from, { react: { text: "📥", key: userReply.key } });
-          await bot.sendMessage(
-            from,
-            {
-              video: { url: videoUrl },
-              mimetype: "video/mp4",
-              fileName: vFilename,
-              caption: "🎬 *Your video is ready!*",
-              gifPlayback: false,
-            },
-            { quoted: userReply }
-          );
-        } 
-        else if (choice === "2") {
-          await bot.sendMessage(from, { react: { text: "📥", key: userReply.key } });
-          await bot.sendMessage(
-            from,
-            {
-              document: { url: videoUrl },
-              mimetype: "video/mp4",
-              fileName: vFilename,
-              caption: "🎬 *Your video is ready!*"
-            },
-            { quoted: userReply }
-          );
+        if (formatChoice !== "1" && formatChoice !== "2") {
+          return bot.sendMessage(from, { text: "❌ Invalid Choice! Please reply with 1 or 2." }, { quoted: userReply });
         }
-        // 💡 [FIX] පරිශීලකයාට නැවතත් වෙනත් අංකයක් තෝරා ගැනීමට ඉඩ දීම සඳහා delete පේළිය ඉවත් කරන ලදී.
+
+        // Quality තෝරන්න දෙන මැසේජ් එක
+        const qualityCaption = `*🎬 𝐒𝐄𝐋𝐄𝐂𝐓 𝐕𝐈𝐃𝐄𝐎 𝐐𝐔𝐀𝐋𝐈𝐓𝐘 🎬*
+
+📽️ *Video:* ${video.title}
+📂 *Format Selected:* ${formatChoice === "1" ? "Normal Video" : "Document File"}
+
+╭─〔 *🔢 REPLY WITH NUMBER* 〕─●●►
+│
+├ 1️⃣ *360p* (Low)
+├ 2️⃣ *480p* (Medium)
+├ 3️⃣ *720p* (HD)
+├ 4️⃣ *1080p* (FULL HD)
+╰┈┈┈┈┈┈┈┈┈┈┈┈➤ˎˊ˗
+
+> Reply with the option number...`;
+
+        const qSentMsg = await bot.sendMessage(from, { text: qualityCaption }, { quoted: userReply });
+        const qMessageId = qSentMsg.key.id;
+
+        // 🔄 SECOND REPLY HANDLER: QUALITY SELECTION
+        global.replyHandlers[qMessageId] = async (qualityReply) => {
+          const qualityChoice = qualityReply.body.trim();
+          
+          let targetQuality = "360"; // Default
+          if (qualityChoice === "1") targetQuality = "360";
+          else if (qualityChoice === "2") targetQuality = "480";
+          else if (qualityChoice === "3") targetQuality = "720";
+          else if (qualityChoice === "4") targetQuality = "1080";
+          else {
+            return bot.sendMessage(from, { text: "❌ Invalid Quality Choice! Please reply with 1, 2, 3 or 4." }, { quoted: qualityReply });
+          }
+
+          // 📥 ඩවුන්ලෝඩ් වෙන බව පෙන්වන්න Reaction එකක් දානවා
+          await bot.sendMessage(from, { react: { text: "📥", key: qualityReply.key } });
+
+          try {
+            // යූසර් තෝරපු Quality එකෙන් API එකට රික්වෙස්ට් එක යවනවා
+            const data = await ytmp4(video.url, {
+              format: "mp4",
+              videoQuality: targetQuality,
+            });
+
+            if (!data?.url) return bot.sendMessage(from, { text: "❌ Failed to fetch download link for this quality!" }, { quoted: qualityReply });
+
+            const videoUrl = data.url;
+            const vFilename = data.filename || `${video.title}.mp4`;
+
+            // 📤 FORMAT 1: NORMAL VIDEO
+            if (formatChoice === "1") {
+              await bot.sendMessage(
+                from,
+                {
+                  video: { url: videoUrl },
+                  mimetype: "video/mp4",
+                  fileName: vFilename,
+                  caption: `🎬 *Your Video is ready!*\n📀 *Quality:* ${targetQuality}p\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`,
+                  gifPlayback: false,
+                },
+                { quoted: qualityReply }
+              );
+            } 
+            // 📤 FORMAT 2: DOCUMENT FILE
+            else if (formatChoice === "2") {
+              await bot.sendMessage(
+                from,
+                {
+                  document: { url: videoUrl },
+                  mimetype: "video/mp4",
+                  fileName: vFilename,
+                  caption: `🎬 *Your Video Document is ready!*\n📀 *Quality:* ${targetQuality}p\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`
+                },
+                { quoted: qualityReply }
+              );
+            }
+
+          } catch (downloadErr) {
+            console.error("Download Error inside handler:", downloadErr);
+            bot.sendMessage(from, { text: "❌ Error while generating video link. Try a lower quality." }, { quoted: qualityReply });
+          }
+        };
       };
 
     } catch (e) {
@@ -312,14 +348,14 @@ cmd(
         }
       } catch (err) {}
 
-      const caption = `*📹 𝐍𝐄𝐓𝐇𝐌𝐈𝐍𝐀 𝐎𝐅𝐂 𝐓𝐈𝐊𝐓𝐎𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 📹*
+      const caption = `*📹 𝐓𝐈𝐊𝐓𝐎𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 📹*
 
-┌───────────────●●►
-├ *📀 Title:* ${data.title || "TikTok Video"}
-├ *👤 Author:* ${data.author || "Unknown"}
-├ *⏱️ Duration:* ${data.runtime ? data.runtime + "s" : "Unknown"}
-├ *📥 Size:* ${fileSize}
-└───────────────●●►
+┌─────────────●●►
+├ *📀 \`Title:\`* ${data.title || "TikTok Video"}
+├ *👤 \`Author:\`* ${data.author || "Unknown"}
+├ *⏱️ \`Duration:\`* ${data.runtime ? data.runtime + "s" : "Unknown"}
+├ *📥 \`Size:\`* ${fileSize}
+└─────────────●●►
 
 > © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
