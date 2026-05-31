@@ -125,11 +125,12 @@ cmd(
             {
               document: { url: audioUrl },
               mimetype: "audio/mpeg",
-              fileName: `${video.title}.mp3`
+              fileName: `${video.title}.mp3`,
+              caption: `🎧 *${video.title}*\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||` // 🎯 මෙන්න මෙතනට කැප්ෂන් එක එකතු කළා
             },
             { quoted: userReply }
           );
-        } 
+        }
         else if (choice === "3") {
           await bot.sendMessage(from, { react: { text: "📥", key: userReply.key } });
           
@@ -197,8 +198,12 @@ cmd(
 ┌────────────●●►
 ├ *📀 \`Title:\`* ${video.title}
 ├ *⏱️ \`Duration:\`* ${video.timestamp}
+├ *📆 \`Uploaded:\`* ${video.ago}
+├ *👁️ \`Views:\`* ${video.views.toLocaleString()}
+├ *👍 \`Likes:\`* ${video.likes || "N/A"}
 ├ *📡 \`Channel:\`* ${video.author?.name || "Unknown"}
-├ *🔗 \`Watch:\`* ${video.url}
+├ *🔗 \`Watch/Download:\`* ${video.url}
+├ *📥 \`Size:\`* ${fileSize}
 └────────────●●►
 
 ╭─〔 *🔢 SELECT FORMAT* 〕─●●►
