@@ -161,8 +161,14 @@ cmd(
             if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
           }
         }
-        // 💡 [FIX] පරිශීලකයාට නැවතත් වෙනත් අංකයක් තෝරා ගැනීමට ඉඩ දීම සඳහා delete පේළිය ඉවත් කරන ලදී.
       };
+
+      // 🎯 [FIX] විනාඩි 3කට පසු මෙමරියෙන් නිවැරදිව අයින් කිරීම (Handler එකෙන් එළියේ)
+      setTimeout(() => {
+          if (global.replyHandlers && global.replyHandlers[messageId]) {
+              delete global.replyHandlers[messageId];
+          }
+      }, 3 * 60 * 1000); // 3 Minutes
 
     } catch (e) {
       console.log("YTMP3 ERROR:", e);
@@ -170,7 +176,6 @@ cmd(
     }
   }
 );
-
 // ==========================================
 // 🎥 YOUTUBE VIDEO DOWNLOADER
 // ==========================================
@@ -192,6 +197,17 @@ cmd(
       const video = await getYoutube(q);
       if (!video) return reply("❌ No results found");
 
+      // 🔄 [UPDATE] මුල් මෙනු එකට වීඩියෝ එකේ Size එක හොයන ලොජික් එකක් දැම්මා
+      let videoSize = "Check options below";
+      try {
+        const dataCheck = await ytmp4(video.url, { format: "mp4", videoQuality: "360" });
+        if (dataCheck?.url) {
+          const sizeRes = await axios.head(dataCheck.url);
+          const bytes = sizeRes.headers['content-length'];
+          if (bytes) videoSize = `~ ${(bytes / (1024 * 1024)).toFixed(2)} MB (360p)`;
+        }
+      } catch (err) {}
+      
       // මුල් මෙනු එක (Format Menu)
       const caption = `*🎬 𝐕𝐈𝐃𝐄𝐎 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 🎬*
 
@@ -202,8 +218,8 @@ cmd(
 ├ *👁️ \`Views:\`* ${video.views.toLocaleString()}
 ├ *👍 \`Likes:\`* ${video.likes || "N/A"}
 ├ *📡 \`Channel:\`* ${video.author?.name || "Unknown"}
+├ *📥 \`Size:\`* ${videoSize}
 ├ *🔗 \`Watch/Download:\`* ${video.url}
-├ *📥 \`Size:\`* ${fileSize}
 └────────────●●►
 
 ╭─〔 *🔢 SELECT FORMAT* 〕─●●►
@@ -238,6 +254,7 @@ cmd(
         const qualityCaption = `*🎬 𝐒𝐄𝐋𝐄𝐂𝐓 𝐕𝐈𝐃𝐄𝐎 𝐐𝐔𝐀𝐋𝐈𝐓𝐘 🎬*
 
 📽️ *Video:* ${video.title}
+
 📂 *Format Selected:* ${formatChoice === "1" ? "Normal Video" : "Document File"}
 
 ╭─〔 *🔢 REPLY WITH NUMBER* 〕─●●►
@@ -314,8 +331,23 @@ cmd(
             bot.sendMessage(from, { text: "❌ Error while generating video link. Try a lower quality." }, { quoted: qualityReply });
           }
         };
+
+        // 🎯 [FIX] Quality තෝරන මෙනු එකේ Timeout එක නිවැරදිව මෙතනට දැම්මා (Quality Handler එක ඉවර වුන ගමන්)
+        setTimeout(() => {
+            if (global.replyHandlers && global.replyHandlers[qMessageId]) {
+                delete global.replyHandlers[qMessageId];
+            }
+        }, 3 * 60 * 1000); // 3 Minutes
+
       };
 
+      // Format මෙනු එකට අදාළ Timeout එක
+      setTimeout(() => {
+          if (global.replyHandlers && global.replyHandlers[messageId]) {
+              delete global.replyHandlers[messageId];
+          }
+      }, 3 * 60 * 1000); // 3 Minutes
+      
     } catch (e) {
       console.log("YTMP4 ERROR:", e);
       reply("❌ Error while downloading video");
