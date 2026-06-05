@@ -1,20 +1,10 @@
 const { cmd } = require("../command");
-const { downloadContentFromMessage } = require("@whiskeysockets/baileys"); // ඔයා පාවිච්චි කරන baileys version එක අනුව මේක වෙනස් වෙන්න පුළුවන්
+const { downloadMediaMessage } = require("@whiskeysockets/baileys"); // 🎯 Baileys official downloader එක
 const { Sticker, StickerTypes } = require("wa-sticker-formatter");
 const fs = require("fs");
 const path = require("path");
 const ffmpegPath = require('ffmpeg-static');
 const { exec } = require('child_process');
-
-// 🛠️ Helper function to download media from message
-async function downloadMedia(message, type) {
-    const stream = await downloadContentFromMessage(message, type);
-    let buffer = Buffer.from([]);
-    for await (const chunk of stream) {
-        buffer = Buffer.concat([buffer, chunk]);
-    }
-    return buffer;
-}
 
 // ==========================================
 // 🎨 IMAGE/VIDEO TO STICKER CONVERTER
@@ -29,10 +19,16 @@ cmd(
     },
     async (bot, mek, m, { from, reply }) => {
         try {
-            // 🎯 Check if it's an image or video (or a reply to one)
-            const isImage = m.quoted ? m.quoted.type === 'imageMessage' : m.type === 'imageMessage';
-            const isVideo = m.quoted ? m.quoted.type === 'videoMessage' : m.type === 'videoMessage';
-            const mediaMessage = m.quoted ? m.quoted : m;
+            // 🎯 Check where the media is (direct message or quoted reply)
+            const isGroup = from.endsWith('@g.us');
+            const targetMessage = m.quoted ? m.quoted : m;
+            
+            // Get the type of message
+            const msgType = m.quoted ? m.quoted.type : m.type;
+
+            // Check if it is an image or video
+            const isImage = msgType === 'imageMessage' || (m.quoted && m.quoted.imageMessage);
+            const isVideo = msgType === 'videoMessage' || (m.quoted && m.quoted.videoMessage);
 
             if (!isImage && !isVideo) {
                 return reply("📸 Please reply to an image/video or send one with *.sticker*");
@@ -41,16 +37,33 @@ cmd(
             // Reaction
             await bot.sendMessage(from, { react: { text: "🎨", key: mek.key } });
 
-            // Download media
-            const mediaType = isImage ? 'image' : 'video';
-            const buffer = await downloadMedia(mediaMessage, mediaType);
+            // 🎯 FIXED: Official Baileys media downloader එක පාවිච්චි කිරීම
+            // මේකෙන් image/video decryption ප්‍රශ්න සේරම විසඳෙනවා
+            let buffer;
+            if (m.quoted) {
+                // Quoted message එකක් download කරන්න (Baileys structured format එකට හදාගන්නවා)
+                const quotedKey = {
+                    key: {
+                        remoteJid: from,
+                        fromMe: m.quoted.fromMe,
+                        id: m.quoted.id,
+                        participant: m.quoted.sender
+                    },
+                    message: m.quoted.message
+                };
+                buffer = await downloadMediaMessage(quotedKey, 'buffer', {}, { logger: console });
+            } else {
+                buffer = await downloadMediaMessage(mek, 'buffer', {}, { logger: console });
+            }
+
+            if (!buffer) return reply("❌ Failed to download media. Please try again.");
 
             // Create sticker
             const sticker = new Sticker(buffer, {
-                pack: "Nethmina Bot Pack", // ඔයාට කැමති නමක් දාන්න
-                author: "Machan",          // ඔයාට කැමති නමක් දාන්න
-                type: StickerTypes.FULL,    // FULL, CROPPED, ROUNDED
-                quality: 60                 // Sticker quality (0-100)
+                pack: "Nethmina Bot Pack", 
+                author: "Machan",          
+                type: StickerTypes.FULL,    
+                quality: 60                 
             });
 
             const stickerBuffer = await sticker.toBuffer();
@@ -60,7 +73,7 @@ cmd(
 
         } catch (e) {
             console.error("STICKER ERROR:", e);
-            reply("❌ Error while creating sticker! Make sure the video is short (under 7s).");
+            reply("❌ Error while creating sticker! Make sure FFMPEG is working properly.");
         }
     }
 );
@@ -79,7 +92,7 @@ cmd(
     async (bot, mek, m, { from, reply }) => {
         try {
             // 🎯 Check if it's a sticker reply
-            const isSticker = m.quoted && m.quoted.type === 'stickerMessage';
+            const isSticker = m.quoted && (m.quoted.type === 'stickerMessage' || m.quoted.stickerMessage);
 
             if (!isSticker) {
                 return reply("🗿 Please reply to a sticker with *.take* command");
@@ -87,22 +100,38 @@ cmd(
 
             await bot.sendMessage(from, { react: { text: "🔄", key: mek.key } });
 
-            // Download Sticker
-            const stickerMessage = m.quoted;
-            const buffer = await downloadMedia(stickerMessage, 'sticker');
+            // 🎯 FIXED: Sticker download එකත් නිවැරදිව සිද්ධ කිරීම
+            const quotedKey = {
+                key: {
+                    remoteJid: from,
+                    fromMe: m.quoted.fromMe,
+                    id: m.quoted.id,
+                    participant: m.quoted.sender
+                },
+                message: m.quoted.message
+            };
+            
+            const buffer = await downloadMediaMessage(quotedKey, 'buffer', {}, { logger: console });
+            if (!buffer) return reply("❌ Failed to download sticker.");
+
+            // Animated sticker එකක්ද කියලා බලන්න ක්‍රම 2ක් check කරනවා
+            const stickerData = m.quoted.message?.stickerMessage || m.quoted;
+            const isAnimated = stickerData.isAnimated === true || stickerData.isAnimated === 'true';
 
             // Paths for temporary files
-            const isAnimated = stickerMessage.isAnimated; // Animated sticker එකක්ද කියලා බලනවා
             const inputPath = path.join(__dirname, `../tmp_st_${Date.now()}.webp`);
             fs.writeFileSync(inputPath, buffer);
 
             if (isAnimated) {
-                // 🎥 Animated Sticker to Video (MP4) conversion using FFMPEG
+                // 🎥 Animated Sticker to Video (MP4)
                 const outputPath = path.join(__dirname, `../tmp_vid_${Date.now()}.mp4`);
 
                 exec(`"${ffmpegPath}" -vcodec libwebp -i "${inputPath}" -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "${outputPath}" -y`, async (err) => {
                     try {
-                        if (err) throw err;
+                        if (err) {
+                            console.error("FFMPEG ANIMATED ERROR:", err);
+                            throw err;
+                        }
 
                         await bot.sendMessage(from, {
                             video: fs.readFileSync(outputPath),
@@ -111,8 +140,7 @@ cmd(
                         }, { quoted: mek });
 
                     } catch (vidErr) {
-                        console.error(vidErr);
-                        reply("❌ Failed to convert animated sticker to video.");
+                        reply("❌ Failed to convert animated sticker to video. check if FFMPEG is installed.");
                     } finally {
                         if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
                         if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
@@ -120,12 +148,15 @@ cmd(
                 });
 
             } else {
-                // 📸 Normal Sticker to Image (JPG) conversion using FFMPEG
+                // 📸 Normal Sticker to Image (JPG)
                 const outputPath = path.join(__dirname, `../tmp_img_${Date.now()}.jpg`);
 
                 exec(`"${ffmpegPath}" -i "${inputPath}" "${outputPath}" -y`, async (err) => {
                     try {
-                        if (err) throw err;
+                        if (err) {
+                            console.error("FFMPEG IMAGE ERROR:", err);
+                            throw err;
+                        }
 
                         await bot.sendMessage(from, {
                             image: fs.readFileSync(outputPath),
@@ -133,7 +164,6 @@ cmd(
                         }, { quoted: mek });
 
                     } catch (imgErr) {
-                        console.error(imgErr);
                         reply("❌ Failed to convert sticker to image.");
                     } finally {
                         if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
