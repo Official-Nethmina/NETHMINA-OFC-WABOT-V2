@@ -15,6 +15,7 @@ AUTO_STATUS_REACT: process.env.AUTO_STATUS_REACT || "true",
 AUTO_CALL_REJECT: process.env.AUTO_CALL_REJECT || "true",
 ANTI_EDIT: process.env.ANTI_EDIT || "true",
 OWNER_REACT: process.env.OWNER_REACT || "false",
+AUTO_READ: process.env.AUTO_READ || "commands", // (options: all, commands, none)
 FORWARD_STATUS: process.env.FORWARD_STATUS || "false",
 WORK_TYPE: process.env.WORK_TYPE || 'inbox',
 
