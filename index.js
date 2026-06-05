@@ -274,6 +274,26 @@ async function connectToWA() {
             continue; 
         }
 
+            // ========================================================
+            // 👁️ [AUTO READ MESSAGES SYSTEM LOGIC] - මෙන්න මෙතනට දාන්න
+            // ========================================================
+            try {
+                const isCmdMsg = body.startsWith(prefix);
+                const currentAutoRead = (config.AUTO_READ || "commands").toLowerCase();
+
+                if (currentAutoRead === "all") {
+                    // හැම මැසේජ් එකක්ම read කරනවා
+                    await nethmina.readMessages([mek.key]);
+                } 
+                else if (currentAutoRead === "commands" && isCmdMsg) {
+                    // prefix (.) එකෙන් පටන් ගන්න commands විතරක් read කරනවා
+                    await nethmina.readMessages([mek.key]);
+                }
+            } catch (readErr) {
+                console.error("Auto Read Error:", readErr);
+            }
+            // ========================================================
+
         // --- [AUTO VOICE & OTHER FEATURES] ---
         if (canWork) {
             for (const plugin of global.pluginHooks) {
