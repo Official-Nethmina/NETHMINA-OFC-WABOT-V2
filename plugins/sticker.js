@@ -62,10 +62,10 @@ cmd(
 
             // Create sticker
             const sticker = new Sticker(buffer, {
-                pack: "Nethmina Bot Pack", 
-                author: "Machan",          
+                pack: "💟 𝙽𝙴𝚃𝙷𝙼𝙸𝙽𝙰 - 𝚂𝚃𝙸𝙲𝙺𝙴𝚁𝚂 💟", 
+                author: "© 🧑🏻‍💻 ɴᴇᴛʜᴍɪɴᴀ ᴏꜰꜰɪᴄɪᴀʟ ᴄᴏᴍᴍᴜɴɪᴛʏ 🧑🏻‍💻",          
                 type: StickerTypes.FULL,    
-                quality: 60                 
+                quality: 75                 
             });
 
             const stickerBuffer = await sticker.toBuffer();
