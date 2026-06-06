@@ -12,6 +12,7 @@
     "@whiskeysockets/baileys": "github:AmilaPrabathKumara/Baileys-Latest#fix-leak-upload",
     "@vreden/youtube_scraper": "^1.2.8",
     "@xaviabot/fb-downloader": "^1.0.14",
+    "@vitalets/google-translate-api": "^9.2.1",
     "api-dylux": "^1.8.5",
     "axios": "^1.13.6",
     "cheerio": "^1.2.0",
