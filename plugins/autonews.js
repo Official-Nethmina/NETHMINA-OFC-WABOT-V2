@@ -1,12 +1,12 @@
 const { cmd } = require("../command");
 const config = require("../config");
 const axios = require("axios");
-const cheerio = require("cheerio"); // 🎯 HTML parse කරන්න cheerio දාගත්තා
+const cheerio = require("cheerio");
 
-// 💡 Ada Derana Sinhala Breaking News Page URL
-const NEWS_URL = "https://sinhala.adaderana.lk/hot-news.php";
+// 💡 Hiru News Sinhala Latest News Page URL
+const NEWS_URL = "https://www.hirunews.lk/sinhala/local-news.php";
 
-let lastNewsTitle = ""; // මේ පාර අපි අන්තිම නිවුස් එකේ Title එකෙන් තමයි අලුත් එකක්ද කියලා චෙක් කරන්නේ
+let lastNewsTitle = ""; // අන්තිම නිවුස් එකේ Title එක මතක තියාගන්න
 
 // ==========================================
 // 🕒 AUTO NEWS MONITOR SYSTEM (BACKGROUND TASK)
@@ -15,27 +15,30 @@ setInterval(async () => {
     try {
         if (!global.botSocket) return; 
 
-        // 🎯 Ada Derana වෙබ් අඩවියට පිවිසීම
+        // 🎯 Hiru News වෙබ් අඩවියට පිවිසීම
         const response = await axios.get(NEWS_URL, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
-            timeout: 10000
+            timeout: 15000
         });
 
-        // Cheerio මඟින් HTML එක load කරගැනීම
         const $ = cheerio.load(response.data);
         
-        // Ada Derana hot news පිටුවේ පළමු පුවත තියෙන තැන (HTML Class එක) අල්ලගන්නවා
-        const firstNewsElement = $('.news-story').first();
-        
+        // Hiru News පිටුවේ පළමු පුවත තියෙන ප්‍රධාන කොටස අල්ලගන්නවා
+        const firstNewsElement = $('.trending-section .row').first();
         if (!firstNewsElement.length) return;
 
         // නිවුස් එකේ විස්තර ගලවා ගැනීම
-        const newsTitle = firstNewsElement.find('h2 a').text().trim();
-        const newsLink = "https://sinhala.adaderana.lk/" + firstNewsElement.find('h2 a').attr('href');
-        const newsContent = firstNewsElement.find('p').text().trim();
-        const newsImage = firstNewsElement.find('.story-image img').attr('src'); // Image URL එක
+        const newsTitle = firstNewsElement.find('.trending-title a').text().trim();
+        const newsLink = firstNewsElement.find('.trending-title a').attr('href');
+        
+        // පින්තූරය (Hiru News වල inline style background image එකක් හෝ img tag එකක් තියෙන්නේ. අපි ලස්සනට ඒක extract කරමු)
+        let newsImage = firstNewsElement.find('.trending-main-img img').attr('src');
+        if (!newsImage) {
+            // නිවුස් එකේ ඇතුලේ තියෙන image එකක්ද බලනවා
+            newsImage = firstNewsElement.find('.img-fluid').attr('src');
+        }
 
         if (!newsTitle) return;
 
@@ -48,16 +51,15 @@ setInterval(async () => {
 
             lastNewsTitle = newsTitle; // Update last news title
 
-            const newsMessage = `📰 *ADA DERANA BREAKING NEWS* 📰\n\n` +
+            const newsMessage = `📰 *HIRU NEWS BREAKING NEWS* 📰\n\n` +
                                 `📌 *${newsTitle}*\n\n` +
-                                `📝 ${newsContent}\n\n` +
                                 `🔗 Link: ${newsLink}\n\n` +
-                                `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
+                                `💻 *NETHMINA-OFC WA-BOT*`;
 
             const targetOwner = "94760860835@s.whatsapp.net";
 
-            // 📸 නිවුස් එකට අදාල photo එකක් තියෙනවා නම් photo එකත් එක්කම inbox යවනවා, නැත්නම් text එක විතරක් යවනවා
-            if (newsImage) {
+            // 📸 Photo එකක් තියෙනවා නම් ඒකත් එක්කම Inbox යවනවා
+            if (newsImage && newsImage.startsWith('http')) {
                 await global.botSocket.sendMessage(targetOwner, { 
                     image: { url: newsImage }, 
                     caption: newsMessage 
@@ -66,7 +68,7 @@ setInterval(async () => {
                 await global.botSocket.sendMessage(targetOwner, { text: newsMessage });
             }
             
-            console.log("📰 [AUTO NEWS] New breaking news sent to Owner Inbox!");
+            console.log("📰 [AUTO NEWS] New Hiru breaking news sent to Owner Inbox!");
         }
 
     } catch (err) {
@@ -81,8 +83,8 @@ setInterval(async () => {
 cmd(
     {
         pattern: "news",
-        alias: ["latestnews", "derana"],
-        desc: "Get the latest breaking news manually",
+        alias: ["latestnews", "hiru"],
+        desc: "Get the latest breaking news manually from Hiru News",
         category: "tools",
         filename: __filename,
     },
@@ -92,27 +94,25 @@ cmd(
 
             const response = await axios.get(NEWS_URL, {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 },
-                timeout: 10000
+                timeout: 15000
             });
 
             const $ = cheerio.load(response.data);
-            const firstNewsElement = $('.news-story').first();
+            const firstNewsElement = $('.trending-section .row').first();
 
-            if (!firstNewsElement.length) return reply("❌ Unable to parse news data at the moment.");
+            if (!firstNewsElement.length) return reply("❌ Unable to parse Hiru news data at the moment.");
 
-            const newsTitle = firstNewsElement.find('h2 a').text().trim();
-            const newsLink = "https://sinhala.adaderana.lk/" + firstNewsElement.find('h2 a').attr('href');
-            const newsContent = firstNewsElement.find('p').text().trim();
-            const newsImage = firstNewsElement.find('.story-image img').attr('src');
+            const newsTitle = firstNewsElement.find('.trending-title a').text().trim();
+            const newsLink = firstNewsElement.find('.trending-title a').attr('href');
+            let newsImage = firstNewsElement.find('.trending-main-img img').attr('src') || firstNewsElement.find('.img-fluid').attr('src');
 
-            const newsMessage = `📰 *LATEST BREAKING NEWS* 📰\n\n` +
+            const newsMessage = `📰 *LATEST HIRU NEWS* 📰\n\n` +
                                 `📌 *${newsTitle}*\n\n` +
-                                `📝 ${newsContent}\n\n` +
                                 `🔗 Link: ${newsLink}`;
 
-            if (newsImage) {
+            if (newsImage && newsImage.startsWith('http')) {
                 return await bot.sendMessage(from, { 
                     image: { url: newsImage }, 
                     caption: newsMessage 
@@ -123,7 +123,7 @@ cmd(
 
         } catch (e) {
             console.error("Manual News Error:", e.message);
-            reply(`❌ Error while fetching latest news.\nReason: ${e.message}`);
+            reply(`❌ Error while fetching Hiru news.\nReason: ${e.message}`);
         }
     }
 );
