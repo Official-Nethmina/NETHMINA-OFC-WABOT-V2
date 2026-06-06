@@ -91,8 +91,6 @@ async function connectToWA() {
       if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) connectToWA();
     } else if (connection === "open") {
       console.log("✅ BOT CONNECTED SUCCESSFULLY");
-
-      global.botSocket = nethmina;
       
       try {
         const connMsg = `✅ *NETHMINA-OFC BOT CONNECTED*\n\nWork Mode: ${global.workType.toUpperCase()}\nPrefix: [ ${prefix} ]\nOwner: ${ownerNumber[0]}`;
