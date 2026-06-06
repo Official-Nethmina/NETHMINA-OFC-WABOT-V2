@@ -1,43 +1,43 @@
 const { cmd } = require("../command");
 const config = require("../config");
 const Parser = require("rss-parser");
+const axios = require("axios"); // 🎯 Axios එක අලුතින් එකතු කළා
 const parser = new Parser();
 
-// 💡 Ada Derana Sinhala RSS Feed Link
-const NEWS_FEED_URL = "http://sinhala.adaderana.lk/rss.php";
+// 💡 HTTPS වලට update කරන ලද ලින්ක් එක
+const NEWS_FEED_URL = "https://sinhala.adaderana.lk/rss.php";
 
-// Memory එකේ අන්තිමට ආපු නිවුස් එකේ ලින්ක් එක සේව් කරගන්න variable එකක්
-// (බොට් රන් වෙනකොට එකම නිවුස් එක දෙපාරක් යෑම වැලැක්වීමට)
 let lastNewsLink = ""; 
 
 // ==========================================
 // 🕒 AUTO NEWS MONITOR SYSTEM (BACKGROUND TASK)
 // ==========================================
-// බොට් කනෙක්ට් වුනාට පස්සේ හැම විනාඩි 2කට වරක්ම අලුත් නිවුස් ආවාදැයි auto චෙක් කරනවා
 setInterval(async () => {
     try {
-        // global.nethmina instance එක ඔයාගේ main file එකෙන් හෝ config එකෙන් global කරලා තියෙන්න ඕනේ.
-        // නැතහොත් අපි මේ function එක ක්‍රියාත්මක කරන්නේ බොට්ගේ socket එක හරහායි.
         if (!global.botSocket) return; 
 
-        const feed = await parser.parseURL(NEWS_FEED_URL);
+        // 🎯 Axios හරහා XML data එක secure ව ලබා ගැනීම
+        const response = await axios.get(NEWS_FEED_URL, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+            },
+            timeout: 10000 // තත්පර 10කින් Request එක timeout කරනවා සිරවීම් වැලැක්වීමට
+        });
+
+        // ලබාගත් XML data එක parse කිරීම
+        const feed = await parser.parseString(response.data);
         if (!feed.items || feed.items.length === 0) return;
 
-        // අලුත්ම නිවුස් එක (ලැයිස්තුවේ මුලින්ම තියෙන එක)
         const latestNews = feed.items[0]; 
 
-        // 🎯 Check if it's a new article
         if (latestNews.link !== lastNewsLink) {
-            
-            // පළමු වතාවට රන් වෙනකොට පරණ නිවුස් ඔක්කොම ඉන්බොක්ස් එකට යන එක නවත්වන්න
             if (lastNewsLink === "") {
                 lastNewsLink = latestNews.link;
                 return;
             }
 
-            lastNewsLink = latestNews.link; // Update last news link
+            lastNewsLink = latestNews.link; 
 
-            // Format News Text
             const newsTitle = latestNews.title || "අලුත්ම පුවතක්";
             const newsContent = latestNews.contentSnippet || latestNews.content || "";
             const newsDate = latestNews.pubDate || new Date().toLocaleString();
@@ -47,20 +47,17 @@ setInterval(async () => {
                                 `📝 ${newsContent.trim()}\n\n` +
                                 `🕒 _Time: ${newsDate}_\n\n` +
                                 `🔗 Link: ${latestNews.link}\n\n` +
-                                `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
+                                `💻 *NETHMINA-OFC WA-BOT*`;
 
-            // 🎯 Ownerගේ inbox (DM) එකට නිවුස් එක සෙන්ඩ් කිරීම
-            // ඔයාගේ ownerNumber එක "94760860835" නිසා ඒකට auto මැසේජ් එක යනවා
             const targetOwner = "94760860835@s.whatsapp.net";
-            
             await global.botSocket.sendMessage(targetOwner, { text: newsMessage });
             console.log("📰 [AUTO NEWS] New breaking news sent to Owner Inbox!");
         }
 
     } catch (err) {
-        console.error("❌ Auto News Checker Error:", err);
+        console.error("❌ Auto News Checker Error:", err.message);
     }
-}, 2 * 60 * 1000); // ⏱️ හැම විනාඩි 2කට වරක්ම චෙක් කරනවා (2 minutes)
+}, 2 * 60 * 1000); 
 
 
 // ==========================================
@@ -78,7 +75,15 @@ cmd(
         try {
             await bot.sendMessage(from, { react: { text: "📰", key: mek.key } });
 
-            const feed = await parser.parseURL(NEWS_FEED_URL);
+            // 🎯 Manual එකටත් Axios safe fetch එක දැම්මා
+            const response = await axios.get(NEWS_FEED_URL, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+                },
+                timeout: 10000
+            });
+
+            const feed = await parser.parseString(response.data);
             if (!feed.items || feed.items.length === 0) return reply("❌ Unable to fetch news at the moment.");
 
             const latestNews = feed.items[0];
@@ -91,14 +96,13 @@ cmd(
                                 `📌 *${newsTitle.trim()}*\n\n` +
                                 `📝 ${newsContent.trim()}\n\n` +
                                 `🕒 _Time: ${newsDate}_\n\n` +
-                                `🔗 Link: ${latestNews.link}\n\n` +
-                                `> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
+                                `🔗 Link: ${latestNews.link}`;
 
             return reply(newsMessage);
 
         } catch (e) {
-            console.error(e);
-            reply("❌ Error while fetching latest news.");
+            console.error("Manual News Error:", e.message);
+            reply(`❌ Error while fetching latest news.\nReason: ${e.message}`);
         }
     }
 );
