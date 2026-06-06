@@ -23,8 +23,6 @@ targetLanguages.forEach(({ cmdName, langCode }) => {
             try {
                 if (!q) return reply(`✍️ Please provide a text to translate. \nExample: *.${cmdName} ඔයා මොකද කරන්නේ*`);
 
-                await bot.sendMessage(from, { react: { text: "🔤", key: mek.key } });
-
                 let textToTranslate = q.trim();
                 let extractedEmojis = "";
 
