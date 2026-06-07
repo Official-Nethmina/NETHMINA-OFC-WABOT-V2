@@ -1,52 +1,53 @@
 const { cmd } = require("../command");
 const config = require("../config");
 
-// 🧠 Users ලාගේ Chat States (පියවරවල්) මතක තබා ගැනීමට Memory Object එකක්
-// Real production එකකදී මේක database එකකට දාන්න පුළුවන්, දැනට Memory එක පාවිච්චි කරමු.
+// 🧠 Users ලාගේ Chat States මතක තබා ගැනීමට Memory Object එක
 global.topupSessions = global.topupSessions || {};
 
-// 🛠️ Helper Functions
-function cleanNumber(str) {
-    return str.replace(/[^0-9]/g, '');
-}
-
-// 🎯 Main Command: ඕනෑම මැසේජ් එකක් ආවම (Hi, Hello, Ayye, Bro හෝ වෙනත්) බොට් Session එකක් නැත්නම් වැඩේ පටන් ගන්නවා
+// 🎯 Main Command: Specific Keywords ආවොත් විතරක් මුලින්ම වැඩේ පටන් ගන්නවා
 cmd(
     {
         on: "body",
-        notCmd: true, // 🎯 මේ පේළිය අලුතින් එකතු කරන්න! (එතකොට . නැතුව නිකන් "hi" ගැහුවත් බොට් අල්ලගන්නවා)
+        notCmd: true, // . නැතුව නිකන් වචන ගැහුවත් වැඩ කිරීමට
         category: "business",
         filename: __filename,
     },
     async (bot, mek, m, { from, body, reply, isGroup }) => {
-        // ගෲප් මැසේජ් වලට බොට් රිප්ලයි නොකර ඉන්බොක්ස් (DM) වලට විතරක් වැඩ කිරීමට
         if (isGroup) return;
         if (!body) return;
 
         const text = body.trim();
         const sender = m.sender;
 
-        // බොට්ගේම මැසේජ් වලට බොට් රිප්ලයි කිරීම වැලැක්වීම
         if (m.fromMe) return;
 
         // 🔄 User Session එකක් දැනටමත් තියෙනවාදැයි බැලීම
         let session = global.topupSessions[sender];
 
-        // 🚀 STEP 0: මුල්ම වතාවට මැසේජ් එකක් එවන විට (භාෂාව තේරීම)
+        // 🚀 STEP 0: මුල්ම වතාවට TopUp Keywords එකක් එවන විට පමණක් Session එකක් හදනවා
         if (!session) {
-            global.topupSessions[sender] = {
-                step: "CHOOSE_LANGUAGE",
-                lang: null,
-                game: null,
-                category: null,
-                product: null,
-                price: 0,
-                uid: null,
-                payment: null
-            };
+            // 🎯 TopUp කරන්න එන කෙනෙක් අනිවාර්යයෙන්ම එවන වචන ලැයිස්තුව (Keywords Detect)
+            const isTopUpKeyword = /(topup|top up|freefire|free fire|ff|weekly|monthly|diamond|diamonds|dm|pack|membership|level up|levelup|evo)/i.test(text);
+            
+            // එකී වචනයක් අහුවුනොත් විතරක් භාෂාව තෝරන්න කියනවා
+            if (isTopUpKeyword) {
+                global.topupSessions[sender] = {
+                    step: "CHOOSE_LANGUAGE",
+                    lang: null,
+                    game: null,
+                    category: null,
+                    product: null,
+                    price: 0,
+                    uid: null,
+                    payment: null
+                };
 
-            const langMsg = `*Please select a language to continue the service (සේවාව ඉදිරියට පවත්වාගෙන යාම සඳහා භාෂාවක් තෝරන්න 👇)*\n\n1⃣ English\n\n2⃣ සිංහල`;
-            return await reply(langMsg);
+                const langMsg = `*Please select a language to continue the service (සේවාව ඉදිරියට පවත්වාගෙන යාම සඳහා භාෂාවක් තෝරන්න 👇)*\n\n1️⃣ English\n\n2️⃣ සිංහල`;
+                return await reply(langMsg);
+            }
+            
+            // TopUp වචනයක් නොවේ නම් සාමාන්‍ය Auto Voice එකට වැඩ කරන්න ඉඩ දී නිශ්ශබ්ද වේ.
+            return;
         }
 
         // ==========================================
@@ -62,8 +63,7 @@ cmd(
                 session.step = "MAIN_HELP";
                 return await reply("ආයුබෝවන්, මම Nethmina Official Community එකෙහි ඔබගේ Topup සහායකයා. ඔබට කිසියම් උදව්වක් අවශ්‍යද?");
             } else {
-                // වචනයක් ගැහුවොත් හෝ වෙනත් අංකයක් ගැහුවොත් ආයෙත් භාෂාව අහනවා
-                const langMsg = `*Please select a language to continue the service (සේවාව ඉදිරියට පවත්වාගෙන යාම සඳහා භාෂාවක් තෝරන්න 👇)*\n\n1⃣ English\n\n2⃣ සිංහල`;
+                const langMsg = `*Please select a language to continue the service (සේවාව ඉදිරියට පවත්වාගෙන යාම සඳහා භාෂාවක් තෝරන්න 👇)*\n\n1️⃣ English\n\n2️⃣ සිංහල`;
                 return await reply(langMsg);
             }
         }
@@ -83,7 +83,7 @@ cmd(
                 if (session.lang === "en") {
                     return await reply("Sorry, I'm only supporting you with TopUp tasks. I can't do what you need, so would you like one of our agents or an admin to connect you?\n\nReply with *YES* to connect.");
                 } else {
-                    return await reply("කණගාටුයි, මම ඔබට සහාය දක්වන්නේ ටොප්අප් (TopUp) සම්බන්ධ වැඩකටයුතු සඳහා පමණි. ඔබ ඉල්ලා සිටින දේ මට කළ නොහැක. එබැවින් අපගේ නියෝජිතයෙකු හෝ ඇඩ්මින්වරයෙකු ඔබ හා සම්බන්ධ කිරීමට ඔබ කැමතිද?\n\nසම්බන්ධ වීමට *ඔව්* ලෙස රිප්ලයි කරන්න.");
+                    return await reply("කණගาටුයි, මම ඔබට සහාය දක්වන්නේ ටොප්අප් (TopUp) සම්බන්ධ වැඩකටයුතු සඳහා පමණි. ඔබ ඉල්ලා සිටින දේ මට කළ නොහැක. එබැවින් අපගේ නියෝජිතයෙකු හෝ ඇඩ්මින්වරයෙකු ඔබ හා සම්බන්ධ කිරීමට ඔබ කැමතිද?\n\nසම්බන්ධ වීමට *ඔව්* ලෙස රිප්ලයි කරන්න.");
                 }
             }
 
@@ -97,7 +97,6 @@ cmd(
                 }
                 return await reply(msg);
             } else {
-                // වෙනත් සාමාන්‍ය උදව්වක් නම්
                 if (session.lang === "en") {
                     return await reply("How can I assist you with your TopUp needs? Please let me know what you are looking for.");
                 } else {
@@ -120,7 +119,7 @@ cmd(
             }
         }
 
-        if (session.step === "WAITING_ADMIN") return; // ඇඩ්මින් එනකන් බොට් මැසේජ් process කරන්නේ නැත.
+        if (session.step === "WAITING_ADMIN") return;
 
         // ==========================================
         // 🎮 STEP 3: GAME SELECTION
@@ -181,7 +180,6 @@ cmd(
             const num = parseInt(text);
             if (isNaN(num)) return await reply(session.lang === "en" ? "❌ Invalid selection. Please enter a valid number." : "❌ අවලංගු තේරීමක්. කරුණාකර නිවැරදි අංකයක් ඇතුලත් කරන්න.");
 
-            // 💎 DIAMOND PRICING MAPPING
             if (session.category === "DIAMONDS") {
                 const diaPacks = [
                     { name: "25 Diamonds", price: 70 }, { name: "50 Diamonds", price: 140 }, { name: "100 Diamonds", price: 265 },
@@ -195,21 +193,19 @@ cmd(
                 session.product = diaPacks[num - 1].name;
                 session.price = diaPacks[num - 1].price;
             } 
-            // 💳 MEMBERSHIP MAPPING
             else if (session.category === "MEMBERSHIP") {
                 const memPacks = [
                     { name: "Weekly Lite Membership", price: 110, shells: 17 },
                     { name: "Weekly Membership", price: 470, shells: 86 },
                     { name: "Monthly Membership", price: 2250, shells: 430 },
-                    { name: "VIP Membership", price: 2700, shells: 516 }, // 1 weekly + 1 monthly = 86+430
-                    { name: "Super VIP Membership", price: 4410, shells: 774 } // 4 weekly + 1 monthly = (86*4)+430
+                    { name: "VIP Membership", price: 2700, shells: 516 }, 
+                    { name: "Super VIP Membership", price: 4410, shells: 774 } 
                 ];
                 if (num < 1 || num > 5) return reply("❌ Choose between 1-5");
                 session.product = memPacks[num - 1].name;
                 session.price = memPacks[num - 1].price;
                 session.shells = memPacks[num - 1].shells;
             } 
-            // 🎮 LEVEL UP PASS MAPPING
             else if (session.category === "LEVELUP") {
                 const lvlPacks = [
                     { name: "Level Up Pass (Level 6)", price: 110 }, { name: "Level Up Pass (Level 10)", price: 220 },
@@ -221,7 +217,6 @@ cmd(
                 session.product = lvlPacks[num - 1].name;
                 session.price = lvlPacks[num - 1].price;
             } 
-            // 🎯 EVO ACCESS MAPPING
             else if (session.category === "EVO") {
                 const evoPacks = [
                     { name: "EVO Access (3 Days)", price: 210 },
@@ -233,7 +228,6 @@ cmd(
                 session.price = evoPacks[num - 1].price;
             }
 
-            // Move to UID confirmation
             session.step = "GET_UID";
             if (session.lang === "en") {
                 return await reply(`🎯 Selected Product: *${session.product}* (LKR ${session.price}/=)\n\n👉 Now, please send your Free Fire Player *UID* to continue the topup. (Numbers only)`);
@@ -246,7 +240,7 @@ cmd(
         // 🆔 STEP 6: UID NUMBERS ONLY VALIDATION
         // ==========================================
         if (session.step === "GET_UID") {
-            const isPureNumber = /^\d+$/.test(text); // Check if string contains only numbers
+            const isPureNumber = /^\d+$/.test(text);
 
             if (!isPureNumber) {
                 if (session.lang === "en") {
@@ -256,7 +250,7 @@ cmd(
                 }
             }
 
-            session.uid = text; // Save UID
+            session.uid = text; 
             session.step = "SELECT_PAYMENT";
 
             let payMsg = "";
@@ -273,7 +267,6 @@ cmd(
         // ==========================================
         if (session.step === "SELECT_PAYMENT") {
             if (text === "2" || /bank/i.test(text)) {
-                // Bank Transfer Not Available
                 if (session.lang === "en") {
                     return await reply("We have currently not available this payment method. Please choose Ez cash.");
                 } else {
@@ -283,7 +276,7 @@ cmd(
                 session.payment = "EZ_CASH";
                 session.step = "AWAITING_SLIP";
 
-                const totalBill = session.price + 20; // 20/= Tax added
+                const totalBill = session.price + 20;
 
                 const billMsg = `*‼️EZ CASH වලින් සල්ලි එවන හැමෝම අනිවාර්යයෙන් කියවන්න ‼️*\n\n` +
                                 `🔘 *Ez Cash එකෙන් Service Fee එකක් විදියට ඔයාල මුදල් එවන එක් වතාකට අපෙන් දැන් 20/=ක මුදලක් කපා ගන්නවා 😣*\n\n` +
@@ -309,15 +302,12 @@ cmd(
         // 📸 STEP 8: RECEIPT SLIP PROCESSING
         // ==========================================
         if (session.step === "AWAITING_SLIP") {
-            // User කෙනෙක් Image, Document (PDF) එකක් එවනකන් බලනවා
             const isMedia = m.mtype === "imageMessage" || m.mtype === "documentMessage";
 
             if (isMedia) {
-                // Shell Calculation & Time Logic (බොස්ලාට විතරක් පෙනෙන, යූසර්ට නොපෙනෙන Processing Template එක)
                 const shellCount = session.shells ? session.shells : "-";
                 const totalShell = session.shells ? session.shells : "-";
                 
-                // ඇණවුමේ ප්‍රමාණය අනුව වෙලාව තීරණය කිරීම (පැකේජයේ මිල අනුව)
                 let estTime = "1-2 min";
                 if (session.price >= 2000) {
                     estTime = "4-5 min";
@@ -331,28 +321,23 @@ cmd(
                                            `Total: ${totalShell} SHELLS\n` +
                                            `Estimated Time: ~${estTime}`;
 
-                // මුලින්ම යූසර්ට ස්තූති කර මැසේජ් එක දෙනවා
                 if (session.lang === "en") {
                     await reply("Please wait for complete your topup and Thanks for trusted our service. If we check your payment and completed your topup we will kindly inform you with a message.");
                 } else {
                     await reply("ඔබගේ ටොප්අප් එක සම්පූර්ණ වන තෙක් කරුණාකර රැඳී සිටින්න. අපගේ සේවාව විශ්වාස කිරීම ගැන ඔබට ස්තූතියි. අප ඔබගේ ගෙවීම පරීක්ෂා කර ටොප්අප් එක නිම කල පසු කරුණාකර පණිවිඩයකින් දැනුම් දෙනු ලැබේ.");
                 }
 
-                // 🎯 ක්ෂණිකව බොස්ගේ (Nethmina OFC) ඉන්බොක්ස් එකට Order එක සහ Slip එක Forward/Send කිරීම
                 const ownerInbox = "94760860835@s.whatsapp.net";
                 
-                // Slip එක අයිතිකාරයාට යැවීම
                 await bot.sendMessage(ownerInbox, { 
                     forward: mek, 
                     caption: `🔔 *NEW TOPUP ORDER RECEIVED!* 🔔\n\n${processingTemplate}\n\n👤 From: @${sender.split('@')[0]}`,
                     mentions: [sender]
                 });
 
-                // වැඩේ ඉවර නිසා Session එක Reset කරනවා
                 delete global.topupSessions[sender];
                 return;
             } else {
-                // Slip එකක් වෙනුවට ටෙක්ස්ට් එකක් එවුවොත් මතක් කිරීම
                 if (session.lang === "en") {
                     return await reply("❌ Please send the Transaction Slip (Image/Screenshot) to complete your order.");
                 } else {
