@@ -4,11 +4,10 @@ const config = require("../config");
 // 🧠 Users ලාගේ Chat States මතක තබා ගැනීමට Memory Object එක
 global.topupSessions = global.topupSessions || {};
 
-// 🎯 Main Command: Specific Keywords ආවොත් විතරක් මුලින්ම වැඩේ පටන් ගන්නවා
+// 🎯 Main Command: ඔයාගේ Handler එකට ගැලපෙන්න "on: text" දැම්මා
 cmd(
     {
-        on: "body",
-        notCmd: true, // . නැතුව නිකන් වචන ගැහුවත් වැඩ කිරීමට
+        on: "text", 
         category: "business",
         filename: __filename,
     },
@@ -75,7 +74,7 @@ cmd(
             const isYesEn = /^(yes|need|help|i need help|up|topup|top up|1)/i.test(text);
             const isYesSi = /(ඔව්|උදව්|ඕනේ|ටොප්අප්|ටොප් අප්)/i.test(text);
             
-            // Bot එක දන්නේ නැති වෙනත් වැඩක් ඇහුවොත් (e.g., make a whatsapp bot, social booting etc.)
+            // Bot එක දන්නේ නැති වෙනත් වැඩක් ඇහුවොත්
             const isUnkownWork = /(bot|website|social|booting|hack|make|create|හදන්න)/i.test(text);
 
             if (isUnkownWork) {
@@ -83,7 +82,7 @@ cmd(
                 if (session.lang === "en") {
                     return await reply("Sorry, I'm only supporting you with TopUp tasks. I can't do what you need, so would you like one of our agents or an admin to connect you?\n\nReply with *YES* to connect.");
                 } else {
-                    return await reply("කණගาටුයි, මම ඔබට සහාය දක්වන්නේ ටොප්අප් (TopUp) සම්බන්ධ වැඩකටයුතු සඳහා පමණි. ඔබ ඉල්ලා සිටින දේ මට කළ නොහැක. එබැවින් අපගේ නියෝජිතයෙකු හෝ ඇඩ්මින්වරයෙකු ඔබ හා සම්බන්ධ කිරීමට ඔබ කැමතිද?\n\nසම්බන්ධ වීමට *ඔව්* ලෙස රිප්ලයි කරන්න.");
+                    return await reply("කණගාටුයි, මම ඔබට සහාය දක්වන්නේ ටොප්අප් (TopUp) සම්බන්ධ වැඩකටයුතු සඳහා පමණි. ඔබ ඉල්ලා සිටින දේ මට කළ නොහැක. එබැවින් අපගේ නියෝජිතයෙකු හෝ ඇඩ්මින්වරයෙකු ඔබ හා සම්බන්ධ කිරීමට ඔබ කැමතිද?\n\nසම්බන්ධ වීමට *ඔව්* ලෙස රිප්ලයි කරන්න.");
                 }
             }
 
@@ -302,7 +301,9 @@ cmd(
         // 📸 STEP 8: RECEIPT SLIP PROCESSING
         // ==========================================
         if (session.step === "AWAITING_SLIP") {
-            const isMedia = m.mtype === "imageMessage" || m.mtype === "documentMessage";
+            // Note: ඔයාගේ Handler එකට අනුව m object එක ඇතුලේ කෙලින්ම imageMsg නැති වෙන්න පුළුවන්. 
+            // ඒ නිසා අපි mek එකෙන්ම media ද කියලා චෙක් කරමු.
+            const isMedia = mek.message?.imageMessage || mek.message?.documentMessage || mek.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
 
             if (isMedia) {
                 const shellCount = session.shells ? session.shells : "-";
@@ -329,9 +330,9 @@ cmd(
 
                 const ownerInbox = "94760860835@s.whatsapp.net";
                 
+                // Owner ට details ටික text එකක් විදියට යවනවා
                 await bot.sendMessage(ownerInbox, { 
-                    forward: mek, 
-                    caption: `🔔 *NEW TOPUP ORDER RECEIVED!* 🔔\n\n${processingTemplate}\n\n👤 From: @${sender.split('@')[0]}`,
+                    text: `🔔 *NEW TOPUP ORDER RECEIVED!* 🔔\n\n${processingTemplate}\n\n👤 From: @${sender.split('@')[0]}`,
                     mentions: [sender]
                 });
 
