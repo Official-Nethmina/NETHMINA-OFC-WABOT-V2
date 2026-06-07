@@ -13,7 +13,8 @@ function cleanNumber(str) {
 // 🎯 Main Command: ඕනෑම මැසේජ් එකක් ආවම (Hi, Hello, Ayye, Bro හෝ වෙනත්) බොට් Session එකක් නැත්නම් වැඩේ පටන් ගන්නවා
 cmd(
     {
-        on: "body", // හැම මැසේජ් එකක්ම කියවීමට
+        on: "body",
+        notCmd: true, // 🎯 මේ පේළිය අලුතින් එකතු කරන්න! (එතකොට . නැතුව නිකන් "hi" ගැහුවත් බොට් අල්ලගන්නවා)
         category: "business",
         filename: __filename,
     },
