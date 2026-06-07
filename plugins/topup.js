@@ -4,32 +4,30 @@ const config = require("../config");
 // 🧠 Users ලාගේ Chat States මතක තබා ගැනීමට Memory Object එක
 global.topupSessions = global.topupSessions || {};
 
-// 🎯 Main Command: ඔයාගේ Handler එකට ගැලපෙන්න "on: text" දැම්මා
 cmd(
     {
-        on: "text", 
+        pattern: "topup", // 🎯 Main Command එක (Prefix එකෙන් වැඩ කරන්න)
+        alias: ["top-up", "store"], // Alternative commands
+        on: "text", // 💬 Prefix නැති සාමාන්‍ย මැසේජ් අල්ලගන්න (ඔයාගේ index.js එකට අනුව)
         category: "business",
         filename: __filename,
     },
-    async (bot, mek, m, { from, body, reply, isGroup }) => {
+    async (nethmina, mek, sms, { from, body, sender, reply, isGroup }) => {
         if (isGroup) return;
         if (!body) return;
 
         const text = body.trim();
-        const sender = m.sender;
-
-        if (m.fromMe) return;
 
         // 🔄 User Session එකක් දැනටමත් තියෙනවාදැයි බැලීම
         let session = global.topupSessions[sender];
 
-        // 🚀 STEP 0: මුල්ම වතාවට TopUp Keywords එකක් එවන විට පමණක් Session එකක් හදනවා
+        // 🚀 STEP 0: මුල්ම වතාවට Chat එකට එන කෙනෙක් Keywords Detect කිරීම හෝ Command එක ගැසීම
         if (!session) {
-            // 🎯 TopUp කරන්න එන කෙනෙක් අනිවාර්යයෙන්ම එවන වචන ලැයිස්තුව (Keywords Detect)
+            // 🎯 Prefix නැතුව නිකන්ම එවන්න පුළුවන් Keywords ලැයිස්තුව
             const isTopUpKeyword = /(topup|top up|freefire|free fire|ff|weekly|monthly|diamond|diamonds|dm|pack|membership|level up|levelup|evo)/i.test(text);
             
-            // එකී වචනයක් අහුවුනොත් විතරක් භාෂාව තෝරන්න කියනවා
-            if (isTopUpKeyword) {
+            // ප්ලගින් එක Command එකක් විදිහට (.topup) හෝ Keyword එකක් විදිහට Trigger වුනොත් පමණක් Session එක පටන් ගන්නවා
+            if (isTopUpKeyword || text.startsWith(config.PREFIX || ".")) {
                 global.topupSessions[sender] = {
                     step: "CHOOSE_LANGUAGE",
                     lang: null,
@@ -45,7 +43,7 @@ cmd(
                 return await reply(langMsg);
             }
             
-            // TopUp වචනයක් නොවේ නම් සාමාන්‍ය Auto Voice එකට වැඩ කරන්න ඉඩ දී නිශ්ශබ්ද වේ.
+            // වෙනත් මැසේජ් එකක් නම් Auto Voice වලට බාධා නොකර Silent වෙනවා
             return;
         }
 
@@ -74,7 +72,6 @@ cmd(
             const isYesEn = /^(yes|need|help|i need help|up|topup|top up|1)/i.test(text);
             const isYesSi = /(ඔව්|උදව්|ඕනේ|ටොප්අප්|ටොප් අප්)/i.test(text);
             
-            // Bot එක දන්නේ නැති වෙනත් වැඩක් ඇහුවොත්
             const isUnkownWork = /(bot|website|social|booting|hack|make|create|හදන්න)/i.test(text);
 
             if (isUnkownWork) {
@@ -194,16 +191,15 @@ cmd(
             } 
             else if (session.category === "MEMBERSHIP") {
                 const memPacks = [
-                    { name: "Weekly Lite Membership", price: 110, shells: 17 },
-                    { name: "Weekly Membership", price: 470, shells: 86 },
-                    { name: "Monthly Membership", price: 2250, shells: 430 },
-                    { name: "VIP Membership", price: 2700, shells: 516 }, 
-                    { name: "Super VIP Membership", price: 4410, shells: 774 } 
+                    { name: "Weekly Lite Membership", price: 110 },
+                    { name: "Weekly Membership", price: 470 },
+                    { name: "Monthly Membership", price: 2250 },
+                    { name: "VIP Membership", price: 2700 }, 
+                    { name: "Super VIP Membership", price: 4410 } 
                 ];
                 if (num < 1 || num > 5) return reply("❌ Choose between 1-5");
                 session.product = memPacks[num - 1].name;
                 session.price = memPacks[num - 1].price;
-                session.shells = memPacks[num - 1].shells;
             } 
             else if (session.category === "LEVELUP") {
                 const lvlPacks = [
@@ -301,37 +297,26 @@ cmd(
         // 📸 STEP 8: RECEIPT SLIP PROCESSING
         // ==========================================
         if (session.step === "AWAITING_SLIP") {
-            // Note: ඔයාගේ Handler එකට අනුව m object එක ඇතුලේ කෙලින්ම imageMsg නැති වෙන්න පුළුවන්. 
-            // ඒ නිසා අපි mek එකෙන්ම media ද කියලා චෙක් කරමු.
             const isMedia = mek.message?.imageMessage || mek.message?.documentMessage || mek.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
 
             if (isMedia) {
-                const shellCount = session.shells ? session.shells : "-";
-                const totalShell = session.shells ? session.shells : "-";
-                
-                let estTime = "1-2 min";
-                if (session.price >= 2000) {
-                    estTime = "4-5 min";
-                }
+                let estTime = session.price >= 2000 ? "4-5 min" : "1-2 min";
 
                 const processingTemplate = `⏳ Processing your top-up request...\n\n` +
                                            `Player: ${session.uid}\n` +
                                            `Product: ${session.product}\n` +
                                            `Quantity: 1\n` +
-                                           `Price/Unit: ${shellCount} SHELLS\n` +
-                                           `Total: ${totalShell} SHELLS\n` +
                                            `Estimated Time: ~${estTime}`;
 
                 if (session.lang === "en") {
-                    await reply("Please wait for complete your topup and Thanks for trusted our service. If we check your payment and completed your topup we will kindly inform you with a message.");
+                    await reply("Please wait for complete your topup and Thanks for trusted our service.");
                 } else {
-                    await reply("ඔබගේ ටොප්අප් එක සම්පූර්ණ වන තෙක් කරුණාකර රැඳී සිටින්න. අපගේ සේවාව විශ්වාස කිරීම ගැන ඔබට ස්තූතියි. අප ඔබගේ ගෙවීම පරීක්ෂා කර ටොප්අප් එක නිම කල පසු කරුණාකර පණිවිඩයකින් දැනුම් දෙනු ලැබේ.");
+                    await reply("ඔබගේ ටොප්අප් එක සම්පූර්ණ වන තෙක් කරුණාකර රැඳී සිටින්න. අපගේ සේවාව විශ්වාස කිරීම ගැන ඔබට ස්තූතියි.");
                 }
 
                 const ownerInbox = "94760860835@s.whatsapp.net";
                 
-                // Owner ට details ටික text එකක් විදියට යවනවා
-                await bot.sendMessage(ownerInbox, { 
+                await nethmina.sendMessage(ownerInbox, { 
                     text: `🔔 *NEW TOPUP ORDER RECEIVED!* 🔔\n\n${processingTemplate}\n\n👤 From: @${sender.split('@')[0]}`,
                     mentions: [sender]
                 });
