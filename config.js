@@ -5,7 +5,7 @@ function convertToBool(text, fault = 'true') {
     return text === fault ? true : false;
 }
 module.exports = {
-SESSION_ID: process.env.SESSION_ID || "W2xSzB5S#NlDtTtZ8O9f2mtEW4za_CVtknUM4JEoTVYsoVmold0s",
+SESSION_ID: process.env.SESSION_ID || "Xm5SFCTb#igN_yOMs9FFrihzq5JDIfIBGMQEH2BvDV6Ru5Okl4xg",
 ALIVE_IMG: process.env.ALIVE_IMG || "https://github.com/Nethmina-dev/BOT-DATA/blob/main/Logo/ChatGPT%20Image%20Mar%2018,%202026,%2005_47_58%20PM.png?raw=true",
 OWNER_NUMBER: process.env.OWNER_NUMBER || "94760860835",
 OWNER_NAME: process.env.OWNER_NAME || "Bhashitha Nethmina",
