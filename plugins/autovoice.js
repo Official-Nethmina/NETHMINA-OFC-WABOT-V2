@@ -9,6 +9,7 @@ const processedMessages = new Set();
 const offChatsFile = path.join(__dirname, '../lib/off_voices.json');
 
 const voiceData = {
+    "nethmina,bro,brh,mchn,hey there": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3",
     "hi,hii,halo": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
     "mk,mko krnne": "https://mp3tourl.com/audio/1777910196056-487d7486-78dc-43b9-88d9-55cf57c6c7cb.mp3",
     "hy,හායි,හලෝ": "https://mp3tourl.com/audio/1778259822854-80f34266-3cfa-4f0c-9b86-c4809c79ebca.mp3",
@@ -21,7 +22,7 @@ const voiceData = {
     "hm,mm,hmm,mmm": "https://mp3tourl.com/audio/1778315331296-41d9c99d-e62e-44cf-9cfe-a5957bd75b10.mp3",
     "pissud,pissu,pissuda": "https://mp3tourl.com/audio/1778305832535-f10955b3-68b1-4a99-8c2e-168450737c23.mp3",
     "hutta,hutto,pco,pky,pckyo,hukanno,pakayo,pakya,utto,huththo,uttiye,huttiye": "https://mp3tourl.com/audio/1778305945222-2e5e0533-3b1e-42e3-8b9d-0e5a4b61e405.mp3",
-    "kewad,kawad,kewd,kawada,kawayi": "https://mp3tourl.com/audio/1781431391309-8a105b76-89f3-484e-9189-b45a62c3e6fd.mp3",
+    "kewad,kawad,kewd,kawada,kawayi": "https://mp3tourl.com/audio/1781446688098-6637c1b1-613e-4822-8785-aa18ee40b671.mp3",
     "ko,koo": "https://mp3tourl.com/audio/1778306084359-eb4e75c6-bd45-4bee-8c2a-fd3e10a039d5.mp3",
     "ummh,adareyi,adarei": "https://mp3tourl.com/audio/1778306130900-3a11c961-447c-4fd4-91f6-75e1d1f1a975.mp3",
     "kollekd,kellekd": "https://mp3tourl.com/audio/1778306187607-20f4164f-994a-461f-89e3-5aa576422774.mp3",
@@ -29,8 +30,7 @@ const voiceData = {
     "thota puluwnnm,puluwnd": "https://mp3tourl.com/audio/1778306315124-4a797f41-2908-4ea4-8438-2b6a14a612aa.mp3",
     "yno,ynna,yannm": "https://mp3tourl.com/audio/1778306274122-e104cbee-e525-41b8-b283-848d361e8cf0.mp3",
     "patiyo,mcho": "https://mp3tourl.com/audio/1778305621396-88a0eacc-a22b-41a1-a3f3-5da62d288f9d.mp3",
-    "puh": "https://mp3tourl.com/audio/1778308752311-12d424ce-bb45-4cdc-87aa-af4b95aab4a9.mp3",
-    "nethmina,bro,brh,mchn,hey there": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3"
+    "puh": "https://mp3tourl.com/audio/1778308752311-12d424ce-bb45-4cdc-87aa-af4b95aab4a9.mp3"
 };
 
 const ownerExceptionWords = ["puh", "ynoo", "ynnm"]; 
