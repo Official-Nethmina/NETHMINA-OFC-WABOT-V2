@@ -21,7 +21,7 @@ const voiceData = {
     "hm,mm,hmm,mmm": "https://mp3tourl.com/audio/1778315331296-41d9c99d-e62e-44cf-9cfe-a5957bd75b10.mp3",
     "pissud,pissu,pissuda": "https://mp3tourl.com/audio/1778305832535-f10955b3-68b1-4a99-8c2e-168450737c23.mp3",
     "hutta,hutto,pco,pky,pckyo,hukanno,pakayo,pakya,utto,huththo,uttiye,huttiye": "https://mp3tourl.com/audio/1778305945222-2e5e0533-3b1e-42e3-8b9d-0e5a4b61e405.mp3",
-    "kewad,kawad,kewd,kawada,kawayi": "https://mp3tourl.com/audio/1778306050683-b20bb36e-6166-426a-924c-724902fbcea8.mp3",
+    "kewad,kawad,kewd,kawada,kawayi": "https://mp3tourl.com/audio/1781431391309-8a105b76-89f3-484e-9189-b45a62c3e6fd.mp3",
     "ko,koo": "https://mp3tourl.com/audio/1778306084359-eb4e75c6-bd45-4bee-8c2a-fd3e10a039d5.mp3",
     "ummh,adareyi,adarei": "https://mp3tourl.com/audio/1778306130900-3a11c961-447c-4fd4-91f6-75e1d1f1a975.mp3",
     "kollekd,kellekd": "https://mp3tourl.com/audio/1778306187607-20f4164f-994a-461f-89e3-5aa576422774.mp3",
