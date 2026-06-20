@@ -12,37 +12,42 @@ cmd(
     },
     async (nethmina, mek, sms, { from, args, q, sender, reply, isOwner }) => {
         try {
-            // 🛑 Owner කෙනෙක්ද කියලා මුලින්ම චෙක් කරනවා
             if (!isOwner) return await reply("❌ This command is only for my Admin/Owner! 🧑🏻‍💻");
 
             let targetJid;
 
-            // 1️⃣ User කෙනෙක්ගේ මැසේජ් එකකට Reply කරලා තිබ්බොත් ඒකෙන් JID එක ගන්නවා
-            if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
+            // 1️⃣ Reply කරපු මැසේජ් එකෙන් JID එක අල්ලගන්න ක්‍රම (Fallbacks සහිතව)
+            if (sms && sms.quoted && sms.quoted.sender) {
+                targetJid = sms.quoted.sender;
+            } else if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
                 targetJid = mek.message.extendedTextMessage.contextInfo.participant;
             } 
-            // 2️⃣ නම්බර් එකක් text එකක් විදියට දීලා තිබ්බොත් (.block 9476xxxxxxx)
+            // 2️⃣ නම්බර් එකක් Type කරලා තිබ්බොත් (.block 076xxxxxxx)
             else if (q) {
-                let cleanNumber = q.replace(/[^0-9]/g, ""); // ඉලක්කම් ටික විතරක් ගන්නවා
+                let cleanNumber = q.replace(/[^0-9]/g, ""); // ඉලක්කම් විතරක් ගන්නවා
+                
+                // නම්බර් එක 0න් පටන් ගත්තොත් ඒක 94 වලට හරවනවා (Sri Lanka Country Code)
+                if (cleanNumber.startsWith("0")) {
+                    cleanNumber = "94" + cleanNumber.slice(1);
+                }
+                
                 targetJid = `${cleanNumber}@s.whatsapp.net`;
-            } 
-            // කිසිවක් කර නැත්නම් උපදෙස් දෙනවා
-            else {
-                return await reply("❌ Please reply to a user's message or provide a phone number with country code!\n\n*Example:* `.block 94760860835` or reply with `.block` ");
+            } else {
+                return await reply("❌ Please reply to a user's message or provide a phone number with country code!\n\n*Example:* `.block 0760127262` or reply with `.block` ");
             }
 
-            // 🛠️ Baileys Block Function
+            // 🛠️ Baileys Block Function එක රන් කිරීම
             await nethmina.updateBlockStatus(targetJid, "block");
             
-            // Tag කරලා මැසේජ් එකක් යැවීම
             await nethmina.sendMessage(from, {
                 text: `✅ Successfully blocked @${targetJid.split("@")[0]} from WhatsApp.`,
                 mentions: [targetJid]
             }, { quoted: mek });
 
         } catch (error) {
-            console.error("Block Command Error:", error);
-            await reply("❌ Failed to block the user. Make sure the number is valid.");
+            console.error("Block Error:", error);
+            // 🎯 සිදුවන සැබෑ Error එක චැට් එකට පෙන්වීම
+            await reply(`❌ Error: ${error.message || error}`);
         }
     }
 );
@@ -59,37 +64,38 @@ cmd(
     },
     async (nethmina, mek, sms, { from, args, q, sender, reply, isOwner }) => {
         try {
-            // 🛑 Owner කෙනෙක්ද කියලා මුලින්ම චෙක් කරනවා
             if (!isOwner) return await reply("❌ This command is only for my Admin/Owner! 🧑🏻‍💻");
 
             let targetJid;
 
-            // 1️⃣ User කෙනෙක්ගේ මැසේජ් එකකට Reply කරලා තිබ්බොත් ඒකෙන් JID එක ගන්නවා
-            if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
+            if (sms && sms.quoted && sms.quoted.sender) {
+                targetJid = sms.quoted.sender;
+            } else if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
                 targetJid = mek.message.extendedTextMessage.contextInfo.participant;
             } 
-            // 2️⃣ නම්බර් එකක් text එකක් විදියට දීලා තිබ්බොත් (.unblock 9476xxxxxxx)
             else if (q) {
                 let cleanNumber = q.replace(/[^0-9]/g, "");
+                
+                if (cleanNumber.startsWith("0")) {
+                    cleanNumber = "94" + cleanNumber.slice(1);
+                }
+                
                 targetJid = `${cleanNumber}@s.whatsapp.net`;
-            } 
-            // කිසිවක් කර නැත්නම් උපදෙස් දෙනවා
-            else {
-                return await reply("❌ Please reply to a user's message or provide a phone number with country code!\n\n*Example:* `.unblock 94760860835` or reply with `.unblock` ");
+            } else {
+                return await reply("❌ Please reply to a user's message or provide a phone number with country code!\n\n*Example:* `.unblock 0760127262` or reply with `.unblock` ");
             }
 
-            // 🛠️ Baileys Unblock Function
+            // 🛠️ Baileys Unblock Function එක රන් කිරීම
             await nethmina.updateBlockStatus(targetJid, "unblock");
             
-            // Tag කරලා මැසේජ් එකක් යැවීම
             await nethmina.sendMessage(from, {
-                text: `✅ Successfully unblocked @${targetJid.split("@")[0]}. Now they can message you.`,
+                text: `✅ Successfully unblocked @${targetJid.split("@")[0]}.`,
                 mentions: [targetJid]
             }, { quoted: mek });
 
         } catch (error) {
-            console.error("Unblock Command Error:", error);
-            await reply("❌ Failed to unblock the user.");
+            console.error("Unblock Error:", error);
+            await reply(`❌ Error: ${error.message || error}`);
         }
     }
 );
