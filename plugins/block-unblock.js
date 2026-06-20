@@ -1,12 +1,12 @@
 const { cmd } = require("../command");
 
 // ==========================================
-// 🚫 COMMAND 1: BLOCK USER
+// 🚫 COMMAND 1: BLOCK USER (Forced Usync Hack)
 // ==========================================
 cmd(
     {
         pattern: "block",
-        desc: "Block a user using advanced node injection.",
+        desc: "Strict block a user using usync query bypass.",
         category: "owner",
         filename: __filename,
     },
@@ -16,7 +16,7 @@ cmd(
 
             let targetJid;
 
-            if (sms && sms.quoted && sms.quoted.sender) {
+            if (sms && sms.quoted && sms.smsQuotedMsgs) {
                 targetJid = sms.quoted.sender;
             } else if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
                 targetJid = mek.message.extendedTextMessage.contextInfo.participant;
@@ -28,45 +28,49 @@ cmd(
                 return await reply("❌ Please reply to a message or enter a number.");
             }
 
-            // 🔥 FIX: Baileys updateBlockStatus Bug Bypass
-            // සාමාන්‍ය ක්‍රමය වැඩ නැති නිසා අපි කෙලින්ම WhatsApp එකට iq query node එකක් යවනවා
+            // 🔥 HACK: `usync` Node එක manually සකසා සර්වර් එකට යැවීම
+            // මේකෙන් ඕනෑම පැරණි හෝ Custom Baileys වර්ෂන් එකක bad-request එන එක වළකිනවා
             await nethmina.query({
                 tag: 'iq',
                 attrs: {
                     to: '@s.whatsapp.net',
                     type: 'set',
-                    xmlns: 'blocklist',
+                    id: nethmina.generateMessageID(),
+                    xmlns: 'privacy'
                 },
                 content: [
                     {
-                        tag: 'item',
-                        attrs: {
-                            action: 'block',
-                            jid: targetJid,
-                        }
+                        tag: 'list',
+                        attrs: { name: 'default', action: 'deny' },
+                        content: [
+                            {
+                                tag: 'item',
+                                attrs: { value: targetJid, type: 'jid', action: 'deny' }
+                            }
+                        ]
                     }
                 ]
             });
 
             return await nethmina.sendMessage(from, {
-                text: `✅ [Bypass Success] Successfully blocked @${targetJid.split("@")[0]} from WhatsApp.`,
+                text: `✅ [Strict Blocked] Successfully blocked @${targetJid.split("@")[0]} inside WhatsApp Server.`,
                 mentions: [targetJid]
             }, { quoted: mek });
 
         } catch (error) {
-            console.error("Block Bypass Error:", error);
+            console.error("Strict Block Error:", error);
             await reply(`❌ Error: ${error.message || error}`);
         }
     }
 );
 
 // ==========================================
-// 🔓 COMMAND 2: UNBLOCK USER
+// 🔓 COMMAND 2: UNBLOCK USER (Forced Usync Hack)
 // ==========================================
 cmd(
     {
         pattern: "unblock",
-        desc: "Unblock a user using advanced node injection.",
+        desc: "Strict unblock a user using privacy query bypass.",
         category: "owner",
         filename: __filename,
     },
@@ -88,32 +92,36 @@ cmd(
                 return await reply("❌ Please reply to a message or enter a number.");
             }
 
-            // 🔥 FIX: Baileys updateBlockStatus Bug Bypass (Unblock)
+            // 🔥 HACK: Privacy list එකෙන් 'none' (allow) කිරීම
             await nethmina.query({
                 tag: 'iq',
                 attrs: {
                     to: '@s.whatsapp.net',
                     type: 'set',
-                    xmlns: 'blocklist',
+                    id: nethmina.generateMessageID(),
+                    xmlns: 'privacy'
                 },
                 content: [
                     {
-                        tag: 'item',
-                        attrs: {
-                            action: 'unblock',
-                            jid: targetJid,
-                        }
+                        tag: 'list',
+                        attrs: { name: 'default', action: 'allow' },
+                        content: [
+                            {
+                                tag: 'item',
+                                attrs: { value: targetJid, type: 'jid', action: 'allow' }
+                            }
+                        ]
                     }
                 ]
             });
 
             return await nethmina.sendMessage(from, {
-                text: `✅ [Bypass Success] Successfully unblocked @${targetJid.split("@")[0]}.`,
+                text: `✅ [Strict Unblocked] Successfully unblocked @${targetJid.split("@")[0]}.`,
                 mentions: [targetJid]
             }, { quoted: mek });
 
         } catch (error) {
-            console.error("Unblock Bypass Error:", error);
+            console.error("Strict Unblock Error:", error);
             await reply(`❌ Error: ${error.message || error}`);
         }
     }
