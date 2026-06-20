@@ -1,119 +1,95 @@
-const { cmd } = require('../command');
+const { cmd } = require("../command");
 
-cmd({
-    pattern: "block",
-    desc: "Blocks a person",
-    category: "owner",
-    react: "🚫",
-    filename: __filename
-},
-async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
-    try {
-        // Owner Check
-        if (!isOwner) {
-            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-            return reply("Only the bot owner can use this command.");
-        }
+// ==========================================
+// 🚫 COMMAND 1: BLOCK USER
+// ==========================================
+cmd(
+    {
+        pattern: "block",
+        desc: "Block a user from the bot.",
+        category: "owner",
+        filename: __filename,
+    },
+    async (nethmina, mek, sms, { from, args, q, sender, reply, isOwner }) => {
+        try {
+            // 🛑 Owner කෙනෙක්ද කියලා මුලින්ම චෙක් කරනවා
+            if (!isOwner) return await reply("❌ This command is only for my Admin/Owner! 🧑🏻‍💻");
 
-        let jid;
-        
-        // 1. Reply කරපු මැසේජ් එකකින් sender ව අල්ලගැනීම
-        const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
-                             mek.message?.imageMessage?.contextInfo?.participant || 
-                             mek.message?.videoMessage?.contextInfo?.participant || 
-                             mek.message?.documentMessage?.contextInfo?.participant || 
-                             mek.message?.audioMessage?.contextInfo?.participant;
+            let targetJid;
 
-        // 2. Mention කරපු අයගෙන් පළමු කෙනාව අල්ලගැනීම
-        const mentionedJid = mek.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-
-        if (quotedSender) {
-            jid = quotedSender;
-        } else if (mentionedJid.length > 0) {
-            jid = mentionedJid[0];
-        } else if (q && q.trim().length > 0) {
-            let cleanNumber = q.replace(/[@\s+-]/g, '');
-            if (/^\d+$/.test(cleanNumber)) {
-                jid = `${cleanNumber}@s.whatsapp.net`;
+            // 1️⃣ User කෙනෙක්ගේ මැසේජ් එකකට Reply කරලා තිබ්බොත් ඒකෙන් JID එක ගන්නවා
+            if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
+                targetJid = mek.message.extendedTextMessage.contextInfo.participant;
+            } 
+            // 2️⃣ නම්බර් එකක් text එකක් විදියට දීලා තිබ්බොත් (.block 9476xxxxxxx)
+            else if (q) {
+                let cleanNumber = q.replace(/[^0-9]/g, ""); // ඉලක්කම් ටික විතරක් ගන්නවා
+                targetJid = `${cleanNumber}@s.whatsapp.net`;
+            } 
+            // කිසිවක් කර නැත්නම් උපදෙස් දෙනවා
+            else {
+                return await reply("❌ Please reply to a user's message or provide a phone number with country code!\n\n*Example:* `.block 94760860835` or reply with `.block` ");
             }
+
+            // 🛠️ Baileys Block Function
+            await nethmina.updateBlockStatus(targetJid, "block");
+            
+            // Tag කරලා මැසේජ් එකක් යැවීම
+            await nethmina.sendMessage(from, {
+                text: `✅ Successfully blocked @${targetJid.split("@")[0]} from WhatsApp.`,
+                mentions: [targetJid]
+            }, { quoted: mek });
+
+        } catch (error) {
+            console.error("Block Command Error:", error);
+            await reply("❌ Failed to block the user. Make sure the number is valid.");
         }
-
-        if (!jid) {
-            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-            return reply("Please mention a user, reply to their message, or type their number.");
-        }
-
-        // ⚠️ අලුත් Baileys වර්ෂන් වල Block කිරීමට "remove" පාවිච්චි කළ යුතුය
-        await nethmina.updateBlockStatus(jid, "remove");
-        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
-        
-        await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐁ʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
-            mentions: [jid]
-        }, { quoted: mek });
-
-    } catch (error) {
-        console.error("Block command error:", error);
-        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-        reply("Failed to block the user.");
     }
-});
+);
 
-cmd({
-    pattern: "unblock",
-    desc: "Unblocks a person",
-    category: "owner",
-    react: "🔓",
-    filename: __filename
-},
-async (nethmina, mek, msg, { reply, q, sender, isOwner }) => {
-    try {
-        // Owner Check
-        if (!isOwner) {
-            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-            return reply("Only the bot owner can use this command.");
-        }
+// ==========================================
+// 🔓 COMMAND 2: UNBLOCK USER
+// ==========================================
+cmd(
+    {
+        pattern: "unblock",
+        desc: "Unblock a previously blocked user.",
+        category: "owner",
+        filename: __filename,
+    },
+    async (nethmina, mek, sms, { from, args, q, sender, reply, isOwner }) => {
+        try {
+            // 🛑 Owner කෙනෙක්ද කියලා මුලින්ම චෙක් කරනවා
+            if (!isOwner) return await reply("❌ This command is only for my Admin/Owner! 🧑🏻‍💻");
 
-        let jid;
-        
-        // Reply කරපු මැසේජ් එකකින් sender ව අල්ලගැනීම
-        const quotedSender = mek.message?.extendedTextMessage?.contextInfo?.participant || 
-                             mek.message?.imageMessage?.contextInfo?.participant || 
-                             mek.message?.videoMessage?.contextInfo?.participant || 
-                             mek.message?.documentMessage?.contextInfo?.participant || 
-                             mek.message?.audioMessage?.contextInfo?.participant;
+            let targetJid;
 
-        // Mention කරපු අයගෙන් පළමු කෙනාව අල්ලගැනීම
-        const mentionedJid = mek.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-
-        if (quotedSender) {
-            jid = quotedSender;
-        } else if (mentionedJid.length > 0) {
-            jid = mentionedJid[0];
-        } else if (q && q.trim().length > 0) {
-            let cleanNumber = q.replace(/[@\s+-]/g, '');
-            if (/^\d+$/.test(cleanNumber)) {
-                jid = `${cleanNumber}@s.whatsapp.net`;
+            // 1️⃣ User කෙනෙක්ගේ මැසේජ් එකකට Reply කරලා තිබ්බොත් ඒකෙන් JID එක ගන්නවා
+            if (mek.message?.extendedTextMessage?.contextInfo?.participant) {
+                targetJid = mek.message.extendedTextMessage.contextInfo.participant;
+            } 
+            // 2️⃣ නම්බර් එකක් text එකක් විදියට දීලා තිබ්බොත් (.unblock 9476xxxxxxx)
+            else if (q) {
+                let cleanNumber = q.replace(/[^0-9]/g, "");
+                targetJid = `${cleanNumber}@s.whatsapp.net`;
+            } 
+            // කිසිවක් කර නැත්නම් උපදෙස් දෙනවා
+            else {
+                return await reply("❌ Please reply to a user's message or provide a phone number with country code!\n\n*Example:* `.unblock 94760860835` or reply with `.unblock` ");
             }
+
+            // 🛠️ Baileys Unblock Function
+            await nethmina.updateBlockStatus(targetJid, "unblock");
+            
+            // Tag කරලා මැසේජ් එකක් යැවීම
+            await nethmina.sendMessage(from, {
+                text: `✅ Successfully unblocked @${targetJid.split("@")[0]}. Now they can message you.`,
+                mentions: [targetJid]
+            }, { quoted: mek });
+
+        } catch (error) {
+            console.error("Unblock Command Error:", error);
+            await reply("❌ Failed to unblock the user.");
         }
-
-        if (!jid) {
-            await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-            return reply("Please mention a user, reply to their message, or type their number.");
-        }
-
-        // ⚠️ අලුත් Baileys වර්ෂන් වල Unblock කිරීමට "add" පාවිච්චි කළ යුතුය
-        await nethmina.updateBlockStatus(jid, "add");
-        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "✅", key: mek.key } });
-        
-        await nethmina.sendMessage(mek.key.remoteJid, {
-            text: `𝐒ᴜᴄᴄᴇ|ꜱꜰᴜʟʟ𝐘 𝐔ɴʙʟᴏᴄᴋᴇ𝐃 @${jid.split("@")[0]}`,
-            mentions: [jid]
-        }, { quoted: mek });
-
-    } catch (error) {
-        console.error("Unblock command error:", error);
-        await nethmina.sendMessage(mek.key.remoteJid, { react: { text: "❌", key: mek.key } });
-        reply("Failed to unblock the user.");
     }
-});
+);
