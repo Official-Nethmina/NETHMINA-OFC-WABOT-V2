@@ -13,10 +13,13 @@ cmd(
         category: "owner",
         filename: __filename,
     },
-    async (nethmina, mek, sms, { from, sender, isGroup }) => {
+    async (nethmina, mek, sms, { from, sender, isGroup, isOwner }) => {
         try {
             // 🚫 ආරක්ෂාව සඳහා Inbox (DMs) වලට පමණක් සීමා කර ඇත
             if (isGroup) return;
+
+            // 🛑 මැසේජ් එක එවලා තියෙනවෙන්නේ ඔයා නම් (Owner) ඔටෝ-රිප්ලයි වෙන්නේ නැත
+            if (isOwner || mek.key.fromMe) return;
 
             // දැනට Keyword එකක් සෙට් කරලා නැත්නම් ඉග්නෝර් කරයි
             if (!global.keywordReplyConfig.triggerWord) return;
@@ -35,21 +38,25 @@ cmd(
             // 🎯 මැසේජ් එක ඇතුලේ වචනය තියෙනවද කියා බැලීම
             if (incomingText.includes(targetKeyword)) {
                 
-                // 🔹 CASE 1: TEXT REPLY එකක් නම්
+                // 🔹 CASE 1: TEXT REPLY එකක් නම් (යූසර්ගේ මැසේජ් එක QUOTE කරමින්)
                 if (global.keywordReplyConfig.type === "text") {
-                    await nethmina.sendMessage(from, { text: global.keywordReplyConfig.textData });
+                    await nethmina.sendMessage(from, { 
+                        text: global.keywordReplyConfig.textData 
+                    }, { quoted: mek }); // 🔥 මෙතනින් තමයි යූසර්ව Quote කරන්නේ
                 } 
-                // 🔹 CASE 2: MEDIA REPLY එකක් නම් (Image/Video/Sticker)
+                // 🔹 CASE 2: MEDIA REPLY එකක් නම් (Image/Video/Sticker - යූසර්ගේ මැසේජ් එක QUOTE කරමින්)
                 else if (global.keywordReplyConfig.type === "media") {
                     const msgType = global.keywordReplyConfig.msgType;
                     const options = {};
                     
-                    // කැප්ෂන් එකක් තිබුනොත් ඒකත් එකතු කරනවා (Sticker වලට කැප්ෂන් බෑ)
                     if (global.keywordReplyConfig.caption && msgType !== "sticker") {
                         options.caption = global.keywordReplyConfig.caption;
                     }
 
-                    await nethmina.sendMessage(from, { [msgType]: global.keywordReplyConfig.buffer, ...options });
+                    await nethmina.sendMessage(from, { 
+                        [msgType]: global.keywordReplyConfig.buffer, 
+                        ...options 
+                    }, { quoted: mek }); // 🔥 මෙතනිනුත් යූසර්ව Quote කරනවා
                 }
             }
 
@@ -80,16 +87,12 @@ cmd(
 
             const isQuoted = !!(mek.message?.extendedTextMessage?.contextInfo?.quotedMessage);
 
-            // ----------------------------------------
-            // CASE A: මීඩියා එකකට REPLY කරමින් කමාන්ඩ් එක ගසා ඇති විට
-            // ----------------------------------------
             if (isQuoted) {
                 const quotedMsg = mek.message.extendedTextMessage.contextInfo.quotedMessage;
                 let msgType = "";
                 let mediaMessage = null;
                 let caption = null;
 
-                // මීඩියා ටයිප් එක හරියටම අල්ලගැනීම
                 if (quotedMsg.imageMessage) { msgType = "image"; mediaMessage = quotedMsg.imageMessage; caption = quotedMsg.imageMessage.caption; }
                 else if (quotedMsg.videoMessage) { msgType = "video"; mediaMessage = quotedMsg.videoMessage; caption = quotedMsg.videoMessage.caption; }
                 else if (quotedMsg.stickerMessage) { msgType = "sticker"; mediaMessage = quotedMsg.stickerMessage; }
@@ -101,7 +104,6 @@ cmd(
 
                 await reply("⏳ *Processing media... Please wait...*");
 
-                // Baileys මඟින් මීඩියා එක Buffer එකක් විදිහට ඩවුන්ලෝඩ් කරගැනීම (Hard disk එක පිරෙන්නේ නැත)
                 const stream = await downloadContentFromMessage(mediaMessage, msgType);
                 let buffer = Buffer.from([]);
                 for await (const chunk of stream) {
@@ -117,11 +119,8 @@ cmd(
                     textData: null
                 };
 
-                return await reply(`🎯 *Media Keyword Auto-Reply Activated!*\n\n🔑 *Trigger Word:* "${global.keywordReplyConfig.triggerWord}"\n📂 *Media Type:* ${msgType}\n📝 *Caption:* ${caption || "No Caption"}\n\n_Bot will reply with this media whenever the keyword is detected!_`);
+                return await reply(`🎯 *Media Keyword Auto-Reply Activated!*\n\n🔑 *Trigger Word:* "${global.keywordReplyConfig.triggerWord}"\n📂 *Media Type:* ${msgType}\n📝 *Caption:* ${caption || "No Caption"}`);
             } 
-            // ----------------------------------------
-            // CASE B: සාමාන්‍ය TEXT මැසේජ් එකක් සෙට් කරන විට
-            // ----------------------------------------
             else {
                 let triggerWord = "";
                 let replyText = "";
