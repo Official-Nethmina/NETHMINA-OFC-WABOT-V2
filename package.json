@@ -9,7 +9,7 @@
     "restart": "pm2 restart NETHMINA-OFC-WA-BOT"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "github:AmilaPrabathKumara/Baileys-Latest#fix-leak-upload",
+    "@whiskeysockets/baileys": "latest",
     "@vreden/youtube_scraper": "^1.2.8",
     "@xaviabot/fb-downloader": "^1.0.14",
     "@vitalets/google-translate-api": "^9.2.1",
