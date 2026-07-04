@@ -173,12 +173,6 @@ cmd({
     desc: "Remove a user from the whitelist so their calls get auto-rejected again.",
     category: "owner",
     filename: __filename
-});
-
-cmd({
-    pattern: "calloff",
-    category: "owner",
-    filename: __filename
 }, async (nethmina, mek, sms, { from, args, q, isOwner }) => {
     if (!isOwner) return nethmina.sendMessage(from, { text: "❌ This command is only for the Bot Owner!" }, { quoted: mek });
     
