@@ -80,7 +80,7 @@ cmd(
 ├ *📥 \`Size\`* : ${fileSize}
 └────────────●●►
 
-╭─〔 *🔢 SELECT FORMAT* 〕─
+╭─〔 *🔢 SELECT FORMAT* 〕►
 │
 ├ 1️⃣ *AUDIO TYPE*
 ├ 2️⃣ *DOCUMENT TYPE*
@@ -222,7 +222,7 @@ cmd(
 ├ *🔗 \`Watch/Download:\`* ${video.url}
 └────────────●●►
 
-╭─〔 *🔢 SELECT FORMAT* 〕─●●►
+╭─〔 *🔢 SELECT FORMAT* 〕►
 │
 ├ 1️⃣ *VIDEO TYPE (Normal)*
 ├ 2️⃣ *DOCUMENT TYPE (HD File)*
