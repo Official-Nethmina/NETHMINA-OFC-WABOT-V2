@@ -247,7 +247,7 @@ cmd({
     
     whitelist.forEach((jid, index) => {
         const num = jid.split('@')[0];
-        listMsg += `* [${index + 1}]* ➔ @${num}\n`;
+        listMsg += `* *[${index + 1}]* ➔ @${num}\n`;
         mentions.push(jid);
     });
     
