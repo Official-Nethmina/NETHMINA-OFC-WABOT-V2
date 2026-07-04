@@ -164,7 +164,7 @@ cmd({
           const selectedCategory = categories[index];
           const cmdsInCategory = commandMap[selectedCategory];
 
-          let cmdText = `*╭───〔 ${selectedCategory} COMMANDS 〕──●●►*\n`;
+          let cmdText = `*╭──〔 ${selectedCategory} COMMANDS 〕──●●►*\n`;
           cmdText += `*┃*\n`;
           cmdText += `*┃* 🔢 Total Commands: ${cmdsInCategory.length}\n`;
           cmdText += `*┃*\n`;
