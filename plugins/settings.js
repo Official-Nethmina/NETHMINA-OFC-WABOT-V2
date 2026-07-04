@@ -100,7 +100,7 @@ function generateSettingsMenu() {
     const statusIcon = (val) => val === "true" ? "🟩 *ON*" : "🟥 *OFF*";
 
     return `╭──────────────╮
-│ ⚙️ *𝐁𝐎𝐓 𝐂𝐎𝐍𝐅config 𝐏𝐀𝐍𝐄𝐋* ⚙️ │
+│ ⚙️ *𝐁𝐎𝐓 𝐂𝐎𝐍𝐅𝐈𝐆 𝐏𝐀𝐍𝐄𝐋* ⚙️ │
 ╰──────────────╯
 
 ╭🧑🏻‍💻 *\`DEVELOPER:\`*  ${config.OWNER_NAME}
