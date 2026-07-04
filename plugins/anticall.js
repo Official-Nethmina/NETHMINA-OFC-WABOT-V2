@@ -226,3 +226,35 @@ cmd({
         return nethmina.sendMessage(from, { text: "❌ Invalid input! Please use `.anticall on` or `.anticall off`" }, { quoted: mek });
     }
 });
+
+// 4. .calllist කමාන්ඩ් එක (Whitelist එකේ ඉන්න අයගේ ලැයිස්තුව ලබා ගැනීම)
+cmd({
+    pattern: "calllist",
+    alias: ["whitelist", "listcall"],
+    desc: "Get the list of all whitelisted numbers who can call the bot.",
+    category: "owner",
+    filename: __filename
+}, async (nethmina, mek, sms, { from, isOwner }) => {
+    if (!isOwner) return nethmina.sendMessage(from, { text: "❌ This command is only for the Bot Owner!" }, { quoted: mek });
+    
+    const whitelist = getWhitelist();
+    if (whitelist.length === 0) {
+        return nethmina.sendMessage(from, { text: "ℹ️ The whitelist is currently empty. No numbers are allowed to call." }, { quoted: mek });
+    }
+    
+    let listMsg = `📋 *ANTICALL WHITELISTED USERS*\n\n`;
+    let mentions = [];
+    
+    whitelist.forEach((jid, index) => {
+        const num = jid.split('@')[0];
+        listMsg += `* [${index + 1}]* ➔ @${num}\n`;
+        mentions.push(jid);
+    });
+    
+    listMsg += `\n💡 *Total whitelisted users:* ${whitelist.length}`;
+    
+    return nethmina.sendMessage(from, { 
+        text: listMsg, 
+        mentions: mentions 
+    }, { quoted: mek });
+});
