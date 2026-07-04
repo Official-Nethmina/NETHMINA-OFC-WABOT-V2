@@ -80,7 +80,7 @@ cmd(
 ├ *📥 \`Size\`* : ${fileSize}
 └────────────●●►
 
-╭─〔 *🔢 SELECT FORMAT* 〕─●●►
+╭─〔 *🔢 SELECT FORMAT* 〕─
 │
 ├ 1️⃣ *AUDIO TYPE*
 ├ 2️⃣ *DOCUMENT TYPE*
