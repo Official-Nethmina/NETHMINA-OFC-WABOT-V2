@@ -53,7 +53,7 @@ module.exports = {
         for (const node of call) {
             if (node.status === 'offer') {
                 const from = node.from;
-                if (from.endsWith('@g.us')) return; // Group calls ආවොත් මෙතනින් නතර වෙනවා
+               if (node.isGroup || from.endsWith('@g.us')) continue; // Group calls සම්පූර්ණයෙන්ම මඟ හරියි (ඉන්බොක්ස් මැසේජ් යන්නේ නැත)
                 
                 // 🛡️ Whitelist එකේ ඉන්න කෙනෙක් නම් කෝල් එක Reject කරන්නේ නැත
                 const whitelist = getWhitelist();
