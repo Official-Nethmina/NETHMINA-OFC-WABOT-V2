@@ -9,8 +9,8 @@ const processedMessages = new Set();
 const offChatsFile = path.join(__dirname, '../lib/off_voices.json');
 
 const voiceData = {
-    "nethmina,bro,brh,mchn,hey there": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3",
-    "hi,hii,halo": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
+    "nethmina,bro,brh,mchn,hey there,hello": "https://mp3tourl.com/audio/1778259922627-93e04ee7-bf64-4f07-9668-832bc05a0d3e.mp3",
+    "hi,hii,hey": "https://mp3tourl.com/audio/1777910165360-cf504b8b-95bb-4ae5-8961-78a5ccfc8d8f.mp3",
     "mk,mko krnne": "https://mp3tourl.com/audio/1777910196056-487d7486-78dc-43b9-88d9-55cf57c6c7cb.mp3",
     "hy,හායි,හලෝ": "https://mp3tourl.com/audio/1778259822854-80f34266-3cfa-4f0c-9b86-c4809c79ebca.mp3",
     "bye,byee": "https://mp3tourl.com/audio/1778305373905-198089fa-f1b8-48d9-a728-c95dbd27543b.mp3",
