@@ -17,7 +17,7 @@ cmd({
     // 2. Price List Caption එක
     const priceCaption = `*💎 NETHMINA OFFICIAL DIAMOND STORE 💎*
 
-*🔹 TOPUP EVENT COVERED*
+🔹 \`TOPUP EVENT COVERED\`
 
 - 25 Diamonds - LKR 100   
 - 50 Diamonds - LKR 185   
@@ -29,7 +29,7 @@ cmd({
 - 2180 Diamonds - LKR 6,480   
 - 3350 Diamonds - LKR 9,400   
 
-*🔹 SUPER PACKS*   
+🔹 \`SUPER PACKS\`  
 
 - 2000 Diamonds - LKR 5,500   
 - 3000 Diamonds - LKR 8,250   
@@ -41,7 +41,7 @@ cmd({
 - 9000 Diamonds - LKR 24,750   
 - 10000 Diamonds - LKR 27,500
 
-*🔹 MEMBERSHIP LIST* 
+🔹 \`MEMBERSHIP LIST\`
 
 - Weekly Lite - LKR 130   
 - Weekly - LKR 570   
@@ -49,7 +49,7 @@ cmd({
 - Monthly - LKR 2,770   
 - Super VIP (S VIP) - LKR 4,970   
 
-*🔹 LEVEL UP PASS (ID)*
+🔹 \`LEVEL UP PASS (ID)\`
 
 - Level 6 - LKR 120  
 - Level 10 - LKR 230
@@ -60,13 +60,13 @@ cmd({
 
 - FULL LEVEL UP PASS - LKR 1500
 
-*💳 PAYMENT METHODS & CONTACT*  
+💳 \`PAYMENT METHODS & CONTACT\`  
 
 - Bank Transfer / EzCash   
 - 📱 WhatsApp: 076 086 0835   
 - 💸 EzCash: 076 012 7262   
 
-- ℹ️ Note: When making an EzCash payment, pay an additional LKR 20.*
+*ℹ️ Note: When making an EzCash payment, pay an additional LKR 20.*
 
 > © ᴘᴏᴡᴇʀ𝚎𝚍 𝚋𝚢 𝚗𝚎𝚝𝚑𝚖𝚒𝚗𝚊 𝚘ꜰ𝚌 ||`;
 
