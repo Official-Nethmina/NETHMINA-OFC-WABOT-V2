@@ -1,20 +1,48 @@
 const { cmd } = require('../command');
 
-// Shell ගණන් සහ මිල ගණන් (Price List)
+// Shell ගණන් සහ මිල ගණන් (Price List - විශාල අංක වල සිට කුඩා අංක වලට අනුපිළිවෙලට ඇත)
 const itemPrices = {
-    "weekly": 86,
     "weekly lite": 18,
+    "weekly": 86,
     "monthly": 430,
-    "diamond 25": 13,
-    "diamond 50": 26, // 13 * 2 (User ඉල්ලපු විදිහට)
-    "diamond 100": 50,
-    "310": 152,
-    "520": 254,
-    "1060": 500,
-    "2180": 1010,
+    "11500": 5150,
     "5600": 2500,
-    "11500": 5150
+    "2180": 1010,
+    "1060": 500,
+    "520": 254,
+    "310": 152,
+    "100": 50,
+    "50": 26,
+    "25": 13
 };
+
+// ස්වයංක්‍රීයව Diamond ප්‍රමාණයකට අදාළ Shell ගණන ගණනය කිරීම (බුද්ධිමත් ක්‍රමය)
+function calculateCustomDiamonds(amount) {
+    let remaining = amount;
+    let totalShells = 0;
+    let breakdown = [];
+
+    // ළඟම ඇති ලොකු පැකේජ් වලින් කොටස් කර Shells එකතු කිරීම
+    const sortedPacks = [11500, 5600, 2180, 1060, 520, 310, 100, 50, 25];
+
+    for (let pack of sortedPacks) {
+        if (remaining >= pack) {
+            let count = Math.floor(remaining / pack);
+            remaining %= pack;
+            let packUnitShell = itemPrices[pack.toString()];
+            totalShells += count * packUnitShell;
+            breakdown.push(`${pack}x${count}`);
+        }
+    }
+
+    // ඉතිරි වන ප්‍රමාණයකට (උදා: ලිස්ට් එකේ නැති කුඩා අංකයකට) ඩීෆල්ට් එකක් ලෙස 25 පදනම් කර ගැනීම
+    if (remaining > 0) {
+        let extraShells = Math.ceil((remaining / 25) * 13);
+        totalShells += extraShells;
+    }
+
+    return totalShells;
+}
 
 cmd({
     pattern: "topup",
@@ -35,10 +63,7 @@ cmd({
     const quotedMsg = mek.message?.extendedTextMessage?.contextInfo?.quotedMessage;
     
     if (quotedMsg) {
-        // Reply කරපු මැසේජ් එකේ text එක ලබා ගැනීම
         const quotedText = quotedMsg.conversation || quotedMsg.extendedTextMessage?.text || quotedMsg.imageMessage?.caption || quotedMsg.videoMessage?.caption || "";
-        
-        // මැසේජ් එකෙන් ඉලක්කම් (Numbers) පමණක් තෝරා ගැනීම
         const matchNumbers = quotedText.replace(/[^0-9]/g, "");
         if (matchNumbers) {
             uid = matchNumbers;
@@ -49,16 +74,16 @@ cmd({
         return conn.sendMessage(from, { text: "❌ Please reply to a customer message containing their UID/ID to use this command." }, { quoted: mek });
     }
 
-    // 4. Arguments (Item සහ Quantity) parse කරගැනීම (ഉదా: weekly*2 හෝ weekly)
+    // 4. Arguments (Item සහ Quantity) parse කරගැනීම
     if (!q) {
-        return conn.sendMessage(from, { text: "ℹ️ Please specify the item name.\nExample: `.topup weekly` or `.topup weekly*2`" }, { quoted: mek });
+        return conn.sendMessage(from, { text: "ℹ️ Please specify the item name or diamond amount.\nExample: `.topup weekly` , `.topup weekly*2` or `.topup 1000`" }, { quoted: mek });
     }
 
     let inputArgs = q.trim().toLowerCase();
     let itemNameInput = inputArgs;
     let quantity = 1;
 
-    // වර්ණනා (quantity) වෙනස් කිරීම (* තිබේදැයි බලයි)
+    // Quantity (* තිබේදැයි බලයි)
     if (inputArgs.includes("*")) {
         const parts = inputArgs.split("*");
         itemNameInput = parts[0].trim();
@@ -68,26 +93,35 @@ cmd({
         }
     }
 
-    // Item එක මැච් කරගැනීම
+    // Item එක මැච් කරගැනීම (දිගම / නිවැරදිම නම මුලින් පරීක්ෂා වේ - උදා: weekly lite)
     let matchedKey = "";
-    for (const key of Object.keys(itemPrices)) {
+    const sortedKeys = Object.keys(itemPrices).sort((a, b) => b.length - a.length);
+
+    for (const key of sortedKeys) {
         if (itemNameInput === key || itemNameInput.includes(key)) {
             matchedKey = key;
             break;
         }
     }
 
-    // ලිස්ට් එකේ නැති අයිටම් එකක් නම් ස්වයංක්‍රීයව Diamond 25 පදනම් කර හෝ ඩීෆල්ට් එකක් දැමීම (අවශ්‍ය නම්)
-    let unitPrice = 86; // Default weekly
-    let displayItemName = "Weekly";
+    let unitPrice = 0;
+    let displayItemName = "";
 
     if (matchedKey) {
+        // ලැයිස්තුවේ ඇති අයිටම් එකක් නම්
         unitPrice = itemPrices[matchedKey];
         displayItemName = matchedKey.toUpperCase();
     } else {
-        // අයිටම් එක හරියටම නැත්නම් ඉන්පුට් එකම පෙන්වීම
-        displayItemName = itemNameInput.toUpperCase();
-        unitPrice = 86; 
+        // අංකයක් පමණක් දී ඇත්නම් (උදා: 1000, 2700, ආදී diamond ප්‍රමාණයක්)
+        const numericInput = parseInt(itemNameInput.replace(/[^0-9]/g, ""));
+        if (!isNaN(numericInput) && numericInput > 0) {
+            unitPrice = calculateCustomDiamonds(numericInput);
+            displayItemName = `${numericInput} DIAMONDS`;
+        } else {
+            // වෙනත් අක්ෂර සහිත අයිටම් එකක් නම්
+            displayItemName = itemNameInput.toUpperCase();
+            unitPrice = 86; 
+        }
     }
 
     const totalPrice = unitPrice * quantity;
@@ -99,18 +133,16 @@ cmd({
 📦 \`Item:\` \`\`\`${displayItemName}\`\`\` 
 🔢 \`Quantity:\` \`\`\`${quantity}\`\`\` 
 💎 \`Price/Unit:\` \`\`\`${unitPrice} SHELLS\`\`\` 
-💰 \`Total:\` \`\`\`${totalPrice} SHELLS\`\`\` 
+💰 \`Total:\` \`\`֥${totalPrice} SHELLS\`\`\` 
 ⚡ \`Estimated Time:\` \`\`\`~5 Seconds\`\`\` 
 
 *⏳ Please wait a moment while we complete your top-up.*`;
 
     try {
-        // පළමු මැසේජ් එක යැවීම
         const sentMsg = await conn.sendMessage(from, { 
             text: processingMsgText 
         }, { quoted: mek });
 
-        // යැවූ මැසේජ් එකට ⏳ Reaction එක දැමීම
         await conn.sendMessage(from, { react: { text: "⏳", key: sentMsg.key } }).catch(() => {});
 
         // 6. තත්පර 30 කට පසු Completion මැසේජ් එක යැවීම
@@ -133,12 +165,11 @@ cmd({
                     text: completedMsgText 
                 }, { quoted: sentMsg });
 
-                // මැසේජ් එකට ✅ Reaction එක දැමීම
                 await conn.sendMessage(from, { react: { text: "✅", key: finishedMsg.key } }).catch(() => {});
             } catch (err) {
                 console.error("Top-up Completion Error:", err);
             }
-        }, 30000); // තත්පර 30 (30000 ms)
+        }, 30000); // තත්පර 30
 
     } catch (err) {
         console.error("Top-up Error:", err);
