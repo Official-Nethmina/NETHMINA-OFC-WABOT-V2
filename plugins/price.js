@@ -2,7 +2,7 @@ const { cmd } = require('../command');
 const axios = require('axios');
 
 // Price List Image URL එක
-const priceImageUrl = "https://github.com/Official-Nethmina/Database/blob/main/2026%20Blue%20Color%20New%20Style%20diamond%20Post.png?raw=true";
+const priceImageUrl = "https://github.com/Official-Nethmina/Database/blob/main/2026%20Blue%20Color%20New%20Style%20diamond%20Post%20-%20Updated.png?raw=true";
 
 cmd({
     pattern: "price",
@@ -44,10 +44,10 @@ cmd({
 🔹 \`MEMBERSHIP LIST\`
 
 - Weekly Lite - LKR 130   
-- Weekly - LKR 570   
-- Monthly Lite - LKR 320   
+- Weekly - LKR 570      
 - Monthly - LKR 2,770   
-- Super VIP (S VIP) - LKR 4,970   
+- VIP - LKR 3,340
+- Super VIP (S VIP) - LKR 5,050   
 
 🔹 \`LEVEL UP PASS (ID)\`
 
@@ -68,7 +68,7 @@ cmd({
 
 *ℹ️ Note: When making an EzCash payment, pay an additional LKR 20.*
 
-> © ᴘᴏᴡᴇʀ𝚎𝚍 𝚋𝚢 𝚗𝚎𝚝𝚑𝚖𝚒𝚗𝚊 𝚘ꜰ𝚌 ||`;
+> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ ɴᴇᴛʜᴍɪɴᴀ ᴏꜰᴄ ||`;
 
     try {
         // 3. Image එක Buffer එකක් ලෙස ඩවුන්ඩෝඩ් කර කැප්ෂන් එක සමඟ යැවීම (Reliable Method)
