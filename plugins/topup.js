@@ -133,7 +133,7 @@ cmd({
 📦 \`Item:\` \`\`\`${displayItemName}\`\`\` 
 🔢 \`Quantity:\` \`\`\`${quantity}\`\`\` 
 💎 \`Price/Unit:\` \`\`\`${unitPrice} SHELLS\`\`\` 
-💰 \`Total:\` \`\`֥${totalPrice} SHELLS\`\`\` 
+💰 \`Total:\` \`\`\`${totalPrice} SHELLS\`\`\` 
 ⚡ \`Estimated Time:\` \`\`\`~5 Seconds\`\`\` 
 
 *⏳ Please wait a moment while we complete your top-up.*`;
